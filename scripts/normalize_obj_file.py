@@ -3,15 +3,30 @@ import argparse
 
 
 def parse_obj_file(obj_file_path):
+    # parse vertices, normals, faces, and texture coordinates from an obj file
     vertices = []
+    normals = []
+    texture_coords = []
+    faces = []
 
     with open(obj_file_path, "r") as obj_file:
         for line in obj_file:
-            if line.startswith("v "):  # Vertex line
-                _, x, y, z = line.split()
-                vertices.append([float(x), float(y), float(z)])
+            if line.startswith("v "):
+                vertices.append([float(x) for x in line.strip().split()[1:]])
+            elif line.startswith("vn "):
+                normals.append([float(x) for x in line.strip().split()[1:]])
+            elif line.startswith("vt "):
+                texture_coords.append([float(x) for x in line.strip().split()[1:]])
+            elif line.startswith("f "):
+                face = line.strip().split()[1:]
+                faces.append([list(map(int, vertex.split("/"))) for vertex in face])
 
-    return np.array(vertices)
+    vertices = np.array(vertices)
+    normals = np.array(normals)
+    texture_coords = np.array(texture_coords)
+    faces = np.array(faces)
+
+    return vertices, normals, texture_coords, faces
 
 
 def normalize_vertices(vertices):
@@ -45,15 +60,16 @@ def save_normalized_obj(obj_file_path, normalized_vertices, output_file_path):
 
 # make this into a cli script that takes in an input obj path and an output obj path
 
-args = argparse.ArgumentParser()
-args.add_argument("--input", type=str, required=True)
-args.add_argument("--output", type=str, required=True)
+if __name__ == "__main__":
+	args = argparse.ArgumentParser()
+	args.add_argument("--input", type=str, required=True)
+	args.add_argument("--output", type=str, required=True)
 
-args = args.parse_args()
+	args = args.parse_args()
 
-vertices = parse_obj_file(args.input)
-normalized_vertices = normalize_vertices(vertices)
-save_normalized_obj(args.input, normalized_vertices, args.output)
+	vertices = parse_obj_file(args.input)[0]
+	normalized_vertices = normalize_vertices(vertices)
+	save_normalized_obj(args.input, normalized_vertices, args.output)
 
 # Run the script with the following command:
 # python normalize_obj_file.py --input input.obj --output output.obj
