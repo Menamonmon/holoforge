@@ -1,0 +1,6 @@
+<testsuites name="results">
+  <testsuite name="all" package="all">
+    <property name="random_seed" value="1728516051" />
+    <testcase name="test_a" classname="test_image_sprite" file="/Users/menaf/Downloads/dev/mit/classes/fa24/6.2050/labs/lab05/sim/test_image_sprite.py" lineno="20" time="0.06637787818908691" sim_time_ns="10410.001" ratio_time="156829.3727368871" />
+  </testsuite>
+</testsuites>
