@@ -1,0 +1,93 @@
+#! /opt/homebrew/Cellar/icarus-verilog/12.0/bin/vvp
+:ivl_version "12.0 (stable)";
+:ivl_delay_selection "TYPICAL";
+:vpi_time_precision + 0;
+:vpi_module "/opt/homebrew/Cellar/icarus-verilog/12.0/lib/ivl/system.vpi";
+:vpi_module "/opt/homebrew/Cellar/icarus-verilog/12.0/lib/ivl/vhdl_sys.vpi";
+:vpi_module "/opt/homebrew/Cellar/icarus-verilog/12.0/lib/ivl/vhdl_textio.vpi";
+:vpi_module "/opt/homebrew/Cellar/icarus-verilog/12.0/lib/ivl/v2005_math.vpi";
+:vpi_module "/opt/homebrew/Cellar/icarus-verilog/12.0/lib/ivl/va_math.vpi";
+:vpi_module "/opt/homebrew/Cellar/icarus-verilog/12.0/lib/ivl/v2009.vpi";
+S_0x14f704210 .scope package, "$unit" "$unit" 2 1;
+ .timescale 0 0;
+S_0x14f7043b0 .scope module, "triangle_constructor" "triangle_constructor" 3 16;
+ .timescale 0 0;
+    .port_info 0 /INPUT 1 "clk_in";
+    .port_info 1 /INPUT 1 "rst_in";
+    .port_info 2 /INPUT 1 "ready_in";
+    .port_info 3 /OUTPUT 144 "tri_vertices_out";
+    .port_info 4 /OUTPUT 10 "tri_id_out";
+    .port_info 5 /OUTPUT 1 "valid_out";
+P_0x14f704520 .param/l "DATA_WIDTH" 1 3 28, +C4<000000000000000000000000000000000000000000000000000000000000000000000000000000000000000010010000>;
+P_0x14f704560 .param/l "MAX_COUNT" 0 3 17, +C4<00000000000000000000010000000000>;
+o0x140008010 .functor BUFZ 1, C4<z>; HiZ drive
+v0x14f704820_0 .net "clk_in", 0 0, o0x140008010;  0 drivers
+o0x140008040 .functor BUFZ 1, C4<z>; HiZ drive
+v0x14f7148a0_0 .net "ready_in", 0 0, o0x140008040;  0 drivers
+o0x140008070 .functor BUFZ 1, C4<z>; HiZ drive
+v0x14f714940_0 .net "rst_in", 0 0, o0x140008070;  0 drivers
+v0x14f7149d0_0 .var "tri_id_out", 9 0;
+v0x14f714a80 .array/s "tri_vertices_out", 8 0, 15 0;
+v0x14f714c40_0 .var "valid_out", 0 0;
+v0x14f714ce0_0 .var "vertices_out", 143 0;
+E_0x14f704620/0 .event anyedge, v0x14f714ce0_0, v0x14f714ce0_0, v0x14f714ce0_0, v0x14f714ce0_0;
+E_0x14f704620/1 .event anyedge, v0x14f714ce0_0, v0x14f714ce0_0, v0x14f714ce0_0, v0x14f714ce0_0;
+E_0x14f704620/2 .event anyedge, v0x14f714ce0_0;
+E_0x14f704620 .event/or E_0x14f704620/0, E_0x14f704620/1, E_0x14f704620/2;
+    .scope S_0x14f7043b0;
+T_0 ;
+Ewait_0 .event/or E_0x14f704620, E_0x0;
+    %wait Ewait_0;
+    %load/vec4 v0x14f714ce0_0;
+    %parti/s 16, 0, 2;
+    %ix/load 4, 0, 0;
+    %flag_set/imm 4, 0;
+    %store/vec4a v0x14f714a80, 4, 0;
+    %load/vec4 v0x14f714ce0_0;
+    %parti/s 16, 16, 6;
+    %ix/load 4, 1, 0;
+    %flag_set/imm 4, 0;
+    %store/vec4a v0x14f714a80, 4, 0;
+    %load/vec4 v0x14f714ce0_0;
+    %parti/s 16, 32, 7;
+    %ix/load 4, 2, 0;
+    %flag_set/imm 4, 0;
+    %store/vec4a v0x14f714a80, 4, 0;
+    %load/vec4 v0x14f714ce0_0;
+    %parti/s 16, 48, 7;
+    %ix/load 4, 3, 0;
+    %flag_set/imm 4, 0;
+    %store/vec4a v0x14f714a80, 4, 0;
+    %load/vec4 v0x14f714ce0_0;
+    %parti/s 16, 64, 8;
+    %ix/load 4, 4, 0;
+    %flag_set/imm 4, 0;
+    %store/vec4a v0x14f714a80, 4, 0;
+    %load/vec4 v0x14f714ce0_0;
+    %parti/s 16, 80, 8;
+    %ix/load 4, 5, 0;
+    %flag_set/imm 4, 0;
+    %store/vec4a v0x14f714a80, 4, 0;
+    %load/vec4 v0x14f714ce0_0;
+    %parti/s 16, 96, 8;
+    %ix/load 4, 6, 0;
+    %flag_set/imm 4, 0;
+    %store/vec4a v0x14f714a80, 4, 0;
+    %load/vec4 v0x14f714ce0_0;
+    %parti/s 16, 112, 8;
+    %ix/load 4, 7, 0;
+    %flag_set/imm 4, 0;
+    %store/vec4a v0x14f714a80, 4, 0;
+    %load/vec4 v0x14f714ce0_0;
+    %parti/s 16, 128, 9;
+    %ix/load 4, 8, 0;
+    %flag_set/imm 4, 0;
+    %store/vec4a v0x14f714a80, 4, 0;
+    %jmp T_0;
+    .thread T_0, $push;
+# The file index is used to find the file name in the following table.
+:file_names 4;
+    "N/A";
+    "<interactive>";
+    "-";
+    "hdl/triangle_constructor.sv";
