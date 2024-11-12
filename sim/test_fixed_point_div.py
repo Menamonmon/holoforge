@@ -10,179 +10,474 @@ from cocotb.binary import BinaryValue
 
 import random
 import math
-
-# A_size, B_size = random.randint(18, 18), random.randint(11, 11)
-# A_frac, B_frac = random.randint(0, A_size - 1), random.randint(0, B_size - 1)
-# P_frac = (A_frac + B_frac) // 2
-# n = 3
-# parameters = {
-#     "A_WIDTH": A_size,
-#     "B_WIDTH": B_size,
-#     "A_FRAC_BITS": A_frac,
-#     "B_FRAC_BITS": B_frac,
-#     "P_FRAC_BITS": P_frac,
-#     "N": n,
-# }
+from FixedPoint import FXnum, FXfamily
 
 
-def print_twos_complement(num, bit_size):
-    # Mask the number to fit within the specified bit_size
-    raw_binary = get_twos_complement(num, bit_size)
-    print(f"{num} = {raw_binary}")
+## Project F Library - div Test Bench (cocotb)
+## (C)2023 Will Green, open source software released under the MIT License
+## Learn more at https://projectf.io/verilog-lib/
+
+import cocotb
+from cocotb.clock import Clock
+from cocotb.triggers import RisingEdge, Timer
+
+from FixedPoint import FXfamily, FXnum
+
+WIDTH = 20 # must match Makefile
+FRAC_BITS = 14  # must match Makefile
+fp_family = FXfamily(
+	n_bits=FRAC_BITS, n_intbits=WIDTH - FRAC_BITS
+)  # need +1 because n_intbits includes sign
 
 
-def get_twos_complement(num, bit_size):
-    raw_binary = format(num & ((1 << bit_size) - 1), f"0{bit_size}b")
-    return raw_binary
+async def reset_dut(dut):
+	await RisingEdge(dut.clk_in)
+	dut.rst_in.value = 0
+	await RisingEdge(dut.clk_in)
+	dut.rst_in.value = 1
+	await RisingEdge(dut.clk_in)
+	dut.rst_in.value = 0
+	await RisingEdge(dut.clk_in)
 
 
-def pack_values(values, size):
-    # pack the values in a string of bits
-    return "".join([get_twos_complement(v, size) for v in reversed(values)])
+async def test_dut_divide(dut, a, b, log=True):
+	cocotb.start_soon(Clock(dut.clk_in, 1, units="ns").start())
+	await reset_dut(dut)
+
+	await RisingEdge(dut.clk_in)
+	dut.A.value = BinaryValue(FXnum(a, fp_family).toBinaryString().replace(".", ""))
+	dut.B.value = BinaryValue(FXnum(b, fp_family).toBinaryString().replace(".", ""))
+	dut.valid_in.value = 1
+
+	await RisingEdge(dut.clk_in)
+	dut.valid_in.value = 0
+
+	# wait for calculation to complete
+	while not dut.done.value:
+		await RisingEdge(dut.clk_in)
+
+	# model quotient: covert twice to ensure division is handled consistently
+	#                 https://github.com/rwpenney/spfpm/issues/14
+	model_val = fp_family(float(fp_family(a)) / float(fp_family(b)))
+
+	# divide dut result by scaling factor
+	val = fp_family(dut.Q.value.signed_integer / 2**FRAC_BITS)
+
+	# log numerical signals
+	if log:
+		dut._log.info("dut a:     " + dut.A.value.binstr)
+		dut._log.info("dut b:     " + dut.B.value.binstr)
+		dut._log.info("dut val:   " + dut.Q.value.binstr)
+		dut._log.info(
+			"           " + val.toDecimalString(precision=fp_family.fraction_bits)
+		)
+		dut._log.info("model val: " + model_val.toBinaryString())
+		dut._log.info(
+			"           " + model_val.toDecimalString(precision=fp_family.fraction_bits)
+		)
+
+	# check output signals on 'done'
+	assert dut.busy.value == 0, "busy is not 0!"
+	assert dut.done.value == 1, "done is not 1!"
+	assert dut.valid_out.value == 1, "valid is not 1!"
+	assert dut.zerodiv.value == 0, "dbz is not 0!"
+	assert dut.overflow.value == 0, "ovf is not 0!"
+	assert val == model_val, "dut val doesn't match model val"
+
+	# check 'done' is high for one tick
+	await RisingEdge(dut.clk_in)
+	assert dut.done.value == 0, "done is not 0!"
 
 
-def generate_twos_complement_random(A_size):
-    # Generate a random integer within the range for two's complement with A_size bits
-    min_val = -(1 << (A_size - 1))
-    max_val = (1 << (A_size - 1)) - 1
-    return random.randint(min_val, max_val)
+# simple division tests (no rounding required)
+@cocotb.test()
+async def simple_1(dut):
+	"""Test 6/2"""
+	await test_dut_divide(dut=dut, a=6, b=2)
 
 
 @cocotb.test()
-async def test_fixed_point_div(dut):
-    cocotb.start_soon(
-        Clock(dut.clk_in, 2, units="ns").start()
-    )  # Slower clock for clk_in
+async def simple_2(dut):
+	"""Test 15/3"""
+	await test_dut_divide(dut=dut, a=15, b=3)
 
-    await ClockCycles(dut.clk_in, 2)
-    # await ReadOnly()
-    # reset test
-    dut.rst_in.value = 1
-    await ClockCycles(dut.clk_in, 2)
 
-    # assert dut.P.value == 0
-    assert dut.i.value == 0
-    assert dut.valid_out.value == 0
+@cocotb.test()
+async def simple_3(dut):
+	"""Test 13/4"""
+	await test_dut_divide(dut=dut, a=13, b=4)
 
-    dut.rst_in.value = 0
 
-    await ClockCycles(dut.clk_in, 2)
+@cocotb.test()
+async def simple_4(dut):
+	"""Test 3/12"""
+	await test_dut_divide(dut=dut, a=3, b=12)
 
-    # make a list of tests with variable size
-    test_count = 100
-    A_size = dut.A_WIDTH.value
-    B_size = dut.B_WIDTH.value
-    A_frac_bits = dut.A_FRAC_BITS.value
-    B_frac_bits = dut.B_FRAC_BITS.value
-    P_frac_bits = dut.P_FRAC_BITS.value
-    P_extra_frac_bits = A_frac_bits + B_frac_bits - P_frac_bits
-    assert P_extra_frac_bits >= 0, f"P_extra_frac_bits: {P_extra_frac_bits} < 0"
-    n = dut.N.value
 
-    for t in range(test_count):
-        # all the ranges that are made by two complement
+@cocotb.test()
+async def simple_5(dut):
+	"""Test 7.5/2"""
+	await test_dut_divide(dut=dut, a=7.5, b=2)
 
-        A_vec = [generate_twos_complement_random(A_size) for i in range(n)]
-        B_vec = [generate_twos_complement_random(B_size) for i in range(n)]
-        # max and min numbers
-        # 1
-        # 1 + 4 = 5
-        # 5 + 9 = 14
 
-        # go through all the possible combinations of values for A_vec and B_vec
+# sign tests
+@cocotb.test()
+async def sign_1(dut):
+	"""Test 3/2"""
+	await test_dut_divide(dut=dut, a=3, b=2)
 
-        # combine the vectors into a single value
 
-        # print A and B as hex numbers (both A_vec and A and B)
+@cocotb.test()
+async def sign_2(dut):
+	"""Test -3/2"""
+	await test_dut_divide(dut=dut, a=-3, b=2)
 
-        dut.A.value = BinaryValue(
-            pack_values(A_vec, A_size), n_bits=A_size * n, bigEndian=False
-        )
-        dut.B.value = BinaryValue(
-            pack_values(B_vec, B_size), n_bits=B_size * n, bigEndian=False
-        )
-        dut.valid_in.value = 1
-        await ClockCycles(dut.clk_in, 1)
-        dut.valid_in.value = 0
-        P_size = A_size + B_size + math.ceil(math.log2(n))
-        P = 0
-        for i in range(n):
-            await ClockCycles(dut.clk_in, 1)
-            P += A_vec[i] * B_vec[i]
-            assert (
-                dut.ACC_WIDTH.value == P_size
-            ), f"ACC_WIDTH: {dut.ACC_WIDTH.value} != {P_size}"
-            # assert math.ceil(math.log2(P)) <= dut.ACC_WIDTH.value, f"Overflow detected: {P} > {dut.FULL_WIDTH.value}"
-            assert (
-                P == dut.accumulator.value.signed_integer
-            ), f"i: {i}, A: {A_vec[i]}, B: {B_vec[i]}, P: {P} != {dut.accumulator.value.signed_integer}"
 
-        assert dut.valid_out.value == 1
-        out = dut.P.value.signed_integer
+@cocotb.test()
+async def sign_3(dut):
+	"""Test 3/-2"""
+	await test_dut_divide(dut=dut, a=3, b=-2)
 
-        assert out == P >> P_extra_frac_bits, f"({A_vec}) * ({B_vec}) = {P} != {out}"
+
+@cocotb.test()
+async def sign_4(dut):
+	"""Test -3/-2"""
+	await test_dut_divide(dut=dut, a=-3, b=-2)
+
+
+# rounding tests
+@cocotb.test()
+async def round_1(dut):
+	"""Test 5.0625/2"""
+	await test_dut_divide(dut=dut, a=5.0625, b=2)
+
+
+@cocotb.test()
+async def round_2(dut):
+	"""Test 7.0625/2"""
+	await test_dut_divide(dut=dut, a=7.0625, b=2)
+
+
+@cocotb.test()
+async def round_3(dut):
+	"""Test 15.9375/2"""
+	await test_dut_divide(dut=dut, a=15.9375, b=2)
+
+
+@cocotb.test()
+async def round_4(dut):
+	"""Test 14.9375/2"""
+	await test_dut_divide(dut=dut, a=14.9375, b=2)
+
+
+@cocotb.test()
+async def round_5(dut):
+	"""Test 13/7"""
+	await test_dut_divide(dut=dut, a=13, b=7)
+
+
+@cocotb.test()
+async def round_6(dut):
+	"""Test 8.1875/4"""
+	await test_dut_divide(dut=dut, a=8.1875, b=4)
+
+
+@cocotb.test()
+async def round_7(dut):
+	"""Test 12.3125/8"""
+	await test_dut_divide(dut=dut, a=12.3125, b=8)
+
+
+@cocotb.test()
+async def round_8(dut):  # negative
+	"""Test -7.0625/2"""
+	await test_dut_divide(dut=dut, a=-7.0625, b=2)
+
+
+@cocotb.test()
+async def round_9(dut):  # negative
+	"""Test -5.0625/2"""
+	await test_dut_divide(dut=dut, a=-5.0625, b=2)
+
+
+# min edge tests
+@cocotb.test()
+async def min_1(dut):
+	"""Test 0.125/2"""
+	await test_dut_divide(dut=dut, a=0.125, b=2)
+
+
+@cocotb.test()
+async def min_2(dut):
+	"""Test 0.0625/2"""
+	await test_dut_divide(dut=dut, a=0.0625, b=2)
+
+
+@cocotb.test()
+async def min_3(dut):
+	"""Test 0/2"""
+	await test_dut_divide(dut=dut, a=0, b=2)
+
+
+@cocotb.test()
+async def min_4(dut):  # negative
+	"""Test -0.0625/2"""
+	await test_dut_divide(dut=dut, a=-0.0625, b=2)
+
+
+# max edge tests
+@cocotb.test()
+async def max_1(dut):
+	"""Test 15.9375/1"""
+	await test_dut_divide(dut=dut, a=15.9375, b=1)
+
+
+@cocotb.test()
+async def max_2(dut):
+	"""Test 7.9375/0.5"""
+	await test_dut_divide(dut=dut, a=7.9375, b=0.5)
+
+
+@cocotb.test()
+async def max_3(dut):  # negative
+	"""Test -15.9375/1"""
+	await test_dut_divide(dut=dut, a=-15.9375, b=1)
+
+
+@cocotb.test()
+async def max_4(dut):  # negative
+	"""Test -7.9375/0.5"""
+	await test_dut_divide(dut=dut, a=-7.9375, b=0.5)
+
+
+# test non-binary values (can't be precisely represented in binary)
+@cocotb.test()
+async def nonbin_1(dut):
+	"""Test 1/0.2"""
+	await test_dut_divide(dut=dut, a=1, b=0.2)
+
+
+@cocotb.test()
+async def nonbin_2(dut):
+	"""Test 1.9/0.2"""
+	await test_dut_divide(dut=dut, a=1.9, b=0.2)
+
+
+@cocotb.test()
+async def nonbin_3(dut):
+	"""Test 0.4/0.2"""
+	await test_dut_divide(dut=dut, a=0.4, b=0.2)
+
+
+# test fails - model and DUT choose different sides of true value
+@cocotb.test()
+async def nonbin_4(dut):
+	"""Test 3.6/0.6"""
+	await test_dut_divide(dut=dut, a=3.6, b=0.6)
+
+
+# test fails - model and DUT choose different sides of true value
+@cocotb.test()
+async def nonbin_5(dut):
+	"""Test 0.4/0.1"""
+	await test_dut_divide(dut=dut, a=0.4, b=0.1)
+
+
+# divide by zero and overflow tests
+@cocotb.test()
+async def dbz_1(dut):
+	"""Test 2/0 [div by zero]"""
+	cocotb.start_soon(Clock(dut.clk_in, 1, units="ns").start())
+	await reset_dut(dut)
+
+	await RisingEdge(dut.clk_in)
+	a = 2
+	b = 0
+	dut.A.value = int(a * 2**FRAC_BITS)
+	dut.B.value = int(b * 2**FRAC_BITS)
+	dut.valid_in.value = 1
+
+	await RisingEdge(dut.clk_in)
+	dut.valid_in.value = 0
+
+	# wait for calculation to complete
+	while not dut.done.value:
+		await RisingEdge(dut.clk_in)
+
+	# check output signals on 'done'
+	assert dut.busy.value == 0, "busy is not 0!"
+	assert dut.done.value == 1, "done is not 1!"
+	assert dut.valid_out.value == 0, "valid is not 0!"
+	assert dut.zerodiv.value == 1, "dbz is not 1!"
+	assert dut.overflow.value == 0, "ovf is not 0!"
+
+	# check 'done' is high for one tick
+	await RisingEdge(dut.clk_in)
+	assert dut.done.value == 0, "done is not 0!"
+
+
+@cocotb.test()
+async def dbz_2(dut):
+	"""Test 13/4 [after dbz]"""
+	await test_dut_divide(dut=dut, a=13, b=4)
+
+# @cocotb.test()
+async def ovf_1(dut):
+	"""Test 8/0.25 [overflow]"""
+	cocotb.start_soon(Clock(dut.clk_in, 1, units="ns").start())
+	await reset_dut(dut)
+
+	await RisingEdge(dut.clk_in)
+	a = 8
+	b = 0.25
+	dut.A.value = int(a * 2**FRAC_BITS)
+	dut.B.value = int(b * 2**FRAC_BITS)
+	dut.valid_in.value = 1
+
+	await RisingEdge(dut.clk_in)
+	dut.valid_in.value = 0
+
+	# wait for calculation to complete
+	while not dut.done.value:
+		await RisingEdge(dut.clk_in)
+
+	# check output signals on 'done'
+	assert dut.busy.value == 0, "busy is not 0!"
+	assert dut.done.value == 1, "done is not 1!"
+	assert dut.valid_out.value == 0, "valid is not 0"
+	assert dut.zerodiv.value == 0, "dbz is not 0!"
+	assert dut.overflow.value == 1, "ovf is not 1!"
+
+	# check 'done' is high for one tick
+	await RisingEdge(dut.clk_in)
+	assert dut.done.value == 0, "done is not 0!"
+
+
+@cocotb.test()
+async def ovf_2(dut):
+	"""Test 11/7 [after ovf]"""
+	await test_dut_divide(dut=dut, a=11, b=7)
+
+
+# @cocotb.test()
+async def ovf_3(dut):
+	"""Test -16/1 [overflow]"""
+	cocotb.start_soon(Clock(dut.clk_in, 1, units="ns").start())
+	await reset_dut(dut)
+
+	await RisingEdge(dut.clk_in)
+	a = -16
+	b = 1
+	dut.A.value = int(a * 2**FRAC_BITS)
+	dut.B.value = int(b * 2**FRAC_BITS)
+	dut.valid_in.value = 1
+
+	await RisingEdge(dut.clk_in)
+	dut.valid_in.value = 0
+
+	# wait for calculation to complete
+	while not dut.done.value:
+		await RisingEdge(dut.clk_in)
+
+	# check output signals on 'done'
+	assert dut.busy.value == 0, "busy is not 0!"
+	assert dut.done.value == 1, "done is not 1!"
+	assert dut.valid_out.value == 0, "valid is not 0"
+	assert dut.zerodiv.value == 0, "dbz is not 0!"
+	assert dut.overflow.value == 1, "ovf is not 1!"
+
+	# check 'done' is high for one tick
+	await RisingEdge(dut.clk_in)
+	assert dut.done.value == 0, "done is not 0!"
+
+
+# @cocotb.test()
+async def ovf_4(dut):
+	"""Test 1/-16 [overflow]"""
+	cocotb.start_soon(Clock(dut.clk_in, 1, units="ns").start())
+	await reset_dut(dut)
+
+	await RisingEdge(dut.clk_in)
+	a = 1
+	b = -16
+	dut.A.value = int(a * 2**FRAC_BITS)
+	dut.B.value = int(b * 2**FRAC_BITS)
+	dut.valid_in.value = 1
+
+	await RisingEdge(dut.clk_in)
+	dut.valid_in.value = 0
+
+	# wait for calculation to complete
+	while not dut.done.value:
+		await RisingEdge(dut.clk_in)
+
+	# check output signals on 'done'
+	assert dut.busy.value == 0, "busy is not 0!"
+	assert dut.done.value == 1, "done is not 1!"
+	assert dut.valid_out.value == 0, "valid is not 0"
+	assert dut.zerodiv.value == 0, "dbz is not 0!"
+	assert dut.overflow.value == 1, "ovf is not 1!"
+
+	# check 'done' is high for one tick
+	await RisingEdge(dut.clk_in)
+	assert dut.done.value == 0, "done is not 0!"
+
+
+def print_twos_complement(num, bit_size):
+	# Mask the number to fit within the specified bit_size
+	raw_binary = get_twos_complement(num, bit_size)
+	print(f"{num} = {raw_binary}")
+
+
+def get_twos_complement(num, bit_size):
+	raw_binary = format(num & ((1 << bit_size) - 1), f"0{bit_size}b")
+	return raw_binary
+
+
+def pack_values(values, size):
+	# pack the values in a string of bits
+	return "".join([get_twos_complement(v, size) for v in reversed(values)])
+
+
+def generate_twos_complement_random(A_size):
+	# Generate a random integer within the range for two's complement with A_size bits
+	min_val = -(1 << (A_size - 1))
+	max_val = (1 << (A_size - 1)) - 1
+	return random.randint(min_val, max_val)
 
 
 def gen_params():
-    # iterator that yields all the possible parameter values
-    A_size_range = range(3, 18)
-    B_size_range = range(3, 25)
-    A_frac_range = 0  # to A_size - 1
-    B_frac_range = 0  # to B_size - 1
-    P_frac_range = 0  # to A_frac + B_frac
-    n = range(3, 10)
-    A_size_range = range(18, 19)
-    B_size_range = range(25, 26)
-    A_frac_range = 0  # to A_size - 1
-    B_frac_range = 0  # to B_size - 1
-    P_frac_range = 0  # to A_frac + B_frac
-    n = range(3, 4)
-
-    for A_size in A_size_range:
-        for B_size in B_size_range:
-            for A_frac in range(A_size):
-                for B_frac in range(B_size):
-                    for P_frac in range(A_frac + B_frac):
-                        for n_val in n:
-                            yield {
-                                "A_WIDTH": A_size,
-                                "B_WIDTH": B_size,
-                                "A_FRAC_BITS": A_frac,
-                                "B_FRAC_BITS": B_frac,
-                                "P_FRAC_BITS": P_frac,
-                                "N": n_val,
-                            }
-
+	yield {"WIDTH": WIDTH, "FRAC_BITS": FRAC_BITS}
 
 def main():
-    """Simulate the counter using the Python runner."""
-    sim = os.getenv("SIM", "icarus")
-    proj_path = Path(__file__).resolve().parent.parent
-    sys.path.append(str(proj_path / "sim" / "model"))
-    sources = [proj_path / "src" / "hdl" / "common" / "fixed_point_div.sv"]
-    build_test_args = ["-Wall"]
-    sys.path.append(str(proj_path / "sim"))
-    runner = get_runner(sim)
-    for params in gen_params():
-        print("RUNNING TEST FOR PARAMS", params)
-        # parameters.update(params)
-        runner.build(
-            sources=sources,
-            hdl_toplevel="fixed_point_div",
-            always=True,
-            build_args=build_test_args,
-            parameters=params,
-            timescale=("1ns", "1ps"),
-            waves=True,
-        )
-        run_test_args = []
-        runner.test(
-            hdl_toplevel="fixed_point_div",
-            test_module="test_fixed_point_div",
-            test_args=run_test_args,
-            waves=True,
-        )
+	"""Simulate the counter using the Python runner."""
+	sim = os.getenv("SIM", "icarus")
+	proj_path = Path(__file__).resolve().parent.parent
+	sys.path.append(str(proj_path / "sim" / "model"))
+	sources = [proj_path / "src" / "hdl" / "common" / "fixed_point_div.sv"]
+	build_test_args = ["-Wall"]
+	sys.path.append(str(proj_path / "sim"))
+	runner = get_runner(sim)
+	for params in gen_params():
+		print("RUNNING TEST FOR PARAMS", params)
+		# parameters.update(params)
+		runner.build(
+			sources=sources,
+			hdl_toplevel="fixed_point_div",
+			always=True,
+			build_args=build_test_args,
+			parameters=params,
+			timescale=("1ns", "1ps"),
+			waves=True,
+		)
+		run_test_args = []
+		runner.test(
+			hdl_toplevel="fixed_point_div",
+			test_module="test_fixed_point_div",
+			test_args=run_test_args,
+			waves=True,
+		)
 
 
 if __name__ == "__main__":
-    main()
+	main()
