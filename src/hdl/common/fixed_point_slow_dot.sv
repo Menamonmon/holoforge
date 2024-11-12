@@ -12,14 +12,14 @@ module fixed_point_slow_dot #(
     input wire signed [N-1:0][B_WIDTH-1:0] B,  // Qm2.n2 format
     input wire valid_in,
     output logic valid_out,
-    output logic signed [ACC_WIDTH - 1:0] P  // Qp.np format
+    output logic signed [P_WIDTH - 1:0] P  // Qp.np format
 );
 
   // Internal parameters
   localparam PRODUCT_WIDTH = A_WIDTH + B_WIDTH;
   localparam EXTRA_FRAC_BITS = A_FRAC_BITS + B_FRAC_BITS - P_FRAC_BITS;
   localparam ACC_WIDTH = PRODUCT_WIDTH + $clog2(N);
-
+  localparam P_WIDTH = A_WIDTH + B_WIDTH - EXTRA_FRAC_BITS;
   // Accumulator and loop index
   logic signed [ACC_WIDTH-1:0] accumulator;
   logic [$clog2(N)-1:0] i;
@@ -49,6 +49,6 @@ module fixed_point_slow_dot #(
   end
 
   // Adjust accumulator for fractional bits
-  assign P = accumulator;
+  assign P = accumulator >>> EXTRA_FRAC_BITS;
 
 endmodule
