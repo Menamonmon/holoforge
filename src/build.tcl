@@ -22,7 +22,7 @@ if {[llength $files] != 0} {
 }
 
 # read in all system verilog files:
-set sources_sv [ glob ./hdl/*.sv ]
+set sources_sv [ glob ./hdl/*.sv ./hdl/common/*.sv ]
 read_verilog -sv $sources_sv
 
 # read in all (if any) verilog files:

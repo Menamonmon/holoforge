@@ -2,3 +2,9 @@
 /_history
 /sim_build
 .DS_Store
+a.out
+
+**/__pycache__/
+**/_history/**
+
+**/a.out
