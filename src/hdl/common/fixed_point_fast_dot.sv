@@ -37,7 +37,7 @@ module fixed_point_fast_dot #(
     A_2<=0;
     A_3<=0;
     B_1<=0;
-    B_2<=0;.
+    B_2<=0;
     B_3<=0;
     P_1<=0;
     P_2<=0;
