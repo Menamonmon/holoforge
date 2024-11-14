@@ -14,5 +14,6 @@ module fixed_point_fast_dot #(
   localparam PRODUCT_WIDTH = A_WIDTH + B_WIDTH;
   localparam TOTAL_FRAC_BITS = A_FRAC_BITS + B_FRAC_BITS;
 
+
 endmodule
 
