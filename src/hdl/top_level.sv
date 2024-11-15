@@ -51,21 +51,13 @@ module top_level (
   assign A = 32'sd0;
   assign B = 32'sd0;
 
-  fixed_point_div #(
-      .WIDTH(32),
-      .FRAC_BITS(14)
-  ) test_div (
+  fixed_point_fast_dot#(.A_WIDTH(25),.B_WIDTH(18)) 
+   test_div (
       .clk_in(clk_100mhz),
       .rst_in(1'b0),
-      .valid_in(1'b1),
       .A(btn[0]),
       .B(btn[1]),
-      .done(outs[0]),
-      .busy(outs[1]),
-      .valid_out(outs[2]),
-      .zerodiv(outs[3]),
-      .overflow(outs[4]),
-      .Q(P)
+      .D(P)
   );
   assign led = P[15:0];
 
