@@ -12,7 +12,7 @@ module counter #(
     if (rst_in == 1) begin
       count_out <= 0;
     end else begin
-      if (count_out == period_in - 1) begin
+      if (count_out < period_in - 1) begin
         count_out <= count_out + 1;
       end else begin
         count_out <= 0;

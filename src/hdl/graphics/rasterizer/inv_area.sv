@@ -1,8 +1,8 @@
 module inv_area #(
-    XWIDTH = 16,
-    YWIDTH = 16,
-    FRAC = 14,
-    N = 3
+    parameter XWIDTH = 16,
+    parameter YWIDTH = 16,
+    parameter FRAC = 14,
+    parameter N = 3
 ) (
     input wire clk_in,
     input wire rst_in,
