@@ -1,6 +1,6 @@
 `timescale 1ns / 1ps `default_nettype none
 module pipeline #(
-    parameter STAGES,
+    parameter STAGES,    
     parameter DATA_WIDTH
 ) (
     input wire clk_in,
