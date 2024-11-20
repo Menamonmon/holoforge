@@ -176,6 +176,13 @@ async def test_inv_area(dut):
 			if is_in_tri:
 				# make sure that scaled did not overflow and that the trunc area is the same number
 				assert scaled_areas_trunc == scaled_areas
+				interp = sum(
+					[float(x * area) for x, area in zip(zvec, scaled_areas)]
+				)
+				interp_actual = dut.inter_val_out.value.signed_integer / 2**FRAC
+				assert abs(interp - interp_actual) < 4 / 2**FRAC
+
+    
 		print(f"Max raw area error: {error}")
 		print(f"Max interp factor error: {factor_error}")
 
