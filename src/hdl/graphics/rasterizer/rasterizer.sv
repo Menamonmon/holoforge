@@ -7,7 +7,15 @@ module rasterizer #(
     parameter ZFRAC = 14,
     parameter N = 3,
     parameter    FB_HRES = 320,
-    parameter    FB_VRES = 180
+    parameter    FB_VRES = 180,
+
+    parameter VIEWPORT_PIXEL_RATIO_X_WIDTH = 7,
+    parameter VIEWPORT_PIXEL_RATIO_X_FRAC  = 0,
+    parameter VIEWPORT_PIXEL_RATIO_Y_WIDTH = 6,
+    parameter VIEWPORT_PIXEL_RATIO_Y_FRAC  = 0,
+
+    parameter [VIEWPORT_PIXEL_RATIO_X_WIDTH-1:0] RES_X_BY_VIEWPORT_WIDTH  = 1,
+    parameter [VIEWPORT_PIXEL_RATIO_Y_WIDTH-1:0] RES_Y_BY_VIEWPORT_HEIGHT = 1
 ) (
     input wire clk_in,
     input wire rst_in,
@@ -15,9 +23,10 @@ module rasterizer #(
     input wire ready_in,  // whether or not the following stage is ready
 
     // unsigned since it's normalized screen coordinates.....
-    input wire signed [N-1:0][XWIDTH-1:0] x,
-    input wire signed [N-1:0][YWIDTH-1:0] y,
-    input wire signed [N-1:0][ZWIDTH-1:0] z,
+    // these values should be 0 to w and 0 to h with z being arbitrarily big
+    input wire [N-1:0][XWIDTH-1:0] x,
+    input wire [N-1:0][YWIDTH-1:0] y,
+    input wire [N-1:0][ZWIDTH-1:0] z,
 
     output logic valid_out,  // pixel single cycle output for shader to process the pixel
     output logic ready_out,  // busy
@@ -48,6 +57,9 @@ module rasterizer #(
   logic [VWIDTH-1:0] vcount_min, vcount_max;
   logic [HWIDTH-1:0] hcount;
   logic [VWIDTH-1:0] vcount;
+
+  logic [XWIDTH + VIEWPORT_PIXEL_RATIO_X_WIDTH-1:0] x_min_scaled, x_max_scaled;
+  logic [YWIDTH + VIEWPORT_PIXEL_RATIO_Y_WIDTH-1:0] y_min_scaled, y_max_scaled;
 
 
   /*
@@ -103,7 +115,7 @@ module rasterizer #(
   );
 
   pipeline #(
-      .STAGES(6),  // TODO: check stage count
+      .STAGES(6),  // TODO: check stage count (might need to reduce the 1 cycle delay in the beginning of the counter)
       .DATA_WIDTH(HWIDTH)
   ) pipe_hcount (
       .clk_in(clk_in),
@@ -112,7 +124,7 @@ module rasterizer #(
   );
 
   pipeline #(
-      .STAGES(6),  // TODO: check stage count
+      .STAGES(6),  // TODO: check stage count (might need to reduce the 1 cycle delay in the beginning of the counter)
       .DATA_WIDTH(VWIDTH)
   ) pipe_vcount (
       .clk_in(clk_in),
@@ -219,10 +231,21 @@ module rasterizer #(
             end else begin
               state <= RASTERIZE;
               // rescale the x and y boundaries to be in the pixel space from the screen space 
-              hcount_min <= x_min;  // TODO: add scaling
-              hcount_max <= x_max;  // TODO: add scaling
-              vcount_min <= y_min;  // TODO: add scaling
-              vcount_max <= y_max;  // TODO: add scaling
+              x_min_scaled = x_min * RES_X_BY_VIEWPORT_WIDTH;
+              x_max_scaled = x_max * RES_X_BY_VIEWPORT_WIDTH;
+
+              y_min_scaled = y_min * RES_Y_BY_VIEWPORT_HEIGHT;
+              y_max_scaled = y_max * RES_Y_BY_VIEWPORT_HEIGHT;
+
+              hcount_min <= x_min_scaled[XWIDTH + VIEWPORT_PIXEL_RATIO_X_WIDTH - 1:((XWIDTH + VIEWPORT_PIXEL_RATIO_X_WIDTH) - ((XWIDTH - XFRAC) + (VIEWPORT_PIXEL_RATIO_X_WIDTH - VIEWPORT_PIXEL_RATIO_X_FRAC)))]; // take the integer part of x
+              hcount_max <= x_max_scaled[XWIDTH + VIEWPORT_PIXEL_RATIO_X_WIDTH - 1:((XWIDTH + VIEWPORT_PIXEL_RATIO_X_WIDTH) - ((XWIDTH - XFRAC) + (VIEWPORT_PIXEL_RATIO_X_WIDTH - VIEWPORT_PIXEL_RATIO_X_FRAC)))]; // take the integer part of x  	   
+              vcount_min <= y_min_scaled[YWIDTH + VIEWPORT_PIXEL_RATIO_Y_WIDTH - 1:((YWIDTH + VIEWPORT_PIXEL_RATIO_Y_WIDTH) - ((YWIDTH - YFRAC) + (VIEWPORT_PIXEL_RATIO_Y_WIDTH - VIEWPORT_PIXEL_RATIO_Y_FRAC)))]; // take the integer part of y
+              vcount_max <= y_max_scaled[YWIDTH + VIEWPORT_PIXEL_RATIO_Y_WIDTH - 1:((YWIDTH + VIEWPORT_PIXEL_RATIO_Y_WIDTH) - ((YWIDTH - YFRAC) + (VIEWPORT_PIXEL_RATIO_Y_WIDTH - VIEWPORT_PIXEL_RATIO_Y_FRAC)))]; // take the integer part of y
+
+              //   hcount_min <= x_min;  // TODO: add scaling
+              //   hcount_max <= x_max;  // TODO: add scaling
+              //   vcount_min <= y_min;  // TODO: add scaling
+              //   vcount_max <= y_max;  // TODO: add scaling
               x_curr <= x_min;
               y_curr <= y_min;
             end

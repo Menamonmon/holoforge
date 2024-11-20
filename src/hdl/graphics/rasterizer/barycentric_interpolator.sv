@@ -11,9 +11,9 @@ module barycentric_interpolator #(
     input wire clk_in,
     input wire rst_in,
     input wire signed [2:0][VAL_WIDTH-1:0] vals_in,
-    input wire [AINV_WIDTH-1:0] iarea_in,
-    input wire [XWIDTH-1:0] x_in,
-    input wire [YWIDTH-1:0] y_in,
+    input wire signed [AINV_WIDTH-1:0] iarea_in,
+    input wire signed [XWIDTH-1:0] x_in,
+    input wire signed [YWIDTH-1:0] y_in,
     input wire signed [2:0][XWIDTH-1:0] x_tri,
     input wire signed [2:0][YWIDTH-1:0] y_tri,
     output logic signed [VAL_WIDTH-1:0] inter_val_out,
@@ -21,22 +21,64 @@ module barycentric_interpolator #(
 );
 
   localparam SUB_WIDTH = YWIDTH + 1;
-  localparam A_WIDTH = 2 + (XWIDTH + YWIDTH) - FRAC;
+  localparam A_WIDTH = 2 + (XWIDTH + SUB_WIDTH) - FRAC;
+  localparam INV_AREA_INTPART = AINV_WIDTH - AINV_FRAC;
+  localparam SCALED_AREA_WIDTH = A_WIDTH + INV_AREA_INTPART;
+  localparam FULL_VAL_WIDTH = 2 + (VAL_WIDTH) + (A_WIDTH - FRAC);
 
   logic signed [2:0][2:0][SUB_WIDTH-1:0] ysubs;
   logic signed [2:0][VAL_WIDTH-1:0] vals;
   logic signed [2:0][2:0][XWIDTH-1:0] xs;
+  logic signed [2:0][2:0][XWIDTH-1:0] xsp;
+  logic signed [2:0][2:0][SUB_WIDTH-1:0] ysubsp;
   logic signed [AINV_WIDTH-1:0] iarea;
   logic signed [2:0][A_WIDTH-1:0] areas;
-  logic signed [2:0][A_WIDTH-1:0] scaled_areas;
+  logic signed [A_WIDTH-1:0] a1, a2, a3;
+  logic signed [2:0][SCALED_AREA_WIDTH-1:0] scaled_areas;
+  logic [2:0][A_WIDTH-1:0] scaled_areas_trunc;
+  logic signed [FULL_VAL_WIDTH-1:0] inter_val_out_full;
   logic in_tri;
+
+  //   always_ff @(posedge clk_in) begin
+  //     scaled_areas_trunc[0] <= scaled_areas[0][FRAC + 1:0]; // assumes that the fraction is between -1 and 1
+  //     scaled_areas_trunc[1] <= scaled_areas[1][FRAC + 1:0]; // assumes that the fraction is between -1 and 1
+  //     scaled_areas_trunc[2] <= scaled_areas[2][FRAC + 1:0]; // assumes that the fraction is between -1 and 1
+  //   end
+  assign scaled_areas_trunc[0] = scaled_areas[0][FRAC + 1:0]; // assumes that the fraction is between -1 and 1
+  assign scaled_areas_trunc[1] = scaled_areas[1][FRAC + 1:0]; // assumes that the fraction is between -1 and 1
+  assign scaled_areas_trunc[2] = scaled_areas[2][FRAC + 1:0]; // assumes that the fraction is between -1 and 1
+
+  assign a1 = areas[0];
+  assign a2 = areas[1];
+  assign a3 = areas[2];
+
+  // REMOVE LATER
+  pipeline #(
+      .STAGES(8),  // TODO: check stage count
+      .DATA_WIDTH(3 * 3 * XWIDTH)
+  ) pipe_xsp (
+      .clk_in(clk_in),
+      .data(rst_in ? 0 : xs),
+      .data_out(xsp)
+  );
+
+  pipeline #(
+      .STAGES(8),  // TODO: check stage count
+      .DATA_WIDTH(3 * 3 * SUB_WIDTH)
+  ) pipe_ysubsp (
+      .clk_in(clk_in),
+      .data(rst_in ? 0 : ysubs),
+      .data_out(ysubsp)
+  );
+  // REMOVE LATER
+
 
   // stage 1: init two sides for pipelined dot product
   always_ff @(posedge clk_in) begin
     if (rst_in) begin
       // put negative values for everything to give invalid values
-      iarea <= {AINV_WIDTH{1'b1}};
-      vals <= 0;
+      //   iarea <= {AINV_WIDTH{1'b1}};
+      //   vals <= 0;
       ysubs <= 0;
       xs <= 0;
     end else begin
@@ -64,18 +106,18 @@ module barycentric_interpolator #(
       xs[2][1] <= x_tri[1];
       xs[2][2] <= x_in;
 
-      iarea <= iarea_in;
+      //   iarea <= iarea_in;
 
-      vals <= vals_in;
+      //   vals <= vals_in;
     end
   end
 
   pipeline #(
       .STAGES(6),  // TODO: check stage count
-      .DATA_WIDTH(VAL_WIDTH)
+      .DATA_WIDTH(3 * VAL_WIDTH)
   ) pipe_vals (
       .clk_in(clk_in),
-      .data(vals),
+      .data(rst_in ? 0 : vals_in),
       .data_out(vals)
   );
 
@@ -84,7 +126,7 @@ module barycentric_interpolator #(
       .DATA_WIDTH(AINV_WIDTH)
   ) pipe_xs (
       .clk_in(clk_in),
-      .data(iarea_in),
+      .data(rst_in ? {AINV_WIDTH{1'b1}} : iarea_in),
       .data_out(iarea)
   );
 
@@ -175,6 +217,7 @@ module barycentric_interpolator #(
   );
 
   // stage 4: dot product of vals and scaled areas
+  // TODO: can manually do this since we know what the values would be and if overflow happens we automatically send invalid
   fixed_point_fast_dot #(
       .A_WIDTH(VAL_WIDTH),
       .A_FRAC_BITS(VAL_FRAC),
@@ -185,12 +228,13 @@ module barycentric_interpolator #(
       .clk_in(clk_in),
       .rst_in(rst_in),
       .A(vals),
-      .B(scaled_areas),
-      .D(inter_val_out)
+      .B(scaled_areas_trunc),
+      .D(inter_val_out_full)
   );
 
   // stage 4b: check if the point is in the triangle
-  assign in_tri = (scaled_areas[0] > 0) && (scaled_areas[1] > 0) && (scaled_areas[2] > 0);
+  assign in_tri = (scaled_areas[0] >= 0) && (scaled_areas[1] >= 0) && (scaled_areas[2] >= 0);
+  assign inter_val_out = inter_val_out_full[VAL_WIDTH-1:0]; // truncate the value (at this point val_out should be scaled by a fraction and cannot be bigger than a fp number of VAL_WIDTH width)
 
   pipeline #(
       .STAGES(4),  // TODO:.check stage count
