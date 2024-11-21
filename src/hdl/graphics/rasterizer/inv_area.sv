@@ -69,6 +69,7 @@ module inv_area #(
       .clk_in(clk_in),
       .rst_in(rst_in),
       .valid_in(dot_valid_out),
+      //   .A({{(INV_WIDTH - 1) {1'b0}}, 1'b1}),
       .A(1),
       .B(dot_out),
       .Q(inv_out),

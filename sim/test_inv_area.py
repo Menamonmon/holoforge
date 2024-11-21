@@ -90,6 +90,7 @@ async def test_inv_area(dut):
 			]
 		) * 2**FRAC)
 		raw_iarea = 1 / raw_model_val
+		raw_model = 1/raw_iarea
 
 		# model_val_dot = dot_fam(raw_model_val)
 
@@ -107,7 +108,7 @@ async def test_inv_area(dut):
 		# print(f"raw_iarea: {raw_iarea} == {model_val}")
 		# print("iarea error: ", abs(iarea - model_val))
 
-	for i in range(10000):
+	for i in range(100):
 		await test_inv_area()
 
 

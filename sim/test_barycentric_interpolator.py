@@ -16,7 +16,7 @@ import math
 from utils import *
 import numpy as np
 
-max_cam_dist = 10
+max_cam_dist = 10000
 vw = 3
 vh = 3
 

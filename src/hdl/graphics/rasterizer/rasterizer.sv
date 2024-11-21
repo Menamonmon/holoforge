@@ -6,16 +6,27 @@ module rasterizer #(
     parameter YFRAC = 14,
     parameter ZFRAC = 14,
     parameter N = 3,
+
     parameter    FB_HRES = 320,
     parameter    FB_VRES = 180,
+    parameter VW = 3,
+    parameter VH = 3,
 
-    parameter VIEWPORT_PIXEL_RATIO_X_WIDTH = 7,
-    parameter VIEWPORT_PIXEL_RATIO_X_FRAC  = 0,
-    parameter VIEWPORT_PIXEL_RATIO_Y_WIDTH = 6,
-    parameter VIEWPORT_PIXEL_RATIO_Y_FRAC  = 0,
+    parameter HRES_BY_VW_WIDTH = 7,
+    parameter HRES_BY_VW_FRAC  = 0,
+    parameter VRES_BY_VH_WIDTH = 6,
+    parameter VRES_BY_VH_FRAC  = 0,
 
-    parameter [VIEWPORT_PIXEL_RATIO_X_WIDTH-1:0] RES_X_BY_VIEWPORT_WIDTH  = 1,
-    parameter [VIEWPORT_PIXEL_RATIO_Y_WIDTH-1:0] RES_Y_BY_VIEWPORT_HEIGHT = 1
+    parameter [HRES_BY_VW_WIDTH-1:0] HRES_BY_VW = 1,
+    parameter [VRES_BY_VH_WIDTH-1:0] VRES_BY_VH = 1,
+
+    parameter VW_BY_HRES_WIDTH = 6,
+    parameter VW_BY_HRES_FRAC  = 0,
+    parameter VH_BY_VRES_WIDTH = 7,
+    parameter VH_BY_VRES_FRAC  = 0,
+
+    parameter [VW_BY_HRES_WIDTH-1:0] VW_BY_HRES = 1,
+    parameter [VH_BY_VRES_WIDTH-1:0] VH_BY_VRES = 1
 ) (
     input wire clk_in,
     input wire rst_in,
@@ -41,8 +52,8 @@ module rasterizer #(
   localparam INV_WIDTH = 2 * MAX_FRAC + 1;
   localparam HWIDTH = $clog2(FB_HRES);
   localparam VWIDTH = $clog2(FB_VRES);
-  localparam X_INCREM = 1;
-  localparam Y_INCREM = 1;
+  localparam X_INCREM = VW_BY_HRES;
+  localparam Y_INCREM = VH_BY_VRES;
 
   logic signed [2:0][XWIDTH-1:0] xv;
   logic signed [2:0][YWIDTH-1:0] yv;
@@ -58,10 +69,12 @@ module rasterizer #(
   logic [HWIDTH-1:0] hcount;
   logic [VWIDTH-1:0] vcount;
 
-  logic [XWIDTH + VIEWPORT_PIXEL_RATIO_X_WIDTH-1:0] x_min_scaled, x_max_scaled;
-  logic [YWIDTH + VIEWPORT_PIXEL_RATIO_Y_WIDTH-1:0] y_min_scaled, y_max_scaled;
+  logic [XWIDTH + HRES_BY_VW_WIDTH-1:0] x_min_scaled, x_max_scaled;
+  logic [YWIDTH + VRES_BY_VH_WIDTH-1:0] y_min_scaled, y_max_scaled;
+  logic bary_valid_out;
 
 
+  // TODO: update FSM to take into account backpressure from the shader and the frame buffer
   /*
 	FSM:
 	- IDLE
@@ -71,7 +84,7 @@ module rasterizer #(
 	- BACK TO IDLE
 	*/
 
-  enum {
+   enum logic [1:0] {
     IDLE,
     BBOX_GEN,
     INV_AREA_CALC,
@@ -91,31 +104,33 @@ module rasterizer #(
       .y(y),
       .done(inv_area_done),
       .valid_out(inv_area_valid_out),
-      .iarea(iarea)
+      .iarea(iarea_out)
   );
 
-  boundary_counter #(
+  boundary_evt_counter #(
       .MAX_COUNT(FB_HRES)
   ) hcount_counter (
       .clk_in(clk_in),
       .rst_in(rst_in || state != RASTERIZE),
+      .evt(1'b1),
       .max(hcount_max),
       .min(hcount_min),
       .count_out(hcount)
   );
 
-  boundary_counter #(
+  boundary_evt_counter #(
       .MAX_COUNT(FB_VRES)
   ) vcount_counter (
       .clk_in(clk_in),
       .rst_in(rst_in || state != RASTERIZE),
+      .evt(hcount == hcount_max),
       .max(vcount_max),
       .min(vcount_min),
       .count_out(vcount)
   );
 
   pipeline #(
-      .STAGES(6),  // TODO: check stage count (might need to reduce the 1 cycle delay in the beginning of the counter)
+      .STAGES(10),  // TODO: check stage count (might need to reduce the 1 cycle delay in the beginning of the counter)
       .DATA_WIDTH(HWIDTH)
   ) pipe_hcount (
       .clk_in(clk_in),
@@ -124,7 +139,7 @@ module rasterizer #(
   );
 
   pipeline #(
-      .STAGES(6),  // TODO: check stage count (might need to reduce the 1 cycle delay in the beginning of the counter)
+      .STAGES(10),  // TODO: check stage count (might need to reduce the 1 cycle delay in the beginning of the counter)
       .DATA_WIDTH(VWIDTH)
   ) pipe_vcount (
       .clk_in(clk_in),
@@ -150,14 +165,14 @@ module rasterizer #(
       .x_tri(xv),
       .y_tri(yv),
       .inter_val_out(z_out),
-      .valid_out(valid_out)
+      .valid_out(bary_valid_out)
   );
 
-
+  assign valid_out = !rst_in && bary_valid_out && state == RASTERIZE;
 
   always_ff @(posedge clk_in) begin
     if (rst_in) begin
-      {hcount, vcount} <= 0;
+      //   {hcount, vcount} <= 0;
       {xv, yv, zv} <= 0;
       state <= IDLE;
     end else begin
@@ -231,16 +246,15 @@ module rasterizer #(
             end else begin
               state <= RASTERIZE;
               // rescale the x and y boundaries to be in the pixel space from the screen space 
-              x_min_scaled = x_min * RES_X_BY_VIEWPORT_WIDTH;
-              x_max_scaled = x_max * RES_X_BY_VIEWPORT_WIDTH;
+              x_min_scaled = x_min * HRES_BY_VW;  // avoid overflow
+              x_max_scaled = x_max * HRES_BY_VW;
+              y_min_scaled = y_min * VRES_BY_VH;
+              y_max_scaled = y_max * VRES_BY_VH;
 
-              y_min_scaled = y_min * RES_Y_BY_VIEWPORT_HEIGHT;
-              y_max_scaled = y_max * RES_Y_BY_VIEWPORT_HEIGHT;
-
-              hcount_min <= x_min_scaled[XWIDTH + VIEWPORT_PIXEL_RATIO_X_WIDTH - 1:((XWIDTH + VIEWPORT_PIXEL_RATIO_X_WIDTH) - ((XWIDTH - XFRAC) + (VIEWPORT_PIXEL_RATIO_X_WIDTH - VIEWPORT_PIXEL_RATIO_X_FRAC)))]; // take the integer part of x
-              hcount_max <= x_max_scaled[XWIDTH + VIEWPORT_PIXEL_RATIO_X_WIDTH - 1:((XWIDTH + VIEWPORT_PIXEL_RATIO_X_WIDTH) - ((XWIDTH - XFRAC) + (VIEWPORT_PIXEL_RATIO_X_WIDTH - VIEWPORT_PIXEL_RATIO_X_FRAC)))]; // take the integer part of x  	   
-              vcount_min <= y_min_scaled[YWIDTH + VIEWPORT_PIXEL_RATIO_Y_WIDTH - 1:((YWIDTH + VIEWPORT_PIXEL_RATIO_Y_WIDTH) - ((YWIDTH - YFRAC) + (VIEWPORT_PIXEL_RATIO_Y_WIDTH - VIEWPORT_PIXEL_RATIO_Y_FRAC)))]; // take the integer part of y
-              vcount_max <= y_max_scaled[YWIDTH + VIEWPORT_PIXEL_RATIO_Y_WIDTH - 1:((YWIDTH + VIEWPORT_PIXEL_RATIO_Y_WIDTH) - ((YWIDTH - YFRAC) + (VIEWPORT_PIXEL_RATIO_Y_WIDTH - VIEWPORT_PIXEL_RATIO_Y_FRAC)))]; // take the integer part of y
+              hcount_min <= x_min_scaled[XWIDTH + HRES_BY_VW_WIDTH - 1:((XWIDTH + HRES_BY_VW_WIDTH) - ((XWIDTH - XFRAC) + (HRES_BY_VW_WIDTH - HRES_BY_VW_FRAC)))]; // take the integer part of x
+              hcount_max <= x_max_scaled[XWIDTH + HRES_BY_VW_WIDTH - 1:((XWIDTH + HRES_BY_VW_WIDTH) - ((XWIDTH - XFRAC) + (HRES_BY_VW_WIDTH - HRES_BY_VW_FRAC)))]; // take the integer part of x  	   
+              vcount_min <= y_min_scaled[YWIDTH + VRES_BY_VH_WIDTH - 1:((YWIDTH + VRES_BY_VH_WIDTH) - ((YWIDTH - YFRAC) + (VRES_BY_VH_WIDTH - VRES_BY_VH_FRAC)))]; // take the integer part of y
+              vcount_max <= y_max_scaled[YWIDTH + VRES_BY_VH_WIDTH - 1:((YWIDTH + VRES_BY_VH_WIDTH) - ((YWIDTH - YFRAC) + (VRES_BY_VH_WIDTH - VRES_BY_VH_FRAC)))]; // take the integer part of y
 
               //   hcount_min <= x_min;  // TODO: add scaling
               //   hcount_max <= x_max;  // TODO: add scaling
@@ -248,18 +262,26 @@ module rasterizer #(
               //   vcount_max <= y_max;  // TODO: add scaling
               x_curr <= x_min;
               y_curr <= y_min;
+              iarea <= iarea_out;
             end
           end
 
         end
 
         RASTERIZE: begin
-          if (hcount == hcount_max && vcount == vcount_max) begin
+          if (hcount_out == hcount_max && vcount_out == vcount_max) begin
             state <= IDLE;
           end else begin
             // TODO: increment the x and y values
-            x_curr <= x_curr + X_INCREM;
-            y_curr <= y_curr + Y_INCREM;
+            // x_curr <= x_curr + X_INCREM;
+            // y_curr <= y_curr + Y_INCREM;
+            if (hcount == hcount_max) begin
+              x_curr <= x_min;
+              y_curr <= y_increm.add_and_truncate(y_curr, Y_INCREM);
+            end else begin
+              //   x_curr <= x_curr + X_INCREM;  // avoid overflow
+              x_curr <= x_increm.add_and_truncate(x_curr, X_INCREM);
+            end
           end
         end
       endcase
@@ -267,5 +289,58 @@ module rasterizer #(
   end
   assign ready_out = state == IDLE;
 
+  incrementer #(
+      .WIDTH1(XWIDTH),
+      .FRAC1 (XFRAC),
+      .WIDTH2(VW_BY_HRES_WIDTH),
+      .FRAC2 (VW_BY_HRES_FRAC)
+  ) x_increm ();
 
+  incrementer #(
+      .WIDTH1(YWIDTH),
+      .FRAC1 (YFRAC),
+      .WIDTH2(VH_BY_VRES_WIDTH),
+      .FRAC2 (VH_BY_VRES_FRAC)
+  ) y_increm ();
+
+endmodule
+
+module incrementer #(
+    parameter WIDTH1,
+    parameter FRAC1,
+    parameter WIDTH2,
+    parameter FRAC2
+);
+  localparam n1 = WIDTH1 - FRAC1;
+  localparam m1 = FRAC1;
+  localparam n2 = WIDTH2 - FRAC2;
+  localparam m2 = FRAC2;
+
+  function logic signed [n1+m1-1:0] add_and_truncate(
+      input logic signed [n1+m1-1:0] u,  // First fixed-point number
+      input logic signed [n2+m2-1:0] v  // Second fixed-point number
+	);
+    // Local parameter for maximum fractional bits
+    localparam max_m = (m1 > m2) ? m1 : m2;
+
+    // Temporary variable to hold the extended result
+    logic signed [n1 + max_m - 1:0] sum_extended;
+
+    begin
+      // Step 1: Align the fractional parts
+      if (m1 > m2) begin
+        // Shift v to match fractional bits of u
+        sum_extended = u + (v <<< (m1 - m2));
+      end else if (m2 > m1) begin
+        // Shift u to match fractional bits of v
+        sum_extended = (u <<< (m2 - m1)) + v;
+      end else begin
+        // No shift needed
+        sum_extended = u + v;
+      end
+
+      // Step 2: Truncate the result to the desired width (n1 + m1)
+      add_and_truncate = sum_extended[n1+m1-1:0];
+    end
+  endfunction
 endmodule

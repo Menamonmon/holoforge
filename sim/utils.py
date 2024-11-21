@@ -6,6 +6,7 @@ from cocotb.binary import BinaryValue
 from FixedPoint import FXfamily, FXnum
 import numpy as np
 import math
+from PIL import Image
 
 
 def generate_random_camera_region(x_max, y_max):
@@ -224,3 +225,28 @@ def barycentric_raw_areas(x, y, triangle):
 	assert abs(D - (D1 + D2 + D3)) < 1e-6
 
 	return D1, D2, D3
+
+
+# Function to display the bitmap in the terminal
+def display_bitmap(bitmap):
+	# Loop through each row in the bitmap
+	for row in bitmap:
+		# Convert each row of 0s and 1s to characters (e.g., 1 -> "#" and 0 -> " ")
+		print("".join("#" if val else " " for val in row))
+
+
+def display_frame_pixelized(I, tri_coords):
+	# save this frame as an image file with name = id(frame).png
+	# the image would be grayscale
+	m = min(2000, I.max())
+	I8 = (((I - 0)) / (m - 0) * 255.9).astype(np.uint8)
+
+	img = Image.fromarray(I8)
+	name = f"./imgs/{random.random()}.png"
+	img.save(name)
+
+	# draw the tri_coords as an exact triangle and save it as a separate image with same name but with _tri.png
+	tri_coords = tri_coords.astype(int)
+	img = Image.new("RGB", (len(I), len((I[0]))), color=(0, 0, 0))
+	
+

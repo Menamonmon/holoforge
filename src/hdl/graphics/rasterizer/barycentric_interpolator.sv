@@ -19,6 +19,7 @@ module barycentric_interpolator #(
     output logic signed [VAL_WIDTH-1:0] inter_val_out,
     output logic valid_out  // tells me whether x, y values are in the triangle
 );
+  // LATENCTY: 10-cycle
 
   localparam SUB_WIDTH = YWIDTH + 1;
   localparam A_WIDTH = 2 + (XWIDTH + SUB_WIDTH) - FRAC;
@@ -38,6 +39,7 @@ module barycentric_interpolator #(
   logic [2:0][A_WIDTH-1:0] scaled_areas_trunc;
   logic signed [FULL_VAL_WIDTH-1:0] inter_val_out_full;
   logic in_tri;
+  logic invalidate;
 
   //   always_ff @(posedge clk_in) begin
   //     scaled_areas_trunc[0] <= scaled_areas[0][FRAC + 1:0]; // assumes that the fraction is between -1 and 1
@@ -79,9 +81,9 @@ module barycentric_interpolator #(
       // put negative values for everything to give invalid values
       //   iarea <= {AINV_WIDTH{1'b1}};
       //   vals <= 0;
-      ysubs <= 0;
-      xs <= 0;
+      invalidate <= 1;
     end else begin
+      invalidate <= 0;
       ysubs[0][0] <= ($signed(y_tri[1]) - $signed(y_tri[2]));
       ysubs[0][1] <= ($signed(y_tri[2]) - $signed(y_in));
       ysubs[0][2] <= ($signed(y_in) - $signed(y_tri[1]));
@@ -241,7 +243,7 @@ module barycentric_interpolator #(
       .DATA_WIDTH(1)
   ) pipe_tri (
       .clk_in(clk_in),
-      .data(in_tri),
+      .data(in_tri && !invalidate),
       .data_out(valid_out)
   );
 
