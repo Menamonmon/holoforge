@@ -23,14 +23,14 @@ module v_to_ndc #(
     input wire signed [2:0][V_WIDTH-1:0] n,  // [n_x, n_y, n_z]
     // Outputs
     output logic valid_out,
-    output logic signed [NDC_WIDTH:0] NDC_x,
-    output logic signed [NDC_WIDTH:0] NDC_y,
-    output logic signed [NDC_WIDTH:0] NDC_z
+    output logic signed [DOT_PROD_WIDTH-1:0] NDC_y,
+    output logic signed [DOT_PROD_WIDTH-1:0] NDC_x,
+    output logic signed [DOT_PROD_WIDTH-1:0] NDC_z
 );
   //I don't believe in magic numbers
   localparam P_CAM_WIDTH = C_WIDTH + 1;
   localparam DOT_PROD_WIDTH = (P_CAM_WIDTH + V_WIDTH - FRAC_BITS) + 2;
-  localparam NDC_WIDTH = DOT_PROD_WIDTH + VIEWPORT_WIDTH - FRAC_BITS;
+//   localparam NDC_WIDTH = DOT_PROD_WIDTH + VIEWPORT_WIDTH - FRAC_BITS;
 
   //P_cam = P - C
   //wait this is sick i can just set it like this just need to make sure it obeys the pipeline
@@ -65,7 +65,7 @@ module v_to_ndc #(
   ) dp_u (
       .clk_in(clk),
       .rst_in(rst),
-      .A({P_cam_x, P_cam_y, P_cam_z}),
+      .A({P_cam_z, P_cam_y, P_cam_x}),
       .B(u),
       .D(p_dot_x)
   );
@@ -76,7 +76,7 @@ module v_to_ndc #(
   ) dp_v (
       .clk_in(clk),
       .rst_in(rst),
-      .A({P_cam_x, P_cam_y, P_cam_z}),
+      .A({P_cam_z, P_cam_y, P_cam_x}),
       .B(v),
       .D(p_dot_y)
   );
@@ -87,7 +87,7 @@ module v_to_ndc #(
   ) dp_n (
       .clk_in(clk),
       .rst_in(rst),
-      .A({P_cam_x, P_cam_y, P_cam_z}),
+      .A({P_cam_z, P_cam_y, P_cam_x}),
       .B(n),
       .D(p_dot_z)
   );
