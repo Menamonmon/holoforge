@@ -200,7 +200,7 @@ def split_bit_array(raw_bits, n):
 
 
 def barycentric_raw_areas(x, y, triangle):
-	"""
+    """
 	Calculates the raw areas of the three sub-triangles for barycentric interpolation.
 
 	Args:
@@ -211,15 +211,32 @@ def barycentric_raw_areas(x, y, triangle):
 	Returns:
 					tuple: Raw signed areas (area1, area2, area3) of the sub-triangles.
 	"""
-	x1, y1 = triangle[0]
-	x2, y2 = triangle[1]
-	x3, y3 = triangle[2]
+    x1, y1 = triangle[0]
+    x2, y2 = triangle[1]
+    x3, y3 = triangle[2]
 
-	D = (x1 * (y2 - y3)) + (x2 * (y3 - y1)) + (x3 * (y1 - y2))
-	D1 = (x * (y2 - y3)) + (x2 * (y3 - y)) + (x3 * (y - y2))
-	D2 = (x1 * (y - y3)) + (x * (y3 - y1)) + (x3 * (y1 - y))
-	D3 = (x1 * (y2 - y)) + (x2 * (y - y1)) + (x * (y1 - y2))
+    D = (x1 * (y2 - y3)) + (x2 * (y3 - y1)) + (x3 * (y1 - y2))
+    D1 = (x * (y2 - y3)) + (x2 * (y3 - y)) + (x3 * (y - y2))
+    D2 = (x1 * (y - y3)) + (x * (y3 - y1)) + (x3 * (y1 - y))
+    D3 = (x1 * (y2 - y)) + (x2 * (y - y1)) + (x * (y1 - y2))
 
-	assert abs(D - (D1 + D2 + D3)) < 1e-6
+    assert abs(D - (D1 + D2 + D3)) < 1e-6
 
-	return D1, D2, D3
+    return D1, D2, D3
+
+
+def gen_vec_by_magnitude(size, magnitude):
+    # Generate a random vector
+    vector = np.random.randn(size)
+
+    # Normalize the vector
+    vector /= np.linalg.norm(vector)
+
+    # Scale the vector to the desired magnitude
+    vector *= magnitude
+
+    return vector
+
+
+def gen_random_mag(min_size, max_size):
+	return random.uniform(min_size, max_size)
