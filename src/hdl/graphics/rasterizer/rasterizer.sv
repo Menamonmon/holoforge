@@ -59,8 +59,8 @@ module rasterizer #(
   logic signed [2:0][YWIDTH-1:0] yv;
   logic signed [2:0][ZWIDTH-1:0] zv;
 
-  logic signed [XWIDTH-1:0] x_min, x_max, x_curr;
-  logic signed [YWIDTH-1:0] y_min, y_max, y_curr;
+  logic signed [XWIDTH-1:0] x_min, x_max, x_curr, x_incremented;
+  logic signed [YWIDTH-1:0] y_min, y_max, y_curr, y_incremented;
   logic inv_area_done, inv_area_valid_out;
   logic signed [INV_WIDTH-1:0] iarea_out;
   logic signed [INV_WIDTH-1:0] iarea;
@@ -84,7 +84,7 @@ module rasterizer #(
 	- BACK TO IDLE
 	*/
 
-   enum logic [1:0] {
+  enum logic [1:0] {
     IDLE,
     BBOX_GEN,
     INV_AREA_CALC,
@@ -130,7 +130,7 @@ module rasterizer #(
   );
 
   pipeline #(
-      .STAGES(10),  // TODO: check stage count (might need to reduce the 1 cycle delay in the beginning of the counter)
+      .STAGES(10),
       .DATA_WIDTH(HWIDTH)
   ) pipe_hcount (
       .clk_in(clk_in),
@@ -139,7 +139,7 @@ module rasterizer #(
   );
 
   pipeline #(
-      .STAGES(10),  // TODO: check stage count (might need to reduce the 1 cycle delay in the beginning of the counter)
+      .STAGES(10),
       .DATA_WIDTH(VWIDTH)
   ) pipe_vcount (
       .clk_in(clk_in),
@@ -256,10 +256,6 @@ module rasterizer #(
               vcount_min <= y_min_scaled[YWIDTH + VRES_BY_VH_WIDTH - 1:((YWIDTH + VRES_BY_VH_WIDTH) - ((YWIDTH - YFRAC) + (VRES_BY_VH_WIDTH - VRES_BY_VH_FRAC)))]; // take the integer part of y
               vcount_max <= y_max_scaled[YWIDTH + VRES_BY_VH_WIDTH - 1:((YWIDTH + VRES_BY_VH_WIDTH) - ((YWIDTH - YFRAC) + (VRES_BY_VH_WIDTH - VRES_BY_VH_FRAC)))]; // take the integer part of y
 
-              //   hcount_min <= x_min;  // TODO: add scaling
-              //   hcount_max <= x_max;  // TODO: add scaling
-              //   vcount_min <= y_min;  // TODO: add scaling
-              //   vcount_max <= y_max;  // TODO: add scaling
               x_curr <= x_min;
               y_curr <= y_min;
               iarea <= iarea_out;
@@ -272,15 +268,11 @@ module rasterizer #(
           if (hcount_out == hcount_max && vcount_out == vcount_max) begin
             state <= IDLE;
           end else begin
-            // TODO: increment the x and y values
-            // x_curr <= x_curr + X_INCREM;
-            // y_curr <= y_curr + Y_INCREM;
             if (hcount == hcount_max) begin
               x_curr <= x_min;
-              y_curr <= y_increm.add_and_truncate(y_curr, Y_INCREM);
+              y_curr <= y_incremented;
             end else begin
-              //   x_curr <= x_curr + X_INCREM;  // avoid overflow
-              x_curr <= x_increm.add_and_truncate(x_curr, X_INCREM);
+              x_curr <= x_incremented;
             end
           end
         end
@@ -289,58 +281,26 @@ module rasterizer #(
   end
   assign ready_out = state == IDLE;
 
-  incrementer #(
+  fixed_adder #(
       .WIDTH1(XWIDTH),
       .FRAC1 (XFRAC),
       .WIDTH2(VW_BY_HRES_WIDTH),
       .FRAC2 (VW_BY_HRES_FRAC)
-  ) x_increm ();
+  ) x_increm (
+      .u(x_curr),
+      .v(VW_BY_HRES),
+      .result(x_incremented)
+  );
 
-  incrementer #(
+  fixed_adder #(
       .WIDTH1(YWIDTH),
       .FRAC1 (YFRAC),
       .WIDTH2(VH_BY_VRES_WIDTH),
       .FRAC2 (VH_BY_VRES_FRAC)
-  ) y_increm ();
+  ) y_increm (
+      .u(y_curr),
+      .v(VH_BY_VRES),
+      .result(y_incremented)
+  );
 
-endmodule
-
-module incrementer #(
-    parameter WIDTH1,
-    parameter FRAC1,
-    parameter WIDTH2,
-    parameter FRAC2
-);
-  localparam n1 = WIDTH1 - FRAC1;
-  localparam m1 = FRAC1;
-  localparam n2 = WIDTH2 - FRAC2;
-  localparam m2 = FRAC2;
-
-  function logic signed [n1+m1-1:0] add_and_truncate(
-      input logic signed [n1+m1-1:0] u,  // First fixed-point number
-      input logic signed [n2+m2-1:0] v  // Second fixed-point number
-	);
-    // Local parameter for maximum fractional bits
-    localparam max_m = (m1 > m2) ? m1 : m2;
-
-    // Temporary variable to hold the extended result
-    logic signed [n1 + max_m - 1:0] sum_extended;
-
-    begin
-      // Step 1: Align the fractional parts
-      if (m1 > m2) begin
-        // Shift v to match fractional bits of u
-        sum_extended = u + (v <<< (m1 - m2));
-      end else if (m2 > m1) begin
-        // Shift u to match fractional bits of v
-        sum_extended = (u <<< (m2 - m1)) + v;
-      end else begin
-        // No shift needed
-        sum_extended = u + v;
-      end
-
-      // Step 2: Truncate the result to the desired width (n1 + m1)
-      add_and_truncate = sum_extended[n1+m1-1:0];
-    end
-  endfunction
 endmodule
