@@ -39,7 +39,7 @@ module light_intensity #(
       .rst_in(rst_in),
       .A(tri_norm),
       .B(cam_norm),
-      .P(light_intensity_out_full)
+      .D(light_intensity_out_full)
   );
 
   assign valid_out = prst_in & (light_intensity_out_full <= 0);

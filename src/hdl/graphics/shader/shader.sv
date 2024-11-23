@@ -1,5 +1,11 @@
 // assumes shader takes a ready 16-bit rgb color
 
+`ifdef SYNTHESIS
+`define FPATH(X) `"X`"
+`else  /* ! SYNTHESIS */
+`define FPATH(X) `"../../data/X`"
+`endif  /* ! SYNTHESIS */
+
 module shader #(
     NUM_TRI = 2048,
     NUM_COLORS = 256
@@ -76,8 +82,6 @@ module shader #(
     if (rst_in) begin
       state <= IDLE;
       internal_done <= 0;
-      done <= 0;
-      valid_out <= 0;
       ready_out <= 1;
     end else begin
       if (ready_in) begin
@@ -181,9 +185,9 @@ module shader #(
   ) red_scale (
       .clk_in(clk_in),
       .rst_in(rst_in),
-      .a(praw_color[15:11]),
-      .b(intensity),
-      .p(color_out[15:11])
+      .A(praw_color[15:11]),
+      .B(intensity),
+      .P(color_out[15:11])
   );
 
   fixed_point_mult #(
@@ -195,9 +199,9 @@ module shader #(
   ) green_scale (
       .clk_in(clk_in),
       .rst_in(rst_in),
-      .a(praw_color[10:5]),
-      .b(intensity),
-      .p(color_out[10:5])
+      .A(praw_color[10:5]),
+      .B(intensity),
+      .P(color_out[10:5])
   );
 
   fixed_point_mult #(
@@ -209,9 +213,9 @@ module shader #(
   ) blue_scale (
       .clk_in(clk_in),
       .rst_in(rst_in),
-      .a(praw_color[4:0]),
-      .b(intensity),
-      .p(color_out[4:0])
+      .A(praw_color[4:0]),
+      .B(intensity),
+      .P(color_out[4:0])
   );
 
 
