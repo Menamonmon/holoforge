@@ -58,76 +58,75 @@ async def test_projection(dut):
 	await reset_dut(dut)
 
 	# Define Test Inputs
-	phi = 20
-	theta = 55
-	# P = [float(i) for i in gen_vec_by_magnitude(3, 1)]
-	# C = [float(i) for i in gen_vec_by_magnitude(3, 1)]
-	P = np.array([0.011, -0.011, 0.011])
-	# # C = [float(i) for i in gen_vec_by_magnitude(3, 1)]
-	C = np.array([0.01, -0.001, 0.02])
-	test_case = {
-		# "P": [.05, -.02,.06],
-		# "C": [.01, -.001, .02],
-		"P": P,
-		"C": C,
-		"u": [sin(phi) * sin(theta), sin(phi) * sin(theta), 0],
-		"v": [-cos(phi) * cos(theta), cos(phi) * sin(theta), -sin(theta)],
-		"n": [sin(phi) * cos(theta), sin(phi) * sin(theta), sin(phi)],
-		# "u": [1, 0, 0],
-		# "v": [0, 1, 0],
-		# "n": [0, 0, 1],
-	}
-	dut.P.value = BinaryValue(
-		vec_to_bin([normalized_fam(i) for i in test_case["P"]], WIDTH_P)
-	)
-	dut.C.value = BinaryValue(vec_to_bin([c_fam(i) for i in test_case["C"]], WIDTH_C))
-	dut.u.value = BinaryValue(
-		vec_to_bin([normalized_fam(i) for i in test_case["u"]], WIDTH_V)
-	)
-	dut.v.value = BinaryValue(
-		vec_to_bin([normalized_fam(i) for i in test_case["v"]], WIDTH_V)
-	)
-	dut.n.value = BinaryValue(
-		vec_to_bin([normalized_fam(i) for i in test_case["n"]], WIDTH_V)
-	)
-	dut.valid_in.value = 1
-	await RisingEdge(dut.clk)
-	dut.valid_in.value = 0
-	await RisingEdge(dut.clk)
-	
-	P_cam_x = dut.P_cam_x.value.signed_integer / 2**FRAC_BITS
-	P_cam_y = dut.P_cam_y.value.signed_integer / 2**FRAC_BITS
-	P_cam_z = dut.P_cam_z.value.signed_integer / 2**FRAC_BITS
+	phi = random.randint(1, 360)
+	theta = random.randint(1, 360)
+	for i in range(100):
+		P = [float(i) for i in gen_vec_by_magnitude(3, 1)]
+		C = [float(i) for i in gen_vec_by_magnitude(3, 1)]
+		# # C = [float(i) for i in gen_vec_by_magnitude(3, 1)]
+		test_case = {
+			# "P": [.05, -.02,.06],
+			# "C": [.01, -.001, .02],
+			"P": P,
+			"C": C,
+			"u": [sin(phi) * sin(theta), sin(phi) * sin(theta), 0],
+			"v": [-cos(phi) * cos(theta), cos(phi) * sin(theta), -sin(theta)],
+			"n": [sin(phi) * cos(theta), sin(phi) * sin(theta), sin(phi)],
+			# "u": [1, 0, 0],
+			# "v": [0, 1, 0],
+			# "n": [0, 0, 1],
+		}
+		dut.P.value = BinaryValue(
+			vec_to_bin([normalized_fam(i) for i in test_case["P"]], WIDTH_P)
+		)
+		dut.C.value = BinaryValue(vec_to_bin([c_fam(i) for i in test_case["C"]], WIDTH_C))
+		dut.u.value = BinaryValue(
+			vec_to_bin([normalized_fam(i) for i in test_case["u"]], WIDTH_V)
+		)
+		dut.v.value = BinaryValue(
+			vec_to_bin([normalized_fam(i) for i in test_case["v"]], WIDTH_V)
+		)
+		dut.n.value = BinaryValue(
+			vec_to_bin([normalized_fam(i) for i in test_case["n"]], WIDTH_V)
+		)
+		dut.valid_in.value = 1
+		await RisingEdge(dut.clk)
+		dut.valid_in.value = 0
+		await RisingEdge(dut.clk)
+		
+		P_cam_x = dut.P_cam_x.value.signed_integer / 2**FRAC_BITS
+		P_cam_y = dut.P_cam_y.value.signed_integer / 2**FRAC_BITS
+		P_cam_z = dut.P_cam_z.value.signed_integer / 2**FRAC_BITS
 
-	print(P_cam_x, P_cam_y, P_cam_z)
-	print(P - C)
+		# print(P_cam_x, P_cam_y, P_cam_z)
+		# print(P - C)
 
-	for _ in range(10):await RisingEdge(dut.clk)
+		for _ in range(10):await RisingEdge(dut.clk)
 
-	# print(P, C)
+		# print(P, C)
 
-	# Capture Outputs
-	valid_out = dut.valid_out.value
-	ndc_x = dut.NDC_x.value.signed_integer
-	ndc_y = dut.NDC_y.value.signed_integer
-	ndc_z = dut.NDC_z.value.signed_integer
+		# Capture Outputs
+		valid_out = dut.valid_out.value
+		ndc_x = dut.NDC_x.value.signed_integer
+		ndc_y = dut.NDC_y.value.signed_integer
+		ndc_z = dut.NDC_z.value.signed_integer
 
-	# Compute Expected Outputs
-	right_ans = calculate_ndc(**test_case)
+		# Compute Expected Outputs
+		right_ans = calculate_ndc(**test_case)
 
-	print("meowx", ndc_x / 2**FRAC_BITS)
-	print("meowx", right_ans[0])
+		print("meowx", ndc_x / 2**FRAC_BITS)
+		print("meowx", right_ans[0])
 
-	print("meowy", ndc_y / 2**FRAC_BITS)
-	print("meowy", right_ans[1])
+		print("meowy", ndc_y / 2**FRAC_BITS)
+		print("meowy", right_ans[1])
 
-	print("meowz", ndc_z / 2**FRAC_BITS)
-	print("meowz", right_ans[2])
-	# Verify Output
-	# assert valid_out == 1, "valid_out was not high when expected."
-	# assert ndc_x == right_ans[0]
-	# assert ndc_y == right_ans[1]
-	# assert ndc_z == right_ans[2]
+		print("meowz", ndc_z / 2**FRAC_BITS)
+		print("meowz", right_ans[2])
+		# Verify Output
+		# assert valid_out == 1, "valid_out was not high when expected."
+		assert abs(ndc_x/2**FRAC_BITS-right_ans[0])<(4/(2**FRAC_BITS))
+		assert abs(ndc_y/2**FRAC_BITS-right_ans[1])<(4/(2**FRAC_BITS))
+		assert abs(ndc_z/2**FRAC_BITS-right_ans[2])<(4/(2**FRAC_BITS))
 
 
 # Add more test cases as needed following the same structure

@@ -1,8 +1,6 @@
 <testsuites name="results">
   <testsuite name="all" package="all">
-    <property name="random_seed" value="1732175060" />
-    <testcase name="test_projection" classname="test_v_to_ndc" file="/Users/yabi/Documents/Schooly_Stuff/6.111/holoforge/sim/test_v_to_ndc.py" lineno="50" time="0.007623910903930664" sim_time_ns="60.001" ratio_time="7870.107711917941">
-      <failure message="Test failed with RANDOM_SEED=1732175060" />
-    </testcase>
+    <property name="random_seed" value="1732482276" />
+    <testcase name="test_projection" classname="test_v_to_ndc" file="/Users/yabi/Documents/Schooly_Stuff/6.111/holoforge/sim/test_v_to_ndc.py" lineno="51" time="0.09692692756652832" sim_time_ns="12010.001" ratio_time="123907.78601495053" />
   </testsuite>
 </testsuites>
