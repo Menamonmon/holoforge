@@ -56,6 +56,7 @@ module fixed_point_fast_dot #(
     P_2 <= $signed(A_2) * $signed(B_2);
     P_3 <= $signed(A_3) * $signed(B_3);
     //third pipe adding them all then shifting it
+    // TODO: can be broken up into 2 stages to reduce PD
     D   <= ($signed(P_1) + $signed(P_2) + $signed(P_3)) >>> EXTRA_FRAC_BITS;
   end
 
