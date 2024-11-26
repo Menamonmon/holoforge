@@ -30,7 +30,7 @@ module v_to_ndc #(
   //I don't believe in magic numbers
   localparam P_CAM_WIDTH = C_WIDTH + 1;
   localparam DOT_PROD_WIDTH = (P_CAM_WIDTH + V_WIDTH - FRAC_BITS) + 2;
-//   localparam NDC_WIDTH = DOT_PROD_WIDTH + VIEWPORT_WIDTH - FRAC_BITS;
+  //   localparam NDC_WIDTH = DOT_PROD_WIDTH + VIEWPORT_WIDTH - FRAC_BITS;
 
   //P_cam = P - C
   //wait this is sick i can just set it like this just need to make sure it obeys the pipeline

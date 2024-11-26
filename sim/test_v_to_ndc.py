@@ -138,7 +138,7 @@ def main():
 	proj_path = Path(__file__).resolve().parent.parent
 	sys.path.append(str(proj_path / "sim" / "model"))
 	sources = [
-		proj_path / "src" / "hdl" / "pre_proc" / "v_to_ndc.sv",
+		proj_path / "src" / "hdl" / "graphics"/ "pre_proc" / "v_to_ndc.sv",
 		proj_path / "src" / "hdl" / "common" / "fixed_point_mult.sv",
 		proj_path / "src" / "hdl" / "common" / "fixed_point_fast_dot.sv",
 		proj_path / "src" / "hdl" / "common" / "pipeline.sv",
