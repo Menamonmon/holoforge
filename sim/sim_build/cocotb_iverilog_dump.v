@@ -1,6 +1,6 @@
 module cocotb_iverilog_dump();
 initial begin
-    $dumpfile("/Users/menaf/Downloads/dev/mit/classes/fa24/6.2050/labs/lab05/sim/sim_build/image_sprite.fst");
-    $dumpvars(0, image_sprite);
+    $dumpfile("/Users/yabi/Documents/Schooly_Stuff/6.111/holoforge/sim/sim_build/renorm.fst");
+    $dumpvars(0, renorm);
 end
 endmodule
