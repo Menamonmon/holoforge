@@ -76,8 +76,8 @@ module project_vertex_to_viewport #(
   logic x_renorm_done, y_renorm_done, x_renorm_valid, y_renorm_valid, stop_x, stop_y;
 
   logic d1, d2, d3, d4;
-  assign viewport_x_position = x_renorm_completed[VIEWPORT_H_POSITION_WIDTH-1:0]; // truncate the division extra bits (by this point the value should be in the range of the viewport width)
-  assign viewport_y_position = y_renorm_completed[VIEWPORT_W_POSITION_WIDTH-1:0]; // truncate the division extra bits (by this point the value should be in the range of the viewport height)
+  assign viewport_x_position = x_renorm_completed[VIEWPORT_H_POSITION_WIDTH-1:0] + VW_OVER_TWO; // truncate the division extra bits (by this point the value should be in the range of the viewport width)
+  assign viewport_y_position = y_renorm_completed[VIEWPORT_W_POSITION_WIDTH-1:0] + VH_OVER_TWO; // truncate the division extra bits (by this point the value should be in the range of the viewport height)
   //   assign z_depth = p_dot_z[C_WIDTH:0];  // a depth can never by further than the camera radius
 
   fixed_point_fast_dot #(
@@ -221,11 +221,9 @@ module project_vertex_to_viewport #(
           end
 
           if (x_renorm_complete && y_renorm_complete) begin
-			d1 <= x_renorm_completed > -VW_OVER_TWO;
-			d2 <= x_renorm_completed < VW_OVER_TWO;
-			d3 <= y_renorm_completed > -VH_OVER_TWO;
-			d4 <= y_renorm_completed < VH_OVER_TWO;
-            if (viewport_x_position > -VW_OVER_TWO && viewport_x_position < VW_OVER_TWO && viewport_y_position > -VH_OVER_TWO && viewport_y_position < VH_OVER_TWO) begin
+
+            if (x_renorm_completed > -VW_OVER_TWO && x_renorm_completed < VW_OVER_TWO && y_renorm_completed > -VH_OVER_TWO && y_renorm_completed < VH_OVER_TWO) begin
+              // if (viewport_x_position > -VW_OVER_TWO && viewport_x_position < VW_OVER_TWO && viewport_y_position > -VH_OVER_TWO && viewport_y_position < VH_OVER_TWO) begin
               state <= HOLD;
             end else begin
               short_circuit <= 1;

@@ -115,7 +115,7 @@ def calculate_projection(P, C, u, v, n):
 	ndcx, ndcy, ndcz = calculate_ndc(P, C, u, v, n)
 	x_renorm = ndcx / ndcz
 	y_renorm = ndcy / ndcz
-	return x_renorm, y_renorm, ndcz
+	return [x_renorm, y_renorm, ndcz]
 
 
 @cocotb.test()
@@ -188,6 +188,8 @@ async def test_project_vertex_to_viewport(dut):
 			or yrenorm < -VH_OVER_TWO / 2**FRAC_BITS
 			or yrenorm > VH_OVER_TWO / 2**FRAC_BITS
 		)
+		expected_vals[0] += VW_OVER_TWO / 2**FRAC_BITS
+		expected_vals[1] += VH_OVER_TWO / 2**FRAC_BITS
 		print(f"Expected: {expected_vals}")
 		print(out_of_bounds)
 		if out_of_bounds:
@@ -220,7 +222,7 @@ async def test_project_vertex_to_viewport(dut):
 				dut.viewport_y_position.value.signed_integer / 2**FRAC_BITS,
 				dut.z_depth.value.signed_integer / 2**FRAC_BITS,
 			]
-
+			print(f"Actuals: {actual_vals}")
 			if out_of_bounds:
 				print("OUT OF BOUNDS")
 				pass
