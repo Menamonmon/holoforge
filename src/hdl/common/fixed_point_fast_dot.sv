@@ -63,4 +63,3 @@ module fixed_point_fast_dot #(
 
 
 endmodule
-
