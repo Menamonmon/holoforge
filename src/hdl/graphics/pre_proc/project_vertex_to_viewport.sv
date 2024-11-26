@@ -5,14 +5,17 @@ module project_vertex_to_viewport #(
     parameter P_WIDTH = 16,  // 3D pos width
     parameter V_WIDTH = 16,  // normal vector width
     parameter FRAC_BITS = 14,  // Percision 
-    parameter TWO_OVER_V_H = 0,
-    parameter TWO_OVER_V_W = 0,
-    parameter VIEWPORT_WIDTH = 16,
+    parameter VH_OVER_TWO_WIDTH = 10,
+    parameter VW_OVER_TWO_WIDTH = 10,
+
+    parameter signed [VH_OVER_TWO_WIDTH-1:0] VH_OVER_TWO = 0,
+    parameter signed [VW_OVER_TWO_WIDTH-1:0] VW_OVER_TWO = 0,
     parameter VIEWPORT_H_POSITION_WIDTH = 18,
     parameter VIEWPORT_W_POSITION_WIDTH = 20
 ) (
     input wire clk_in,
     input wire rst_in,
+
     input wire valid_in,
     input wire ready_in,
 
@@ -27,6 +30,7 @@ module project_vertex_to_viewport #(
     // Outputs
     output logic valid_out,
     output logic ready_out,
+    output logic short_circuit,
     output logic signed [VIEWPORT_H_POSITION_WIDTH-1:0] viewport_x_position,
     output logic signed [VIEWPORT_W_POSITION_WIDTH-1:0] viewport_y_position,
     output logic signed [C_WIDTH:0] z_depth  // max depth is 2 * camera radius
@@ -69,11 +73,12 @@ module project_vertex_to_viewport #(
   //   logic signed [VIEWPORT_H_POSITION_WIDTH-1:0] viewport_x_position;
   //   logic signed [VIEWPORT_W_POSITION_WIDTH-1:0] viewport_y_position;
 
-  logic x_renorm_done, y_renorm_done, x_renorm_valid, y_renorm_valid;
+  logic x_renorm_done, y_renorm_done, x_renorm_valid, y_renorm_valid, stop_x, stop_y;
 
+  logic d1, d2, d3, d4;
   assign viewport_x_position = x_renorm_completed[VIEWPORT_H_POSITION_WIDTH-1:0]; // truncate the division extra bits (by this point the value should be in the range of the viewport width)
   assign viewport_y_position = y_renorm_completed[VIEWPORT_W_POSITION_WIDTH-1:0]; // truncate the division extra bits (by this point the value should be in the range of the viewport height)
-  assign z_depth = p_dot_z[C_WIDTH:0];  // a depth can never by further than the camera radius
+  //   assign z_depth = p_dot_z[C_WIDTH:0];  // a depth can never by further than the camera radius
 
   fixed_point_fast_dot #(
       .A_WIDTH(P_SUB_CAM_WIDTH),
@@ -115,7 +120,7 @@ module project_vertex_to_viewport #(
       .WIDTH(RENORM_WIDTH)
   ) x_renormalization (
       .clk_in(clk_in),
-      .rst_in(rst_in || stop_x),
+      .rst_in(rst_in || stop_x || x_renorm_complete),
       .valid_in(valid_in_piped),
       .A(p_dot_x),
       .B(p_dot_z),
@@ -131,7 +136,7 @@ module project_vertex_to_viewport #(
       .WIDTH(RENORM_WIDTH)
   ) y_renormalization (
       .clk_in(clk_in),
-      .rst_in(rst_in || stop_y),
+      .rst_in(rst_in || stop_y || y_renorm_complete),
       .valid_in(valid_in_piped),
       .A(p_dot_y),
       .B(p_dot_z),
@@ -165,6 +170,7 @@ module project_vertex_to_viewport #(
     end else begin
       case (state)
         IDLE: begin
+          short_circuit <= 0;
           if (valid_in) begin
             valid_in_activate <= 1;
             state <= COMPUTE;
@@ -172,24 +178,60 @@ module project_vertex_to_viewport #(
             y_renorm_complete <= 0;
             ready_out <= 0;  // can't proecess two conesucutive inputs at the same time
           end else begin
+            valid_in_activate <= 0;
             ready_out <= 1;
             valid_out <= 0;
           end
         end
 
         COMPUTE: begin
+          valid_in_activate <= 0;
+          if (valid_in_piped) begin
+            z_depth <= p_dot_z[C_WIDTH:0];  // a depth can never by further than the camera radius
+          end
           if (x_renorm_done) begin
-            x_renorm_completed <= x_renorm;
-            x_renorm_complete  <= 1;
+            if (!x_renorm_complete) begin
+              if (x_renorm_valid) begin
+                x_renorm_completed <= x_renorm;
+                x_renorm_complete  <= 1;
+              end else begin
+                x_renorm_complete <= 0;
+                stop_y <= 1;
+                ready_out <= 1;
+                short_circuit <= 1;
+                state <= IDLE;
+              end
+            end
           end
 
+          // only update once and hold the value, subsequent values might be invalid
           if (y_renorm_done) begin
-            y_renorm_completed <= y_renorm;
-            y_renorm_complete  <= 1;
+            if (!y_renorm_complete) begin
+              if (y_renorm_valid) begin
+                y_renorm_completed <= y_renorm;
+                y_renorm_complete  <= 1;
+              end else begin
+                y_renorm_complete <= 0;
+                stop_x <= 1;
+                ready_out <= 1;
+                short_circuit <= 1;
+                state <= IDLE;
+              end
+            end
           end
 
           if (x_renorm_complete && y_renorm_complete) begin
-            state <= HOLD;
+			d1 <= x_renorm_completed > -VW_OVER_TWO;
+			d2 <= x_renorm_completed < VW_OVER_TWO;
+			d3 <= y_renorm_completed > -VH_OVER_TWO;
+			d4 <= y_renorm_completed < VH_OVER_TWO;
+            if (viewport_x_position > -VW_OVER_TWO && viewport_x_position < VW_OVER_TWO && viewport_y_position > -VH_OVER_TWO && viewport_y_position < VH_OVER_TWO) begin
+              state <= HOLD;
+            end else begin
+              short_circuit <= 1;
+              ready_out <= 1;
+              state <= IDLE;
+            end
           end
         end
 
