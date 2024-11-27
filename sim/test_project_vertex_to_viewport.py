@@ -239,49 +239,6 @@ async def test_project_vertex_to_viewport(dut):
 
 	for t in range(100):
 		await test_single()
-	# await test_single()
-
-	# assert dut.valid_out.value == 0
-	# assert dut.ready_out.value == 1
-	# assert dut.valid_out.value == 1
-	# assert dut.ready_out.value == 1 # this module is ready for a new input
-
-	# NDC = calculate_ndc(**test_case)
-	# project_vertex_to_viewport = calculate_renorm(NDC)
-	# ans_valid = 0
-	# if (
-	#     project_vertex_to_viewport[0] > -TWO_OVER_VIEWPORT_W
-	#     and project_vertex_to_viewport[0] < TWO_OVER_VIEWPORT_W
-	#     and project_vertex_to_viewport[1] > -TWO_OVER_VIEWPORT_H
-	#     and project_vertex_to_viewport[1 < TWO_OVER_VIEWPORT_H]
-	# ):
-	#     ans_valid = 1
-	# dut.ndc.value = BinaryValue(vec_to_bin([(i) for i in NDC], WIDTH_P))
-	# dut.valid_in.value = 1
-	# await RisingEdge(dut.clk_in)
-	# dut.valid_in.value = 0
-	# await RisingEdge(dut.clk_in)
-	# while dut.ready_out != 1:
-	#     await RisingEdge(dut.clk_in)
-	# valid_out = dut.valid_out.value
-
-	# assert valid_out == ans_valid
-	# dut_x_renorm = dut.x_renorm.value.signed.integer / 2**FRAC_BITS
-	# dut_y_renorm = dut.y_renorm.value.signed_integer / 2**FRAC_BITS
-	# assert abs(project_vertex_to_viewport[0] - dut_x_renorm)
-	# assert abs(project_vertex_to_viewport[1] - dut_y_renorm)
-	# x_renorm = dut.x_renorm.value.signed_integer
-	# y_renorm = dut.y_renorm.value.signed_integer
-	# z = dut.NDC_z.value.signed_integer
-
-	# # Compute Expected Outputs
-	# right_ans = calculate_ndc(NDC)
-
-	# # Verify Output
-	# # assert valid_out == 1, "valid_out was not high when expected."
-	# assert abs(x_renorm / 2**FRAC_BITS - right_ans[0]) < (4 / (2**FRAC_BITS))
-	# assert abs(y_renorm / 2**FRAC_BITS - right_ans[1]) < (4 / (2**FRAC_BITS))
-
 
 def main():
 	"""Simulate the projection_3d_to_2d module using the Python runner."""
