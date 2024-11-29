@@ -87,6 +87,7 @@ module shader #(
   always_ff @(posedge clk_in) begin
     if (rst_in) begin
       state <= IDLE;
+      valid_out <= 0;
       ready_out <= 1;
     end else begin
       case (state)
