@@ -29,7 +29,6 @@ module framebuffer#(
             write_bit<=1;
             read_bit<=0;
         end
-
         if(last_pixel)begin
             write_bit<=!write_bit;
             read_bit<=!read_bit;
