@@ -6,6 +6,8 @@ from cocotb.binary import BinaryValue
 from FixedPoint import FXfamily, FXnum
 import numpy as np
 import math
+import matplotlib.pyplot as plt
+import os
 
 from PIL import Image
 import trimesh
@@ -162,12 +164,12 @@ def is_point_in_triangle(triangle, point):
 	Determines if a 2D point is inside a given triangle.
 
 	Args:
-																																	triangle (tuple): A tuple of three points (p1, p2, p3) defining the triangle.
-																																																																																																																																																																	  Each point is a tuple (x, y).
-																																	point (tuple): The 2D point to check, given as (x, y).
+																																																																	triangle (tuple): A tuple of three points (p1, p2, p3) defining the triangle.
+																																																																																																																																																																																																																																																																																																																																	  Each point is a tuple (x, y).
+																																																																	point (tuple): The 2D point to check, given as (x, y).
 
 	Returns:
-																																	bool: True if the point is inside the triangle, False otherwise.
+																																																																	bool: True if the point is inside the triangle, False otherwise.
 	"""
 
 	def area(p1, p2, p3):
@@ -206,12 +208,12 @@ def barycentric_raw_areas(x, y, triangle):
 	Calculates the raw areas of the three sub-triangles for barycentric interpolation.
 
 	Args:
-																	i (float): x-coordinate of the point.
-																	j (float): y-coordinate of the point.
-																	triangle (tuple): A tuple of three vertices ((x1, y1), (x2, y2), (x3, y3)).
+																																	i (float): x-coordinate of the point.
+																																	j (float): y-coordinate of the point.
+																																	triangle (tuple): A tuple of three vertices ((x1, y1), (x2, y2), (x3, y3)).
 
 	Returns:
-																	tuple: Raw signed areas (area1, area2, area3) of the sub-triangles.
+																																	tuple: Raw signed areas (area1, area2, area3) of the sub-triangles.
 	"""
 	x1, y1 = triangle[0]
 	x2, y2 = triangle[1]
@@ -235,14 +237,14 @@ def display_bitmap(bitmap):
 		print("".join("#" if val else " " for val in row))
 
 
-def display_frame_pixelized(I):
+def display_frame_pixelized(I, rootdir="./imgs"):
 	# save this frame as an image file with name = id(frame).png
 	# the image would be grayscale
 	m = min(2000, I.max())
 	I8 = (((I - 0)) / (m - 0) * 255.9).astype(np.uint8)
 
 	img = Image.fromarray(I8)
-	name = f"./imgs/{random.random()}.png"
+	name = f"{rootdir}/{random.random()}.png"
 	img.save(name)
 
 	# # draw the tri_coords as an exact triangle and save it as a separate image with same name but with _tri.png
@@ -401,12 +403,12 @@ def is_point_in_triangle(triangle, point):
 	Determines if a 2D point is inside a given triangle.
 
 	Args:
-																																	triangle (tuple): A tuple of three points (p1, p2, p3) defining the triangle.
-																																																																																																																																																																	  Each point is a tuple (x, y).
-																																	point (tuple): The 2D point to check, given as (x, y).
+																																																																	triangle (tuple): A tuple of three points (p1, p2, p3) defining the triangle.
+																																																																																																																																																																																																																																																																																																																																	  Each point is a tuple (x, y).
+																																																																	point (tuple): The 2D point to check, given as (x, y).
 
 	Returns:
-																																	bool: True if the point is inside the triangle, False otherwise.
+																																																																	bool: True if the point is inside the triangle, False otherwise.
 	"""
 
 	def area(p1, p2, p3):
@@ -437,9 +439,7 @@ def split_bit_array(raw_bits, n):
 		len(raw_bits) % n == 0
 	), f"len(raw_bits)={len(raw_bits)} must be divisible by n={n}"
 	increment = len(raw_bits) // n
-	return [
-		raw_bits[i * increment: (i+1)* increment] for i in range(n)
-	]
+	return [raw_bits[i * increment : (i + 1) * increment] for i in range(n)]
 
 
 def barycentric_raw_areas(x, y, triangle):
@@ -447,12 +447,12 @@ def barycentric_raw_areas(x, y, triangle):
 	Calculates the raw areas of the three sub-triangles for barycentric interpolation.
 
 	Args:
-																	i (float): x-coordinate of the point.
-																	j (float): y-coordinate of the point.
-																	triangle (tuple): A tuple of three vertices ((x1, y1), (x2, y2), (x3, y3)).
+																																	i (float): x-coordinate of the point.
+																																	j (float): y-coordinate of the point.
+																																	triangle (tuple): A tuple of three vertices ((x1, y1), (x2, y2), (x3, y3)).
 
 	Returns:
-																	tuple: Raw signed areas (area1, area2, area3) of the sub-triangles.
+																																	tuple: Raw signed areas (area1, area2, area3) of the sub-triangles.
 	"""
 	x1, y1 = triangle[0]
 	x2, y2 = triangle[1]
@@ -488,7 +488,7 @@ def gen_random_mag(min_size, max_size):
 def get_bit_width(val, frac):
 	if val < 1:
 		return math.ceil(math.log2(1 / val)) + 1 + frac
-	return math.ceil(math.log2(val)) + 1 + frac
+	return math.ceil(math.log2(val)) + 2 + frac
 
 
 def load_obj_as_numpy(file_path):
@@ -562,75 +562,90 @@ def project_triangle(vertices, camera_center, u, v, n, focal_length=1.0):
 
 
 def calculate_camera_basis(phi, theta, r):
-    # Compute Camera Position C
-    C = [
+	# Compute Camera Position C
+	C = [
 		r * math.sin(theta) * math.cos(phi),
 		r * math.sin(theta) * math.sin(phi),
 		r * math.cos(theta),
 	]
 
-    # Normal vector n (pointing inward)
-    n = [
+	# Normal vector n (pointing inward)
+	n = [
 		-math.sin(theta) * math.cos(phi),
 		-math.sin(theta) * math.sin(phi),
 		-math.cos(theta),
 	]
 
-    # Right vector u (perpendicular to n, along the tangent plane)
-    u = [-math.sin(phi), math.cos(phi), 0]
+	# Right vector u (perpendicular to n, along the tangent plane)
+	u = [-math.sin(phi), math.cos(phi), 0]
 
-    # Direct calculation of the Up vector v
-    v_x = n[1] * u[2] - n[2] * u[1]
-    v_y = n[2] * u[0] - n[0] * u[2]
-    v_z = n[0] * u[1] - n[1] * u[0]
+	# Direct calculation of the Up vector v
+	v_x = n[1] * u[2] - n[2] * u[1]
+	v_y = n[2] * u[0] - n[0] * u[2]
+	v_z = n[0] * u[1] - n[1] * u[0]
 
-    v = [v_x, v_y, v_z]
+	v = [v_x, v_y, v_z]
 
-    # Normalize the vectors to ensure they are unit vectors
-    def normalize(vec):
-        mag = math.sqrt(vec[0] ** 2 + vec[1] ** 2 + vec[2] ** 2)
-        return [vec[i] / mag for i in range(3)]
+	# Normalize the vectors to ensure they are unit vectors
+	def normalize(vec):
+		mag = math.sqrt(vec[0] ** 2 + vec[1] ** 2 + vec[2] ** 2)
+		return [vec[i] / mag for i in range(3)]
 
-    n = normalize(n)
-    u = normalize(u)
-    v = normalize(v)
+	n = normalize(n)
+	u = normalize(u)
+	v = normalize(v)
 
-    return C, u, v, n
-import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d.art3d import Poly3DCollection
-import numpy as np
+	return C, u, v, n
 
 
 def plot_triangles(x_positions, y_positions):
-    """
-    Plot multiple triangles in 2D space.
+	"""
+	Plot multiple triangles in 2D space.
 
-    :param x_positions: A list of lists containing x-positions of each triangle's vertices.
-    :param y_positions: A list of lists containing y-positions of each triangle's vertices.
-    """
-    # Create a new 2D plot
-    fig, ax = plt.subplots()
+	:param x_positions: A list of lists containing x-positions of each triangle's vertices.
+	:param y_positions: A list of lists containing y-positions of each triangle's vertices.
+	"""
+	# Create a new 2D plot
+	fig, ax = plt.subplots()
 
-    # Loop over each triangle
-    for i in range(len(x_positions)):
-        x = x_positions[i]
-        y = y_positions[i]
+	# Loop over each triangle
+	for i in range(len(x_positions)):
+		x = x_positions[i]
+		y = y_positions[i]
 
-        if len(x) != 3 or len(y) != 3:
-            raise ValueError("Each triangle must have exactly 3 x and 3 y coordinates.")
+		if len(x) != 3 or len(y) != 3:
+			raise ValueError("Each triangle must have exactly 3 x and 3 y coordinates.")
 
-        # Close the triangle by appending the first point again
-        x.append(x[0])
-        y.append(y[0])
+		# Close the triangle by appending the first point again
+		x.append(x[0])
+		y.append(y[0])
 
-        # Plot the triangle
-        ax.plot(x, y, color="blue", linestyle="-", linewidth=1.5)
-        ax.fill(
-            x, y, color="cyan", alpha=0.5
-        )  # Optional: Fill the triangle with a light color
+		# Plot the triangle
+		ax.plot(x, y, color="blue", linestyle="-", linewidth=1.5)
+		ax.fill(
+			x, y, color="cyan", alpha=0.5
+		)  # Optional: Fill the triangle with a light color
 
-    # Set labels and display
-    ax.set_xlabel("X")
-    ax.set_ylabel("Y")
-    ax.axis("equal")  # Keep aspect ratio square for accurate triangle representation
-    plt.show()
+	# Set labels and display
+	ax.set_xlabel("X")
+	ax.set_ylabel("Y")
+	ax.axis("equal")  # Keep aspect ratio square for accurate triangle representation
+	plt.show()
+
+
+def find_sv_files(directory):
+	"""
+	Recursively find all .sv files in a given directory.
+
+	:param directory: Path to the root directory.
+	:return: A list of file paths for all .sv files.
+	"""
+	sv_files = []
+	for root, dirs, files in os.walk(directory):
+		for file in files:
+			if file.endswith(".sv"):
+				sv_files.append(os.path.join(root, file))
+		
+		for d in dirs:
+			sv_files += find_sv_files(os.path.join(root, d))
+	return sv_files

@@ -77,10 +77,10 @@ module project_vertex_to_viewport #(
   logic x_renorm_done, y_renorm_done, x_renorm_valid, y_renorm_valid, stop_x, stop_y;
   logic boundary_check;
 
-    assign viewport_x_position = x_renorm_completed[VIEWPORT_W_POSITION_WIDTH-1:0] + VW_OVER_TWO; // truncate the division extra bits (by this point the value should be in the range of the viewport width)
-    assign viewport_y_position = y_renorm_completed[VIEWPORT_H_POSITION_WIDTH-1:0] + VH_OVER_TWO; // truncate the division extra bits (by this point the value should be in the range of the viewport height)
-//   assign viewport_x_position = x_renorm_completed[VIEWPORT_W_POSITION_WIDTH-1:0]; // truncate the division extra bits (by this point the value should be in the range of the viewport width)
-//   assign viewport_y_position = y_renorm_completed[VIEWPORT_H_POSITION_WIDTH-1:0]; // truncate the division extra bits (by this point the value should be in the range of the viewport height)
+  assign viewport_x_position = x_renorm_completed[VIEWPORT_W_POSITION_WIDTH-1:0] + VW_OVER_TWO; // truncate the division extra bits (by this point the value should be in the range of the viewport width)
+  assign viewport_y_position = y_renorm_completed[VIEWPORT_H_POSITION_WIDTH-1:0] + VH_OVER_TWO; // truncate the division extra bits (by this point the value should be in the range of the viewport height)
+  //   assign viewport_x_position = x_renorm_completed[VIEWPORT_W_POSITION_WIDTH-1:0]; // truncate the division extra bits (by this point the value should be in the range of the viewport width)
+  //   assign viewport_y_position = y_renorm_completed[VIEWPORT_H_POSITION_WIDTH-1:0]; // truncate the division extra bits (by this point the value should be in the range of the viewport height)
   //   assign z_depth = p_dot_z[C_WIDTH:0];  // a depth can never by further than the camera radius
 
   fixed_point_fast_dot #(
@@ -123,7 +123,7 @@ module project_vertex_to_viewport #(
       .WIDTH(RENORM_WIDTH)
   ) x_renormalization (
       .clk_in(clk_in),
-      .rst_in(rst_in || stop_x || x_renorm_complete),
+      .rst_in(rst_in || stop_x || x_renorm_complete || state == IDLE),
       .valid_in(valid_in_piped),
       .A(p_dot_x),
       .B(p_dot_z),
@@ -139,7 +139,7 @@ module project_vertex_to_viewport #(
       .WIDTH(RENORM_WIDTH)
   ) y_renormalization (
       .clk_in(clk_in),
-      .rst_in(rst_in || stop_y || y_renorm_complete),
+      .rst_in(rst_in || stop_y || y_renorm_complete || state == IDLE),
       .valid_in(valid_in_piped),
       .A(p_dot_y),
       .B(p_dot_z),
@@ -157,17 +157,27 @@ module project_vertex_to_viewport #(
 	- COMPUTE: (accounts for dot products and divisions) (if x and y are done AND VALID move to HOLD)
 	- HOLD: stay in this state until ready in is true and set valid out as soon as ready_in is true and transition back to IDLE
 	*/
-  enum logic [1:0] {
-    IDLE,
-    COMPUTE,
-    HOLD
-  } state;
+  //   enum logic [1:0] {
+  //     IDLE = 0,
+  //     COMPUTE = 1,
+  //     HOLD = 2
+  //   } state;
+  logic [1:0] state;
+  localparam logic [1:0] IDLE = 0;
+  localparam logic [1:0] COMPUTE = 1;
+  localparam logic [1:0] HOLD = 2;
 
+  assign boundary_check = (x_renorm_completed > -VW_OVER_TWO && x_renorm_completed < VW_OVER_TWO && y_renorm_completed > -VH_OVER_TWO && y_renorm_completed < VH_OVER_TWO);
 
   always_ff @(posedge clk_in) begin
     if (rst_in) begin
       valid_out <= 0;
+      x_renorm_completed <= 0;
+      y_renorm_completed <= 0;
+      stop_x <= 0;
+      stop_y <= 0;
       ready_out <= 1;
+      short_circuit <= 0;
       state <= IDLE;
     end else begin
       case (state)
@@ -224,7 +234,6 @@ module project_vertex_to_viewport #(
 
           if (x_renorm_complete && y_renorm_complete) begin
 
-            boundary_check = x_renorm_completed > -VW_OVER_TWO && x_renorm_completed < VW_OVER_TWO && y_renorm_completed > -VH_OVER_TWO && y_renorm_completed < VH_OVER_TWO;
             if (boundary_check) begin
               // if (viewport_x_position > -VW_OVER_TWO && viewport_x_position < VW_OVER_TWO && viewport_y_position > -VH_OVER_TWO && viewport_y_position < VH_OVER_TWO) begin
               state <= HOLD;
@@ -240,7 +249,7 @@ module project_vertex_to_viewport #(
         HOLD: begin
           if (ready_in) begin
             valid_out <= 1;
-            ready_out <= 1;  // ready out stays at invalid as long as the pipeline is not empty
+            ready_out <= 0;  // ready out stays at invalid as long as the pipeline is not empty
             state <= IDLE;
           end
         end

@@ -60,13 +60,13 @@ module pre_proc_shader #(
       .VW_OVER_TWO_WIDTH(VW_OVER_TWO_WIDTH),
       .VIEWPORT_H_POSITION_WIDTH(VIEWPORT_H_POSITION_WIDTH),
       .VIEWPORT_W_POSITION_WIDTH(VIEWPORT_W_POSITION_WIDTH),
-	  .VH_OVER_TWO(VH_OVER_TWO),
-	  .VW_OVER_TWO(VW_OVER_TWO)
+      .VH_OVER_TWO(VH_OVER_TWO),
+      .VW_OVER_TWO(VW_OVER_TWO)
   ) vertex_pre_proc_inst (
       .clk_in(clk_in),
-      .rst_in(rst_in),
-      .valid_in(valid_in),
-      .ready_in(vertex_pre_proc_control),
+      .rst_in(rst_in | shader_short_circuit),
+      .valid_in(vertex_pre_proc_control),
+      .ready_in(1),
       .P(P),
       .C(C),
       .u(u),
@@ -87,8 +87,8 @@ module pre_proc_shader #(
   ) shader_inst (
       .clk_in(clk_in),
       .rst_in(rst_in),
-      .valid_in(valid_in),
-      .ready_in(shader_control),
+      .valid_in(shader_control),
+      .ready_in(1),
       .tri_id_in(tri_id_in),
       .cam_normal_in(n),
       .color_out(color_out_temp),
@@ -108,36 +108,46 @@ module pre_proc_shader #(
     if (rst_in) begin
       state <= IDLE;
       valid_out <= 0;
+    //   vertex_pre_proc_control <= 0;
+    //   shader_control <= 0;
       ready_out <= 1;
     end else begin
       case (state)
         IDLE: begin
           valid_out <= 0;
+          vertex_pre_proc_done <= 0;
+          shader_done <= 0;
           if (valid_in) begin
             state <= PROCESSING;
             ready_out <= 0;
-            vertex_pre_proc_control = 1;
-            shader_control = 1;
-            vertex_pre_proc_done <= 0;
-            shader_done <= 0;
+            vertex_pre_proc_control <= 1;
+            shader_control <= 1;
           end else begin
             ready_out <= 1;
           end
         end
 
         PROCESSING: begin
+          vertex_pre_proc_control <= 0;
+          shader_control <= 0;
+
           if (vertex_pre_proc_short_circuit) begin
+            viewport_x_positions_out <= 0;
+            viewport_y_positions_out <= 0;
+            z_depth_out <= 0;
             state <= IDLE;
           end
 
           if (shader_short_circuit) begin
+            viewport_x_positions_out <= 0;
+            viewport_y_positions_out <= 0;
+            z_depth_out <= 0;
             state <= IDLE;
           end
 
           // flash the outputs into the fifo as soon as they're ready
           if (vertex_pre_proc_valid_out && !vertex_pre_proc_done) begin
             vertex_pre_proc_done <= 1;
-            vertex_pre_proc_control = 0;
             viewport_x_positions_out <= viewport_x_positions_out_temp;
             viewport_y_positions_out <= viewport_y_positions_out_temp;
             z_depth_out <= z_depth_out_temp;
@@ -145,20 +155,22 @@ module pre_proc_shader #(
 
           if (shader_valid_out && !shader_done) begin
             shader_done <= 1;
-            shader_control = 0;
-            color_out <= color_out_temp;
+            color_out   <= color_out_temp;
           end
 
           if (vertex_pre_proc_done && shader_done) begin
+            vertex_pre_proc_done <= 0;
+            shader_done <= 0;
+            ready_out <= 1;
             state <= HOLD;
-			valid_out <= 1;
+            valid_out <= 1;
           end
         end
 
         HOLD: begin
-          valid_out <= 1;
           if (ready_in) begin
             ready_out <= 1;
+            valid_out <= 0;
             state <= IDLE;
           end
         end

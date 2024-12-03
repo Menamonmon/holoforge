@@ -86,8 +86,6 @@ module top_level (
       .ZFRAC(14),
       .FB_HRES(320),
       .FB_VRES(180),
-      .VH(3),
-      .VW(3),
       .VW_BY_HRES_WIDTH(22),
       .VW_BY_HRES_FRAC(14),
       .VH_BY_VRES_WIDTH(21),

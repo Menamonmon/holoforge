@@ -88,6 +88,7 @@ module shader #(
     if (rst_in) begin
       state <= IDLE;
       valid_out <= 0;
+      short_circuit <= 0;
       ready_out <= 1;
     end else begin
       case (state)

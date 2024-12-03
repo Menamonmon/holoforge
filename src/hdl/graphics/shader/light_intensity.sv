@@ -42,6 +42,6 @@ module light_intensity #(
       .D(light_intensity_out_full)
   );
 
-  assign valid_out = prst_in & (light_intensity_out_full <= 0);
+  assign valid_out = prst_in & (light_intensity_out_full < 0);
   assign light_intensity_out = -light_intensity_out_full[NORM_WIDTH-1:0]; // check for clipping with this
 endmodule
