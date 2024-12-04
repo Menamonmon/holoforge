@@ -1,6 +1,6 @@
 <testsuites name="results">
   <testsuite name="all" package="all">
-    <property name="random_seed" value="1732482276" />
-    <testcase name="test_projection" classname="test_v_to_ndc" file="/Users/yabi/Documents/Schooly_Stuff/6.111/holoforge/sim/test_v_to_ndc.py" lineno="51" time="0.09692692756652832" sim_time_ns="12010.001" ratio_time="123907.78601495053" />
+    <property name="random_seed" value="1733327881" />
+    <testcase name="test_project_vertex_to_viewport" classname="test_camera_control" file="/Users/yabi/Documents/Schooly_Stuff/6.111/holoforge/sim/test_camera_control.py" lineno="63" time="0.010431051254272461" sim_time_ns="70.001" ratio_time="6710.828879431328" />
   </testsuite>
 </testsuites>
