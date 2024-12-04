@@ -86,10 +86,10 @@ async def test_project_vertex_to_viewport(dut):
 		dut.sin_theta_in.value=BinaryValue(vec_to_bin([normalized_fam(sin(theta))],16))
 		dut.cos_theta_in.value=BinaryValue(vec_to_bin([normalized_fam(cos(theta))],16))
 		dut.mag_int=BinaryValue(mag)
-		for i in range(4):
+		for i in range(5):
 			await RisingEdge(dut.clk_in)
-		print((dut.v.value)//2*FRAC_BITS)
-		print(v)
+		print((dut.u.value.signed_integer)//2*FRAC_BITS)
+		print(u)
 	await test_single()
 
 def main():

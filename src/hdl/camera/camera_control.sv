@@ -18,10 +18,10 @@ module camera_control(
 );
 
 logic signed [17:0] mag;
-logic signed [15:0] coscos;
-logic signed [15:0] sinsin;
-logic signed [15:0] sin_phicos;
-logic signed [15:0] sin_thetacos;
+logic signed [17:0] coscos;
+logic signed [17:0] sinsin;
+logic signed [17:0] sin_phicos;
+logic signed [17:0] sin_thetacos;
 
 logic signed [15:0] cos_phi;
 logic signed [15:0] cos_theta;
@@ -35,7 +35,7 @@ logic piped_2;
 
 //pipe_2
 pipeline #(
-      .STAGES(2),
+      .STAGES(3),
       .DATA_WIDTH(1)
 ) pipe_2 (
       .clk_in(clk_in),
@@ -44,7 +44,7 @@ pipeline #(
   );
 //pipe_4
 pipeline #(
-      .STAGES(4),
+      .STAGES(5),
       .DATA_WIDTH(1)
   ) valid_pipe (
       .clk_in(clk_in),
@@ -71,9 +71,9 @@ always_ff@(posedge clk_in)begin
             cos_theta<=cos_theta_in;
         end 
             if(piped_2)begin
-                u<={16'b0,sinsin,-sinsin};
-                v<={-sin_theta,sin_theta,-coscos};
-                n<={sin_phi,sinsin,sin_phicos};
+                u<={16'b0,sinsin[17:2],-sinsin[17:2]};
+                v<={-sin_theta[17:2],sin_theta[17:2],-coscos[17:2]};
+                n<={sin_phi[17:2],sinsin[17:2],sin_phicos[17:2]};
             end
     end
 end
@@ -117,7 +117,7 @@ fixed_point_mult#(.A_WIDTH(18)) pos_x(
     .clk_in(clk_in),
     .rst_in(rst_in),
     .A(mag),
-    .B(sin_phicos),
+    .B(sin_phicos[17:2]),
     .P(pos[0])
 );
 
@@ -127,7 +127,7 @@ fixed_point_mult#(.A_WIDTH(18)) pos_y(
     .clk_in(clk_in),
     .rst_in(rst_in),
     .A(mag),
-    .B(sinsin),
+    .B(sinsin[17:2]),
     .P(pos[1])
 );
 
@@ -136,7 +136,7 @@ fixed_point_mult#(.A_WIDTH(18)) pos_z(
     .clk_in(clk_in),
     .rst_in(rst_in),
     .A(mag),
-    .B(sin_phi),
+    .B(sin_phi[17:2]),
     .P(pos[2])
 );
 
