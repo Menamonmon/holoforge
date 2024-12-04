@@ -94,7 +94,7 @@ async def better_test(dut,hlist,vlist,data,rdy_list,mask):
             next_addr=addr+1
         misaligned=(addr!=next_addr)
 
-        output_next_cycle=False
+        output_next_cycle=index==7
         #do the stacking ourselves now
         if not currently_stacking:
             #set vals accoridngly
@@ -176,11 +176,10 @@ async def test_pattern(dut):
     dut.valid_in.value=0
     await reset(dut.rst_in,dut.clk_in)
     basic_hcount=[x for x in range(24)]
-    basic_vcount=[0,0,0,1,0,1,0,1]*3
-    # basic_vcount=[0,0,0,0]+[2 for i in range(24)]
+    basic_vcount=[0,0,0,0,0,0,2,0]*3
     basic_data=[0,10,0,20,0,10,30,10]*3
     basic_rdy_list=[1,1,1,1,1,1,1,1]*3
-    mask_list=[0,0,1,0,0,0,0,0]*3
+    mask_list=[0,0,0,0,0,0,0,0]*3
 
     #one flaw in this test bench is i need the extra cycle but the valid ins will save me here
     await better_test(dut,basic_hcount,basic_vcount,basic_data,basic_rdy_list,mask_list)
