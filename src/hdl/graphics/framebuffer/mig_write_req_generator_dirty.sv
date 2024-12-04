@@ -179,6 +179,12 @@ module mig_write_req_generator #(
                                     data_out <= {16'b0, data[6:0]};
                                     strobe_out <= {2'b0, {2{strobe[6]}}, {2{strobe[5]}}, {2{strobe[4]}}, {2{strobe[3]}}, {2{strobe[2]}}, {2{strobe[1]}}, {2{strobe[0]}}};
                                 end
+                                7: begin
+                                    data_out<=data;
+                                    strobe_pout<=strobe_out;
+                                end
+
+                    
                                 //if our prev_index is 7 we should be done
                             endcase
 
@@ -221,7 +227,6 @@ module mig_write_req_generator #(
                                 7:begin
                                     data_out<={color,112'b0};
                                     strobe[15:0]<={2'b11,14'b0};
-                                    valid_out<=1;
                                     
                                 end
                             endcase

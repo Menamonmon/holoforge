@@ -52,7 +52,7 @@ module mig_write_req_generator #(
         index=addr[2:0];
         strobe_index=index<<1;
         //need to be done
-        will_be_ready=(!valid_out || (rdy_in && !emergen_c_state));
+        will_be_ready=(!valid_out || (rdy_in));
         rdy_out=will_be_ready;
     end
 
@@ -73,7 +73,7 @@ module mig_write_req_generator #(
         end else begin
         case(state)
         IDLE:begin
-            if(valid_in)begin
+            if(valid_in && rdy_out)begin
                 next_addr<=addr+1;
                 prev_index<=index;
                 data[addr[2:0]]<=color;
@@ -108,7 +108,7 @@ module mig_write_req_generator #(
                     valid_out<=1;
                     data_out<={color,data[6:0]};
                     strobe_out<={{2{!mask_zero}},14'b0};
-                    if(will_be_ready)begin
+                    if(TODO: will_be_ready)begin
                         state<=HOLD;
                     end else begin
                         state<=IDLE;
@@ -203,11 +203,8 @@ module mig_write_req_generator #(
                             strobe[13:0]<={2'b11,12'b0};
                         end
                         7:begin
-                            emergen_c_data<={color,112'b0};
+                            data<={color,112'b0};
                             strobe[15:0]<={2'b11,14'b0};
-                            if(rdy_data_out)begin
-                                state<=EMERGENC;
-                            end
                         end
                     endcase
                 end
@@ -232,11 +229,7 @@ module mig_write_req_generator #(
         endcase
         //other logic
         if(rdy_in && valid_out)begin
-            if(emergen_c_state)begin
-                valid_out<=1;
-            end else begin
                 valid_out<=0;
-            end
         end
         end
     end
