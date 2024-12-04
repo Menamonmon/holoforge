@@ -23,198 +23,231 @@ module mig_write_req_generator #(
     localparam hres_width=$clog2(HRES);
     localparam vres_width=$clog2(VRES);
     localparam addr_out_width=27;
-    //one +1 for read write buffer, another +1 for left shit by 1 to represent bytes, not 16 bits
     localparam addr_left_over=27-(addr_width+1+1);
-    enum logic [1:0] {
+    enum logic [1:0]{
         STACKING,
         HOLD
-    }state;
-
+    } state;
+    
+    //internal var
     logic [7:0][15:0] data;
     logic [addr_width-1:0] addr;
     logic [15:0] strobe;
-    //buffer for hold state
-    logic currently_stacking;
-    logic [addr_width-1:0] next_addr;
-    logic [127:0]zero_padding;
     logic [3:0] index;
-    logic meow;
+    logic [3:0] prev_index;
+    logic [addr_width-1:0] next_addr;
+    logic currently_stacking;
+    logic [15:0] strobe_index;
 
     always_comb begin
-        addr=hcount+(hcount*vcount);
-        rdy_out=(index==7 || addr!=next_addr) && !rdy_in;
+        addr=hcount+(HRES*vcount);
+        index=addr[2:0];
+        rdy_out=((prev_index==7 && valid_in)|| (addr!=next_addr && valid_in)) && rdy_in;
+        strobe_index=index<<1;
     end
+
     always_ff@(posedge clk_in)begin
-        if (rst_in)begin 
+        if(rst_in)begin
             data<=128'b0;
-            addr<=0;
-            strobe<=15'b0;
+            strobe<=16'b0;
+            prev_index<=4'b0;
             currently_stacking<=0;
             next_addr<=128'b0;
-            index<=4'b0;
             valid_out<=0;
             data_out<=128'b0;
             state<=STACKING;
-            meow<=0;
-        end else begin
-        if(valid_in)begin
-            case(state)
-            STACKING: begin
-                if(!currently_stacking)begin
-                    //first value checks
-                    //check if its alligend
-                    //move to currently stacking aftering beggining the proc
-                    index<=addr[2:0]+1;
-                    next_addr<=addr+1;
-                    
-                    //copy pasting the code cause its just better
-                    currently_stacking<=1;
-                    //alligning the strobe
-                    case(addr[2:0])
-                        0:begin
-                            strobe[0]<=1;  
-                        end
-                        1:begin
-                            strobe[1:0]<={1'b1,1'b0};
-                        end
-                        2:begin
-                            strobe[2:0]<={1'b1,2'b0};
-                        end
-                        3:begin
-                            strobe[3:0]<={1'b1,3'b0};
-                        end
-                        4:begin
-                            strobe[4:0]<={1'b1,4'b0};
-                        end
-                        5:begin
-                            strobe[5:0]<={1'b1,5'b0};
-                        end
-                        6:begin
-                            strobe[6:0]<={1'b1,6'b0};
-                        end
-                        7:begin
-                            strobe[7:0]<={1'b1,7'b0};
-                        end
-                    endcase
+            addr_out<=0;
+            strobe_out<=0;
+        end else begin if(valid_in)begin
 
-                end
-                if(currently_stacking)begin
-                    //we're currently proccessining a new stack
-                    if(addr==next_addr)begin
-                        //this means we're correctly alligned
-                        index<=index+1;
+            if(valid_out && rdy_in)begin
+                valid_out<=0;
+            end
+
+            if(state<=STACKING)begin
+                rdy_out<=1;
+            end
+
+            case(state)
+                STACKING:begin
+                    if(!currently_stacking)begin
+                        //if we're not currently accumlaating
+
+                        //addressing
                         next_addr<=addr+1;
-                        data[index]<=color;
-                        meow<=1;
-                        strobe[index]<=(mask_zero) ?1'b0:1'b1;
+                        
+                        //allign the strobe
+                        case(addr[2:0])
+                            0:begin
+                                strobe[1:0]<=2'b11;  
+                            end
+                            1:begin
+                                strobe[2:0]<={2'b11,2'b0};
+                            end
+                            2:begin
+                                strobe[2:0]<={2'b11,4'b0};
+                            end
+                            3:begin
+                                strobe[3:0]<={2'b11,6'b0};
+                            end
+                            4:begin
+                                strobe[4:0]<={2'b11,8'b0};
+                            end
+                            5:begin
+                                strobe[5:0]<={2'b11,10'b0};
+                            end
+                            6:begin
+                                strobe[6:0]<={2'b11,12'b0};
+                            end
+                            7:begin
+                                strobe[7:0]<={2'b11,14'b0};
+                            end
+                        endcase
+
+                        data[addr[2:0]]<=color;
+                        prev_index<=index;
+                        
+                        //handle state transition properly if we're at index 7
                         if(index==7)begin
-                            data_out<={color,data[6:0]};
                             valid_out<=1;
+                            data_out<={color,data[6:0]};
+                            strobe_out<={{2{mask_zero}},14'b0};
                             if(!rdy_in)begin
                                 state<=HOLD;
                             end
-
-                        end
-                    end
-
-                    end else begin
-                        //this means we aren't alligned 
-                        valid_out<=1;
-                        if(rdy_in)begin 
-                            //if fifo good send out our data start proccessining it
-                            index<=addr[2:0]+1;
-                            next_addr<=addr+1;
-                            //sending out data
-                            //figuring out data_out
-                            case(index)
-                            0:begin
-                                //this shouldn't happpen cause we wouldn't be currently_stacking
-                            end
-                            1:begin
-                                data_out<={112'b0,data[0]};
-                                strobe_out<={14'b0,{2{strobe[0]}}};
-                            end
-                            2:begin
-                                data_out <= {96'b0, data[1:0]};
-                                strobe_out <= {12'b0, {2{strobe[1]}}, {2{strobe[0]}}};
-                            end
-                            3: begin
-                                data_out <= {80'b0, data[2:0]};
-                                strobe_out <= {10'b0, {2{strobe[2]}}, {2{strobe[1]}}, {2{strobe[0]}}};
-                            end
-                            4: begin
-                                data_out <= {64'b0, data[3:0]};
-                                strobe_out <= {8'b0, {2{strobe[3]}}, {2{strobe[2]}}, {2{strobe[1]}}, {2{strobe[0]}}};
-                            end
-                            5: begin
-                                data_out <= {48'b0, data[4:0]};
-                                strobe_out <= {6'b0, {2{strobe[4]}}, {2{strobe[3]}}, {2{strobe[2]}}, {2{strobe[1]}}, {2{strobe[0]}}};
-                            end
-                            6: begin
-                                data_out <= {32'b0, data[5:0]};
-                                strobe_out <= {4'b0, {2{strobe[5]}}, {2{strobe[4]}}, {2{strobe[3]}}, {2{strobe[2]}}, {2{strobe[1]}}, {2{strobe[0]}}};
-                            end
-                            7: begin
-                                data_out <= {16'b0, data[6:0]};
-                                strobe_out <= {2'b0, {2{strobe[6]}}, {2{strobe[5]}}, {2{strobe[4]}}, {2{strobe[3]}}, {2{strobe[2]}}, {2{strobe[1]}}, {2{strobe[0]}}};
-                            end
-                            endcase
-
-                            //alligning bit(padding it properly)
-                            data[addr[2:0]]<=color;
-
-                            case(addr[2:0])
-                            0:begin
-                              strobe[0]<=1;  
-                            end
-                            1:begin
-                              strobe[1:0]<={1'b1,1'b0};
-                            end
-                            2:begin
-                              strobe[2:0]<={1'b1,2'b0};
-                            end
-                            3:begin
-                              strobe[3:0]<={1'b1,3'b0};
-                            end
-                            4:begin
-                              strobe[4:0]<={1'b1,4'b0};
-                            end
-                            5:begin
-                              strobe[5:0]<={1'b1,5'b0};
-                            end
-                            6:begin
-                              strobe[6:0]<={1'b1,6'b0};
-                            end
-                            7:begin
-                              strobe[7:0]<={1'b1,7'b0};
-                            end
-                            endcase
-                            //im praying to god the dynamic conctation works
                         end else begin
-                            //if fifo is full, and our data is misalligned we have to go into hold to be safe(giving ourselves a buffer)
-                            state<=HOLD;
+                            // valid_out<=0;
+                            currently_stacking<=1;
                         end
-                        
+
+                    end else begin 
+                        //we're stacking
+                        if(addr==next_addr)begin
+                            //if we're alligned
+                            next_addr<=addr+1;
+                            data[index]<=color;
+                            strobe[strobe_index]<= (mask_zero)? 1'b0:1'b1;
+                            strobe[strobe_index+1]<= (mask_zero)? 1'b0:1'b1;
+                            prev_index<=index;
+                            if(index==7)begin
+                                data_out<={color,data[6:0]};
+                                valid_out<=1;
+                                strobe_out<={{2{!mask_zero}},strobe[13:0]};
+                                currently_stacking<=0;
+                                if(!rdy_in)begin
+                                    state<=HOLD;
+                                end
+                            end else begin
+                                // valid_out<=0;    
+                            end
+                            
+                        end else begin 
+                            //if we're not alligned
+
+                            //regardless if we're ready or not we have to annull
+                            //the current code and set valid_out high
+                            valid_out<=1;
+
+                            //annulling prev data
+                            case(prev_index)
+                                //if we're anulling and we're currently 
+                                0:begin
+                                    data_out<={112'b0,data[0]};
+                                    strobe_out<={14'b0,{2{strobe[0]}}};
+                                end
+                                1:begin
+                                    data_out <= {96'b0, data[1:0]};
+                                    strobe_out <= {12'b0, {2{strobe[1]}}, {2{strobe[0]}}};
+                                end
+                                2: begin
+                                    data_out <= {80'b0, data[2:0]};
+                                    strobe_out <= {10'b0, {2{strobe[2]}}, {2{strobe[1]}}, {2{strobe[0]}}};
+                                end
+                                3: begin
+                                    data_out <= {64'b0, data[3:0]};
+                                    strobe_out <= {8'b0, {2{strobe[3]}}, {2{strobe[2]}}, {2{strobe[1]}}, {2{strobe[0]}}};
+                                end
+                                4: begin
+                                    data_out <= {48'b0, data[4:0]};
+                                    strobe_out <= {6'b0, {2{strobe[4]}}, {2{strobe[3]}}, {2{strobe[2]}}, {2{strobe[1]}}, {2{strobe[0]}}};
+                                end
+                                5: begin
+                                    data_out <= {32'b0, data[5:0]};
+                                    strobe_out <= {4'b0, {2{strobe[5]}}, {2{strobe[4]}}, {2{strobe[3]}}, {2{strobe[2]}}, {2{strobe[1]}}, {2{strobe[0]}}};
+                                end
+                                6: begin
+                                    data_out <= {16'b0, data[6:0]};
+                                    strobe_out <= {2'b0, {2{strobe[6]}}, {2{strobe[5]}}, {2{strobe[4]}}, {2{strobe[3]}}, {2{strobe[2]}}, {2{strobe[1]}}, {2{strobe[0]}}};
+                                end
+                                //if our prev_index is 7 we should be done
+                            endcase
+
+
+                            data<=128'b0;
+                            data[addr[2:0]]<=color;
+                            //allinging cur data
+                            data[addr[2:0]]<=color;
+                            prev_index<=index;
+                            next_addr<=addr+1;
+                            case(addr[2:0])
+                                0:begin
+                                    data[0]<=color;
+                                    strobe[1:0]<=2'b11;  
+                                end
+                                1:begin
+                                    data[1:0]<={color,16'b0};
+                                    strobe[3:0]<={2'b11,2'b0};
+                                end
+                                2:begin
+                                    data[2:0]<={color,32'b0};
+                                    strobe[5:0]<={2'b11,4'b0};
+                                end
+                                3:begin
+                                    data[3:0]<={color,48'b0};
+                                    strobe[7:0]<={2'b11,6'b0};
+                                end
+                                4:begin
+                                    data[4:0]<={color,64'b0};
+                                    strobe[9:0]<={2'b11,8'b0};
+                                end
+                                5:begin
+                                    data[5:0]<={color,80'b0};
+                                    strobe[11:0]<={2'b11,10'b0};
+                                end
+                                6:begin
+                                    data[6:0]<={color,96'b0};
+                                    strobe[13:0]<={2'b11,12'b0};
+                                end
+                                7:begin
+                                    data_out<={color,112'b0};
+                                    strobe[15:0]<={2'b11,14'b0};
+                                    valid_out<=1;
+                                    
+                                end
+                            endcase
+                            
+                            //state transition in this case
+                            if(!rdy_in)begin
+                                state<=HOLD;
+                            end 
+                        end
                     end
-
                 end
-            HOLD: begin 
-                valid_out<=1;
-                if(rdy_in)begin
-                    state<=STACKING;
-                    if(index==7)begin
-                        currently_stacking<=0;
-                        //we're not currently stacking something
 
-                    end else begin
-                        //we are currently stacking something
-                        currently_stacking<=1;
-
+                HOLD:begin
+                    if(rdy_in)begin
+                        valid_out<=0;
+                        state<=STACKING;
+                        if(prev_index==7)begin
+                            currently_stacking<=0;
+                        end else begin
+                            currently_stacking<=1;  
+                        end
                     end
                 end
-            end
-            endcase
-        end
-        end
+    endcase 
     end
+    end
+    end
+
 endmodule
