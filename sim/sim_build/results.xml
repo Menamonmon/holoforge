@@ -1,6 +1,8 @@
 <testsuites name="results">
   <testsuite name="all" package="all">
-    <property name="random_seed" value="1732942323" />
-    <testcase name="test_pattern" classname="test_req_gen" file="/Users/yabi/Documents/Schooly_Stuff/6.111/holoforge/sim/test_req_gen.py" lineno="59" time="0.0029480457305908203" sim_time_ns="190.001" ratio_time="64449.814339183176" />
+    <property name="random_seed" value="1733296795" />
+    <testcase name="test_pattern" classname="test_req_gen" file="/Users/yabi/Documents/Schooly_Stuff/6.111/holoforge/sim/test_req_gen.py" lineno="164" time="0.0024590492248535156" sim_time_ns="110.001" ratio_time="44733.14274810937">
+      <failure message="Test failed with RANDOM_SEED=1733296795" />
+    </testcase>
   </testsuite>
 </testsuites>
