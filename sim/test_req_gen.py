@@ -62,6 +62,9 @@ async def basic_stacking_test(dut,hlist,vlist,data,rdy_list,mask):
 
 
 async def better_test(dut,hlist,vlist,data,rdy_list,mask):
+    # a better test is we get a 2d array, we also just get a list of RDY,ins 
+    # and rdy_outs, we step through the 2D array randomly toggling ready_in ready_out
+    #we make python code that can handle it then yeah
     data_stack = [0] * 8
     strobe_stack = ['0'] * 16
     currently_stacking = False
@@ -175,6 +178,7 @@ async def test_pattern(dut):
     dut.rdy_in.value=0
     dut.valid_in.value=0
     await reset(dut.rst_in,dut.clk_in)
+    # (hcount,vcount,valid_in,rdy_in,mask_zero,)
     basic_hcount=[x for x in range(24)]
     basic_vcount=[0,0,0,0,0,0,2,0]*3
     basic_data=[0,10,0,20,0,10,30,10]*3

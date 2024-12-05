@@ -30,6 +30,11 @@ module mig_write_req_generator #(
         STACKING,
         HOLD
     } state;
+
+    enum logic {
+        NEXT_IDLE,
+        NEXT_STACKING
+    }   prev_state;
     
     //internal var
     logic [7:0][15:0] data;
@@ -68,8 +73,7 @@ module mig_write_req_generator #(
             state<=STACKING;
             addr_out<=0;
             strobe_out<=0;
-            emergen_c_data<=128'b0;
-            emergen_c_state<=0;
+            prev_state<=0;
         end else begin
         case(state)
         IDLE:begin
@@ -77,7 +81,6 @@ module mig_write_req_generator #(
                 next_addr<=addr+1;
                 prev_index<=index;
                 data[addr[2:0]]<=color;
-
                 case(index)
                     0:begin
                         strobe[1:0]<=2'b11;  
@@ -108,10 +111,11 @@ module mig_write_req_generator #(
                     valid_out<=1;
                     data_out<={color,data[6:0]};
                     strobe_out<={{2{!mask_zero}},14'b0};
-                    if(TODO: will_be_ready)begin
-                        state<=HOLD;
-                    end else begin
+                    if(will_be_ready)begin
                         state<=IDLE;
+                    end else begin
+                        state<=HOLD;
+                        next_state<=NEXT_IDLE;
                     end 
                 end else begin
                     state<=STACKING;
@@ -136,18 +140,19 @@ module mig_write_req_generator #(
                             state<=IDLE;
                         end else begin
                             state<=HOLD;
+                            next_state<=NEXT_STACKING;
                         end
                     end
                 end else begin
                     valid_out<=1;
                     case(prev_index)
                             0:begin
-                                    data_out<={112'b0,data[0]};
-                                    strobe_out<={14'b0,strobe[1:0]};
+                                data_out<={112'b0,data[0]};
+                                strobe_out<={14'b0,strobe[1:0]};
                             end
                             1:begin
                                 data_out <= {96'b0, data[1:0]};
-                                strobe<={12'b0,strobe[3:0]};
+                                strobe_out<={12'b0,strobe[3:0]};
                             end
                             2: begin
                                 data_out <= {80'b0, data[2:0]};
@@ -168,6 +173,10 @@ module mig_write_req_generator #(
                             6: begin
                                 data_out <= {16'b0, data[6:0]};
                                 strobe_out <= {2'b0, strobe[13:0]};
+                            end
+                            7:begin
+                                data_out<=data;
+                                strobe_out<=strobe;
                             end
                     endcase
                     //we have new data in need to allign it
@@ -213,23 +222,17 @@ module mig_write_req_generator #(
 
         HOLD:begin
             if(rdy_in)begin
-                case(next_case)
-                IDLE:
-
-                EMERGENC:
-                endcase
+                if(next_state==NEXT_STACKING)begin
+                    state<=STACKING;
+                end else begin
+                    state<=IDLE;
+                end
             end 
-        end
-
-        EMERGENC:begin
-            if(rdy_data_out)begin
-
-            end
         end
         endcase
         //other logic
         if(rdy_in && valid_out)begin
-                valid_out<=0;
+            valid_out<=0;
         end
         end
     end
