@@ -1,6 +1,3 @@
-`timescale 1ns / 1ps `default_nettype none
-
-
 module convolution (
     input wire clk_in,
     input wire rst_in,

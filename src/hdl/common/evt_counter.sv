@@ -1,5 +1,3 @@
-`timescale 1ns / 1ps `default_nettype none
-
 module evt_counter #(
     MAX_COUNT = 1000
 ) (

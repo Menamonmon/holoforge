@@ -68,8 +68,8 @@ parameters = {
 	"ZFRAC": PRECISION,
 	"FB_HRES": HRES,
 	"FB_VRES": VRES,
-	"VH": vh,
-	"VW": vw,
+	# "VH": vh,
+	# "VW": vw,
 	# parameter HRES_BY_VW_WIDTH = 7,
 	# parameter HRES_BY_VW_FRAC  = 0,
 	# parameter VRES_BY_VH_WIDTH = 6,
@@ -110,8 +110,8 @@ YFRAC = parameters["YFRAC"]
 ZFRAC = parameters["ZFRAC"]
 FB_HRES = parameters["FB_HRES"]
 FB_VRES = parameters["FB_VRES"]
-VH = parameters["VH"]
-VW = parameters["VW"]
+# VH = parameters["VH"]
+# VW = parameters["VW"]
 
 VW_BY_HRES_WIDTH = parameters["VW_BY_HRES_WIDTH"]
 VW_BY_HRES_FRAC = parameters["VW_BY_HRES_FRAC"]

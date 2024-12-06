@@ -7,10 +7,10 @@ module rasterizer #(
     parameter ZFRAC = 14,
     parameter N = 3,
 
-    parameter    FB_HRES = 320,
-    parameter    FB_VRES = 180,
-    parameter VW = 3,
-    parameter VH = 3,
+    parameter FB_HRES = 320,
+    parameter FB_VRES = 180,
+    // parameter VW = 3,
+    // parameter VH = 3,
 
     parameter HRES_BY_VW_WIDTH = 7,
     parameter HRES_BY_VW_FRAC  = 0,
@@ -44,7 +44,8 @@ module rasterizer #(
 
     output logic [$clog2(FB_HRES)-1:0] hcount_out,
     output logic [$clog2(FB_VRES)-1:0] vcount_out,
-    output logic signed [ZWIDTH-1:0] z_out
+    output logic signed [ZWIDTH-1:0] z_out,
+    output logic last_pixel
 );
 
   localparam MAX_FRAC = XFRAC > YFRAC ? (XFRAC > ZFRAC ? XFRAC : ZFRAC) : (YFRAC > ZFRAC ? YFRAC : ZFRAC);
@@ -178,10 +179,14 @@ module rasterizer #(
     end else begin
       case (state)
         IDLE: begin
+          last_pixel <= 0;
           if (valid_in) begin
             state <= BBOX_GEN;
             xv <= x;
             yv <= y;
+            // zv[0] <= {1'b0, z[0]};
+            // zv[1] <= {1'b0, z[1]};
+            // zv[2] <= {1'b0, z[2]};
             zv <= z;
           end
         end
@@ -267,6 +272,7 @@ module rasterizer #(
         RASTERIZE: begin
           if (hcount_out == hcount_max && vcount_out == vcount_max) begin
             state <= IDLE;
+            last_pixel <= 1;
           end else begin
             if (hcount == hcount_max) begin
               x_curr <= x_min;

@@ -1,5 +1,3 @@
-`timescale 1ns / 1ps `default_nettype none
-
 module camera_registers #(
     parameter RAM_DEPTH = 256,
     parameter PRESCALE  = 500

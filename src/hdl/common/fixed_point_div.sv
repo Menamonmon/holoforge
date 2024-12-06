@@ -70,6 +70,7 @@ module fixed_point_div #(
       valid_out <= 0;
       zerodiv <= 0;
       overflow <= 0;
+	  state <= IDLE;
       i <= 0;
     end else begin
       done <= 0;
