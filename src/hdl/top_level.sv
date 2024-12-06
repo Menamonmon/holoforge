@@ -1,5 +1,3 @@
-`timescale 1ns / 1ps `default_nettype none
-
 module top_level (
     input  wire         clk_100mhz,
     output logic [15:0] led,

@@ -55,23 +55,24 @@ module graphics_pipeline_no_brom #(
     output logic last_pixel_out,
     output logic [$clog2(FB_HRES)-1:0] hcount_out,
     output logic [$clog2(FB_VRES)-1:0] vcount_out,
-    output logic signed [ZWIDTH-1:0] z_out,
+    output logic [ZWIDTH:0] z_out,
     output logic [COLOR_WIDTH-1:0] color_out
 );
 
   localparam COLOR_WIDTH = 16;
-  localparam ZWIDTH = C_WIDTH;
+  localparam ZWIDTH = 4 + C_WIDTH;
   logic rasterizer_ready_out;
   logic rasterizer_valid_in;
   logic [2:0][VIEWPORT_H_POSITION_WIDTH-1:0] viewport_x_position, viewport_x_position_temp;
   logic [2:0][VIEWPORT_W_POSITION_WIDTH-1:0] viewport_y_position, viewport_y_position_temp;
-  logic [2:0][C_WIDTH:0] z_depth;
+  logic [2:0][ZWIDTH-1:0] z_depth;
   logic [COLOR_WIDTH-1:0] color_out_temp;
 
   pre_proc_shader #(
       .C_WIDTH(C_WIDTH),
       .P_WIDTH(P_WIDTH),
       .V_WIDTH(V_WIDTH),
+	  .ZWIDTH(ZWIDTH),
       .FRAC_BITS(FRAC_BITS),
       .VH_OVER_TWO_WIDTH(VH_OVER_TWO_WIDTH),
       .VW_OVER_TWO_WIDTH(VW_OVER_TWO_WIDTH),
@@ -99,13 +100,12 @@ module graphics_pipeline_no_brom #(
       .z_depth_out(z_depth),
       .color_out(color_out_temp)
   );
-
   always_ff @(posedge clk_in) begin
     if (rasterizer_valid_in && rasterizer_ready_out) begin
       // update the color to the new value
       color_out <= color_out_temp;
-    //   viewport_x_position_temp = viewport_x_position;
-    //   viewport_y_position_temp = viewport_y_position;
+      //   viewport_x_position_temp = viewport_x_position;
+      //   viewport_y_position_temp = viewport_y_position;
     end
   end
 
@@ -135,10 +135,9 @@ module graphics_pipeline_no_brom #(
       .rst_in(rst_in),
       .valid_in(rasterizer_valid_in),
       .ready_in(ready_in),
-      //   .x(viewport_x_position_temp),
-      //   .y(viewport_y_position_temp),
       .x(viewport_x_position),
       .y(viewport_y_position),
+      //   .z({z_depth[2], z_depth[1], z_depth[0]}),
       .z(z_depth),
       .ready_out(rasterizer_ready_out),
       .valid_out(valid_out),

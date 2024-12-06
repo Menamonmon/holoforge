@@ -179,11 +179,14 @@ module rasterizer #(
     end else begin
       case (state)
         IDLE: begin
-          last_pixel = 0;
+          last_pixel <= 0;
           if (valid_in) begin
             state <= BBOX_GEN;
             xv <= x;
             yv <= y;
+            // zv[0] <= {1'b0, z[0]};
+            // zv[1] <= {1'b0, z[1]};
+            // zv[2] <= {1'b0, z[2]};
             zv <= z;
           end
         end
@@ -269,7 +272,7 @@ module rasterizer #(
         RASTERIZE: begin
           if (hcount_out == hcount_max && vcount_out == vcount_max) begin
             state <= IDLE;
-            last_pixel = 1;
+            last_pixel <= 1;
           end else begin
             if (hcount == hcount_max) begin
               x_curr <= x_min;

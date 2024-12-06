@@ -1,9 +1,8 @@
-`timescale 1ns / 1ps
-
 module vertex_pre_proc #(
     parameter C_WIDTH = 18,  // cam center width
     parameter P_WIDTH = 16,  // 3D pos width
     parameter V_WIDTH = 16,  // normal vector width
+    parameter ZWIDTH = 16,
     parameter FRAC_BITS = 14,  // Percision 
     parameter VH_OVER_TWO_WIDTH = 10,
     parameter VW_OVER_TWO_WIDTH = 10,
@@ -33,7 +32,7 @@ module vertex_pre_proc #(
     output logic short_circuit,
     output logic signed [2:0][VIEWPORT_H_POSITION_WIDTH-1:0] viewport_x_position,
     output logic signed [2:0][VIEWPORT_W_POSITION_WIDTH-1:0] viewport_y_position,
-    output logic signed [2:0][C_WIDTH:0] z_depth  // max depth is 2 * camera radius
+    output logic [2:0][ZWIDTH-1:0] z_depth  // max depth is 2 * camera radius
 );
 
   logic [2:0] short_circuits;
@@ -51,6 +50,7 @@ module vertex_pre_proc #(
       .P_WIDTH(P_WIDTH),
       .V_WIDTH(V_WIDTH),
       .FRAC_BITS(FRAC_BITS),
+      .ZWIDTH(ZWIDTH),
       .VH_OVER_TWO_WIDTH(VH_OVER_TWO_WIDTH),
       .VW_OVER_TWO_WIDTH(VW_OVER_TWO_WIDTH),
       .VIEWPORT_H_POSITION_WIDTH(VIEWPORT_H_POSITION_WIDTH),
@@ -79,6 +79,7 @@ module vertex_pre_proc #(
       .C_WIDTH(C_WIDTH),
       .P_WIDTH(P_WIDTH),
       .V_WIDTH(V_WIDTH),
+      .ZWIDTH(ZWIDTH),
       .FRAC_BITS(FRAC_BITS),
       .VH_OVER_TWO_WIDTH(VH_OVER_TWO_WIDTH),
       .VW_OVER_TWO_WIDTH(VW_OVER_TWO_WIDTH),
@@ -108,6 +109,7 @@ module vertex_pre_proc #(
       .C_WIDTH(C_WIDTH),
       .P_WIDTH(P_WIDTH),
       .V_WIDTH(V_WIDTH),
+      .ZWIDTH(ZWIDTH),
       .FRAC_BITS(FRAC_BITS),
       .VH_OVER_TWO_WIDTH(VH_OVER_TWO_WIDTH),
       .VW_OVER_TWO_WIDTH(VW_OVER_TWO_WIDTH),

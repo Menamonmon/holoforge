@@ -3,6 +3,7 @@ module pre_proc_shader #(
     parameter C_WIDTH = 18,  // cam center width
     parameter P_WIDTH = 16,  // 3D pos width
     parameter V_WIDTH = 16,  // normal vector width
+    parameter ZWIDTH = 16,
     parameter FRAC_BITS = 14,  // Percision 
     parameter VH_OVER_TWO_WIDTH = 10,
     parameter VW_OVER_TWO_WIDTH = 10,
@@ -34,14 +35,14 @@ module pre_proc_shader #(
     output logic ready_out,
     output logic signed [2:0][VIEWPORT_H_POSITION_WIDTH-1:0] viewport_x_positions_out,
     output logic signed [2:0][VIEWPORT_W_POSITION_WIDTH-1:0] viewport_y_positions_out,
-    output logic signed [2:0][C_WIDTH:0] z_depth_out,  // max depth is 2 * camera radius
+    output logic [2:0][ZWIDTH-1:0] z_depth_out,  // max depth is 2 * camera radius
     output logic [COLOR_WIDTH-1:0] color_out
 );
 
   localparam COLOR_WIDTH = 16;
   logic signed [2:0][VIEWPORT_H_POSITION_WIDTH-1:0] viewport_x_positions_out_temp;
   logic signed [2:0][VIEWPORT_W_POSITION_WIDTH-1:0] viewport_y_positions_out_temp;
-  logic signed [2:0][C_WIDTH:0] z_depth_out_temp;  // max depth is 2 * camera radius
+  logic [2:0][ZWIDTH-1:0] z_depth_out_temp;  // max depth is 2 * camera radius
   logic [COLOR_WIDTH-1:0] color_out_temp;
 
   logic vertex_pre_proc_done, shader_done;
@@ -50,12 +51,18 @@ module pre_proc_shader #(
   logic vertex_pre_proc_short_circuit, shader_short_circuit;
   logic vertex_pre_proc_control, shader_control;
 
+  logic [ZWIDTH-1:0] z1, z2, z3;
+  assign z1 = z_depth_out[0];
+  assign z2 = z_depth_out[1];
+  assign z3 = z_depth_out[2];
+
 
   vertex_pre_proc #(
       .C_WIDTH(C_WIDTH),
       .P_WIDTH(P_WIDTH),
       .V_WIDTH(V_WIDTH),
       .FRAC_BITS(FRAC_BITS),
+      .ZWIDTH(ZWIDTH),
       .VH_OVER_TWO_WIDTH(VH_OVER_TWO_WIDTH),
       .VW_OVER_TWO_WIDTH(VW_OVER_TWO_WIDTH),
       .VIEWPORT_H_POSITION_WIDTH(VIEWPORT_H_POSITION_WIDTH),
@@ -108,8 +115,8 @@ module pre_proc_shader #(
     if (rst_in) begin
       state <= IDLE;
       valid_out <= 0;
-    //   vertex_pre_proc_control <= 0;
-    //   shader_control <= 0;
+      //   vertex_pre_proc_control <= 0;
+      //   shader_control <= 0;
       ready_out <= 1;
     end else begin
       case (state)

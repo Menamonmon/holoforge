@@ -22,8 +22,8 @@ P_WIDTH = 16
 C_WIDTH = 18
 V_WIDTH = 16
 FRAC_BITS = 14
-VH = 30
-VW = 30
+VH = 1.5
+VW = 1.5
 VH_OVER_TWO = VH / 2
 VH_OVER_TWO_WIDTH = get_bit_width(VH_OVER_TWO, FRAC_BITS)
 two_over_vh_fam = FXfamily(FRAC_BITS, VH_OVER_TWO_WIDTH - FRAC_BITS)
@@ -215,10 +215,12 @@ async def test_graphics(dut):
 	print(f"n: {n}")
 	tri_xes = []
 	tri_yes = []
+	tri_depths = []
 
-	pixel_map = np.zeros((FB_VRES, FB_HRES))
+	pixel_map = np.full((FB_VRES, FB_HRES), 0)
 	dut.ready_in.value = 1
 	tri_idx = 0
+
 	for triangle, normal in zip(triangles, normals):
 		print("TRIANGLE NUMBER", tri_idx)
 		await feed_triangle_and_normal(
@@ -233,24 +235,26 @@ async def test_graphics(dut):
 		#     continue
 		short_circuit = False
 		while dut.rasterizer_inst.valid_in.value == 0:
-			if dut.pre_proc_shader_inst.shader_short_circuit.value == 1 or dut.pre_proc_shader_inst.vertex_pre_proc_short_circuit.value == 1:
+			if (
+				dut.pre_proc_shader_inst.shader_short_circuit.value == 1
+				or dut.pre_proc_shader_inst.vertex_pre_proc_short_circuit.value == 1
+			):
 				short_circuit = True
 				break
 			await RisingEdge(dut.clk_in)
-		
+
 		if short_circuit:
 			continue
-		 
+
 		while dut.rasterizer_inst.ready_out.value == 0:
 			await RisingEdge(dut.clk_in)
 
 		# ready results
-		# depths = [
-		# 	int(BinaryValue(x, 16, True, 2)) / 2**14
-		# 	for x in split_bit_array((dut.z_depth.value.binstr), 3)
-		# ]
+		depths = [
+			int(BinaryValue(x, dut.ZWIDTH.value, True, 0)) / 2**14
+			for x in split_bit_array((dut.z_depth.value.binstr), 3)
+		]
 		print("INFORMATION")
-		# print(depths)
 		viewports_x = [
 			int(BinaryValue(x, VIEWPORT_W_POSITION_WIDTH, True, 2)) / 2**14
 			# x
@@ -265,45 +269,24 @@ async def test_graphics(dut):
 				3,
 			)
 		]
-		# print(viewports_x, viewports_y, depths)
 		tri_xes.append(list(viewports_x))
 		tri_yes.append(list(viewports_y))
+		tri_depths.append(list(depths))
+		x, y, z = project_triangle(triangle, C, u, v, n)
+		print("DEPTHS: ", depths, z)
+		print(
+			"UNNORMALIZED DEPTHS",
+			[z[0] * 2**FRAC_BITS, z[1] * 2**FRAC_BITS, z[2] * 2**FRAC_BITS],
+		)
 
 		# wait until we get a valid out from the toplevel module
 		count = 0
 		counted = False
-		while dut.last_pixel_out.value != 1:
-
-			if dut.ready_out.value == 1 and dut.rasterizer_inst.state.value == 0:
-				await RisingEdge(dut.clk_in)
-				await RisingEdge(dut.clk_in)
-				await RisingEdge(dut.clk_in)
-				await RisingEdge(dut.clk_in)
-				await RisingEdge(dut.clk_in)
-				break
-
-			count += 1
-			if count > 80 and not counted:
-				counted = True
-				# print bounding box from
-				# x_min = dut.rasterizer_inst.x_min.value.signed_integer / 2**FRAC_BITS
-				# x_max = dut.rasterizer_inst.x_max.value.signed_integer / 2**FRAC_BITS
-				# y_min = dut.rasterizer_inst.y_min.value.signed_integer / 2**FRAC_BITS
-				# y_max = dut.rasterizer_inst.y_max.value.signed_integer / 2**FRAC_BITS
-				# print(f"X_MIN: {x_min}, X_MAX: {x_max}, Y_MIN: {y_min}, Y_MAX: {y_max}")
-
-				# hcount_min = int(dut.rasterizer_inst.hcount_min.value)
-				# hcount_max = int(dut.rasterizer_inst.hcount_max.value)
-				# vcount_min = int(dut.rasterizer_inst.vcount_min.value)
-				# vcount_max = int(dut.rasterizer_inst.vcount_max.value)
-				# print(f"HCOUNT_MIN: {hcount_min}, HCOUNT_MAX: {hcount_max}, VCOUNT_MIN: {vcount_min}, VCOUNT_MAX: {vcount_max}")
-
-				# real_hcount_min = x_min * FB_HRES / VW
-				# real_hcount_max = x_max * FB_HRES / VW
-				# real_vcount_min = y_min * FB_VRES / VH
-				# real_vcount_max = y_max * FB_VRES / VH
-				# print(f"REAL_HCOUNT_MIN: {real_hcount_min}, REAL_HCOUNT_MAX: {real_hcount_max}, REAL_VCOUNT_MIN: {real_vcount_min}, REAL_VCOUNT_MAX: {real_vcount_max}")
-
+		display_frame_pixelized(pixel_map, "./full_renders")
+		negative_depths = 0
+		positive_depths = 0
+		for f in range(20_000):
+			await RisingEdge(dut.clk_in)
 			if dut.valid_out.value == 1:
 				if (
 					"x" in dut.hcount_out.value
@@ -315,27 +298,41 @@ async def test_graphics(dut):
 				else:
 					hcount = int(dut.hcount_out.value)
 					vcount = int(dut.vcount_out.value)
-					depth = int(dut.z_out.value) / 2**FRAC_BITS
-					# if (
-					#     pixel_map[vcount][hcount] >= depth
-					#     or pixel_map[vcount][hcount] == 0
-					# ):
+					depth = int(dut.z_out.value)
+					if depth < 0:
+						negative_depths += 1
+						continue
 
-					pixel_map[vcount][hcount] = 1
+					# make sure the depth is within the 3 values of the depths for that triangle
+					# min_d = min(depths)
+					# max_d = max(depths)
+					# if depth < min_d or depth > max_d:
+					#     negative_depths += 1
+					#     continue
+					if depth >= 40000 - 20:
+						print("DEPTH", depth)
+						continue
 
-					# print(hcount, vcount, depth)
-					# print(f"DEPTH: {depth}")
-			await RisingEdge(dut.clk_in)
+					positive_depths += 1
+					if (
+						pixel_map[vcount][hcount] == 0
+						or pixel_map[vcount][hcount] > depth
+					):
+						pixel_map[vcount][hcount] = depth
+					# if pixel_map[vcount][hcount] == 0 or pixel_map[vcount][hcount] > depth:
+					# pixel_map[vcount][hcount] = 1
+		print(np.max(pixel_map))
 
-	# turn the pixel map into a bitmap of which ones are filled with any value and which ones aren't
-	pixel_map = np.where(pixel_map == 0, 0, 1)
-	display_frame_pixelized(pixel_map, "./full_renders")
+		tot = negative_depths + positive_depths
+		print(
+			f"NEGATIVE DEPTHS: {negative_depths/tot}, POSITIVE DEPTHS: {positive_depths/tot}"
+		)
 	print("X TRIANGLES")
+	display_frame_pixelized(pixel_map, "./full_renders")
 	pprint.pprint(tri_xes)
 	print("Y TRIANGLES")
 	pprint.pprint(tri_yes)
-	plot_triangles(tri_xes, tri_yes)
-
+	# plot_triangles(tri_xes, tri_yes)
 
 
 def main():

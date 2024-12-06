@@ -1,5 +1,3 @@
-`timescale 1ns / 1ps
-
 module projection_3d_to_2d #(
     parameter NDC_WIDTH = 18,
     parameter FRAC_BITS = 14,  // Percision 

@@ -1,9 +1,8 @@
-`timescale 1ns / 1ps
-
 module project_vertex_to_viewport #(
     parameter C_WIDTH = 18,  // cam center width
     parameter P_WIDTH = 16,  // 3D pos width
     parameter V_WIDTH = 16,  // normal vector width
+    parameter ZWIDTH = 16,
     parameter FRAC_BITS = 14,  // Percision 
     parameter VH_OVER_TWO_WIDTH = 10,
     parameter VW_OVER_TWO_WIDTH = 10,
@@ -33,7 +32,7 @@ module project_vertex_to_viewport #(
     output logic short_circuit,
     output logic [VIEWPORT_W_POSITION_WIDTH-1:0] viewport_x_position,  // can't be negative [0, VH]
     output logic [VIEWPORT_H_POSITION_WIDTH-1:0] viewport_y_position,  // can't be negative [0, VW]
-    output logic signed [C_WIDTH:0] z_depth  // max depth is 2 * camera radius
+    output logic [ZWIDTH-1:0] z_depth  // max depth is 2 * camera radius
     // output logic signed [DOT_PROD_WIDTH-1:0] NDC_y,
     // output logic signed [DOT_PROD_WIDTH-1:0] NDC_x,
     // output logic signed [DOT_PROD_WIDTH-1:0] NDC_z
@@ -199,7 +198,7 @@ module project_vertex_to_viewport #(
         COMPUTE: begin
           valid_in_activate <= 0;
           if (valid_in_piped) begin
-            z_depth <= p_dot_z[C_WIDTH:0];  // a depth can never by further than the camera radius
+            z_depth <= p_dot_z[ZWIDTH-1:0];  // a depth can never by further than the camera radius
           end
           if (x_renorm_done) begin
             if (!x_renorm_complete) begin

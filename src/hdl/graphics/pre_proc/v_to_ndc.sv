@@ -1,5 +1,3 @@
-`timescale 1ns / 1ps
-
 module v_to_ndc #(
     parameter C_WIDTH = 18,  //cam width
     parameter P_WIDTH = 16,  //pos width

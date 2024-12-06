@@ -148,6 +148,12 @@ async def feed_triangle_and_normal(dut, triangle, normal, C, u, v, n, idx):
 
 	await RisingEdge(dut.clk_in)
 
+	await RisingEdge(dut.clk_in)
+	await RisingEdge(dut.clk_in)
+	dut.shader_inst.praw_color.value = 2**16-1
+	await RisingEdge(dut.clk_in)
+
+
 
 @cocotb.test()
 async def test_pre_proc_shader(dut):

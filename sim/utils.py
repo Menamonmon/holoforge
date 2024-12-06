@@ -8,6 +8,8 @@ import numpy as np
 import math
 import matplotlib.pyplot as plt
 import os
+from matplotlib.patches import Polygon
+from matplotlib.collections import PatchCollection
 
 from PIL import Image
 import trimesh
@@ -164,12 +166,12 @@ def is_point_in_triangle(triangle, point):
 	Determines if a 2D point is inside a given triangle.
 
 	Args:
-																																																																	triangle (tuple): A tuple of three points (p1, p2, p3) defining the triangle.
-																																																																																																																																																																																																																																																																																																																																	  Each point is a tuple (x, y).
-																																																																	point (tuple): The 2D point to check, given as (x, y).
+																																																																																																																																	triangle (tuple): A tuple of three points (p1, p2, p3) defining the triangle.
+																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																	  Each point is a tuple (x, y).
+																																																																																																																																	point (tuple): The 2D point to check, given as (x, y).
 
 	Returns:
-																																																																	bool: True if the point is inside the triangle, False otherwise.
+																																																																																																																																	bool: True if the point is inside the triangle, False otherwise.
 	"""
 
 	def area(p1, p2, p3):
@@ -208,12 +210,12 @@ def barycentric_raw_areas(x, y, triangle):
 	Calculates the raw areas of the three sub-triangles for barycentric interpolation.
 
 	Args:
-																																	i (float): x-coordinate of the point.
-																																	j (float): y-coordinate of the point.
-																																	triangle (tuple): A tuple of three vertices ((x1, y1), (x2, y2), (x3, y3)).
+																																																																	i (float): x-coordinate of the point.
+																																																																	j (float): y-coordinate of the point.
+																																																																	triangle (tuple): A tuple of three vertices ((x1, y1), (x2, y2), (x3, y3)).
 
 	Returns:
-																																	tuple: Raw signed areas (area1, area2, area3) of the sub-triangles.
+																																																																	tuple: Raw signed areas (area1, area2, area3) of the sub-triangles.
 	"""
 	x1, y1 = triangle[0]
 	x2, y2 = triangle[1]
@@ -240,8 +242,8 @@ def display_bitmap(bitmap):
 def display_frame_pixelized(I, rootdir="./imgs"):
 	# save this frame as an image file with name = id(frame).png
 	# the image would be grayscale
-	m = min(2000, I.max())
-	I8 = (((I - 0)) / (m - 0) * 255.9).astype(np.uint8)
+	m = I.max()
+	I8 = (((I - I.min())) / (m - 0) * 255.9).astype(np.uint8)
 
 	img = Image.fromarray(I8)
 	name = f"{rootdir}/{random.random()}.png"
@@ -403,12 +405,12 @@ def is_point_in_triangle(triangle, point):
 	Determines if a 2D point is inside a given triangle.
 
 	Args:
-																																																																	triangle (tuple): A tuple of three points (p1, p2, p3) defining the triangle.
-																																																																																																																																																																																																																																																																																																																																	  Each point is a tuple (x, y).
-																																																																	point (tuple): The 2D point to check, given as (x, y).
+																																																																																																																																	triangle (tuple): A tuple of three points (p1, p2, p3) defining the triangle.
+																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																	  Each point is a tuple (x, y).
+																																																																																																																																	point (tuple): The 2D point to check, given as (x, y).
 
 	Returns:
-																																																																	bool: True if the point is inside the triangle, False otherwise.
+																																																																																																																																	bool: True if the point is inside the triangle, False otherwise.
 	"""
 
 	def area(p1, p2, p3):
@@ -447,12 +449,12 @@ def barycentric_raw_areas(x, y, triangle):
 	Calculates the raw areas of the three sub-triangles for barycentric interpolation.
 
 	Args:
-																																	i (float): x-coordinate of the point.
-																																	j (float): y-coordinate of the point.
-																																	triangle (tuple): A tuple of three vertices ((x1, y1), (x2, y2), (x3, y3)).
+																																																																	i (float): x-coordinate of the point.
+																																																																	j (float): y-coordinate of the point.
+																																																																	triangle (tuple): A tuple of three vertices ((x1, y1), (x2, y2), (x3, y3)).
 
 	Returns:
-																																	tuple: Raw signed areas (area1, area2, area3) of the sub-triangles.
+																																																																	tuple: Raw signed areas (area1, area2, area3) of the sub-triangles.
 	"""
 	x1, y1 = triangle[0]
 	x2, y2 = triangle[1]
@@ -540,7 +542,7 @@ def project_triangle(vertices, camera_center, u, v, n, focal_length=1.0):
 	Returns:
 	- A list of three 2D points representing the projected triangle vertices.
 	"""
-	projected_points = []
+	x, y, z = [], [], []
 
 	for vertex in vertices:
 		# Translate the vertex relative to the camera center
@@ -555,10 +557,12 @@ def project_triangle(vertices, camera_center, u, v, n, focal_length=1.0):
 		# Perform perspective projection
 		x_proj = focal_length * (x_camera / z_camera)
 		y_proj = focal_length * (y_camera / z_camera)
+		x.append(x_proj)
+		y.append(y_proj)
+		z.append(z_camera)
+		
 
-		projected_points.append(np.array([x_proj, y_proj]))
-
-	return projected_points
+	return x, y, z
 
 
 def calculate_camera_basis(phi, theta, r):
@@ -645,7 +649,8 @@ def find_sv_files(directory):
 		for file in files:
 			if file.endswith(".sv"):
 				sv_files.append(os.path.join(root, file))
-		
+
 		for d in dirs:
 			sv_files += find_sv_files(os.path.join(root, d))
 	return sv_files
+

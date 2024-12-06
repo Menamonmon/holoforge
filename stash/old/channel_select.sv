@@ -1,5 +1,3 @@
-`timescale 1ns / 1ps `default_nettype none
-
 //module takes in six different channels of color (all 8 bit)
 // based on switches, combinationally routes one of them to channel_out
 module channel_select (
