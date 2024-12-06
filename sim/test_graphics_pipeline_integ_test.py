@@ -98,6 +98,7 @@ c_fam = FXfamily(FRAC_BITS, C_WIDTH - FRAC_BITS)
 print(f"VH_OVER_TWO: {VH_OVER_TWO}, {VH_OVER_TWO / 2**FRAC_BITS}")
 print(f"VW_OVER_TWO: {VW_OVER_TWO}, {VW_OVER_TWO / 2**FRAC_BITS}")
 
+
 params = {
 	"P_WIDTH": P_WIDTH,
 	"C_WIDTH": C_WIDTH,
@@ -128,6 +129,7 @@ params = {
 	"VW_BY_HRES": int(BinaryValue(vw_hres)),
 	"VH_BY_VRES": int(BinaryValue(vh_vres)),
 }
+print("parameters", params)
 
 
 def calculate_renorm(ndc):
@@ -192,7 +194,7 @@ async def test_graphics(dut):
 		"../scripts/test_data/cube/model_normalized.obj"
 		# "../scripts/test_data/Car/Car_normalized_normalized.obj"
 	)
-	print(len(triangles), len(normals))
+	# print(len(triangles), len(normals))
 	colors = [2**16 - 1 for i in range(len(triangles))]
 
 	dut.ready_in.value = 0
@@ -254,7 +256,7 @@ async def test_graphics(dut):
 			int(BinaryValue(x, dut.ZWIDTH.value, True, 0)) / 2**14
 			for x in split_bit_array((dut.z_depth.value.binstr), 3)
 		]
-		print("INFORMATION")
+		# print("INFORMATION")
 		viewports_x = [
 			int(BinaryValue(x, VIEWPORT_W_POSITION_WIDTH, True, 2)) / 2**14
 			# x
@@ -273,11 +275,11 @@ async def test_graphics(dut):
 		tri_yes.append(list(viewports_y))
 		tri_depths.append(list(depths))
 		x, y, z = project_triangle(triangle, C, u, v, n)
-		print("DEPTHS: ", depths, z)
-		print(
-			"UNNORMALIZED DEPTHS",
-			[z[0] * 2**FRAC_BITS, z[1] * 2**FRAC_BITS, z[2] * 2**FRAC_BITS],
-		)
+		# print("DEPTHS: ", depths, z)
+		# print(
+		# 	"UNNORMALIZED DEPTHS",
+		# 	[z[0] * 2**FRAC_BITS, z[1] * 2**FRAC_BITS, z[2] * 2**FRAC_BITS],
+		# )
 
 		# wait until we get a valid out from the toplevel module
 		count = 0
@@ -310,7 +312,7 @@ async def test_graphics(dut):
 					#     negative_depths += 1
 					#     continue
 					if depth >= 40000 - 20:
-						print("DEPTH", depth)
+						# print("DEPTH", depth)
 						continue
 
 					positive_depths += 1
