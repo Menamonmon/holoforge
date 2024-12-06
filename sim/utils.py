@@ -553,7 +553,7 @@ def project_triangle(vertices, camera_center, u, v, n, focal_length=1.0):
 		y_camera = np.dot(relative_vertex, v)
 		z_camera = np.dot(relative_vertex, n)
 
-		print("projected vertices", x_camera, y_camera, z_camera)
+		# print("projected vertices", x_camera, y_camera, z_camera)
 		# Perform perspective projection
 		x_proj = focal_length * (x_camera / z_camera)
 		y_proj = focal_length * (y_camera / z_camera)

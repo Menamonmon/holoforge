@@ -368,12 +368,12 @@ def main():
 		proj_path / "src" / "hdl" / "common" / "fixed_point_fast_dot.sv",
 		proj_path / "src" / "hdl" / "common" / "fixed_adder.sv",
 		proj_path / "src" / "hdl" / "common" / "fixed_point_mult.sv",
-		proj_path / "src" / "hdl" / "graphics" / "top_level" / "pre_proc_shader.sv",
+		proj_path / "src" / "hdl" / "graphics" / "tl" / "pre_proc_shader.sv",
 		proj_path
 		/ "src"
 		/ "hdl"
 		/ "graphics"
-		/ "top_level"
+		/ "tl"
 		/ "graphics_pipeline_no_brom.sv",
 	]
 	# sources = find_sv_files(proj_path / "src" / "hdl")
