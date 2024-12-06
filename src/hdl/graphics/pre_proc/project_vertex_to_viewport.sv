@@ -46,6 +46,13 @@ module project_vertex_to_viewport #(
   logic signed [P_SUB_CAM_WIDTH-1:0] P_cam_x;
   logic signed [P_SUB_CAM_WIDTH-1:0] P_cam_y;
   logic signed [P_SUB_CAM_WIDTH-1:0] P_cam_z;
+  typedef enum logic [1:0] {
+    IDLE = 0,
+    COMPUTE = 1,
+    HOLD = 2
+  } state_t;
+
+  state_t state;
 
   assign P_cam_x = $signed(P[0]) - $signed(C[0]);
   assign P_cam_y = $signed(P[1]) - $signed(C[1]);
@@ -156,15 +163,10 @@ module project_vertex_to_viewport #(
 	- COMPUTE: (accounts for dot products and divisions) (if x and y are done AND VALID move to HOLD)
 	- HOLD: stay in this state until ready in is true and set valid out as soon as ready_in is true and transition back to IDLE
 	*/
-  //   enum logic [1:0] {
-  //     IDLE = 0,
-  //     COMPUTE = 1,
-  //     HOLD = 2
-  //   } state;
-  logic [1:0] state;
-  localparam logic [1:0] IDLE = 0;
-  localparam logic [1:0] COMPUTE = 1;
-  localparam logic [1:0] HOLD = 2;
+  // logic [1:0] state;
+  // localparam logic [1:0] IDLE = 0;
+  // localparam logic [1:0] COMPUTE = 1;
+  // localparam logic [1:0] HOLD = 2;
 
   assign boundary_check = (x_renorm_completed > -VW_OVER_TWO && x_renorm_completed < VW_OVER_TWO && y_renorm_completed > -VH_OVER_TWO && y_renorm_completed < VH_OVER_TWO);
 
