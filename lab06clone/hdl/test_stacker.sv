@@ -27,7 +27,7 @@ module test_stacker (
   localparam int VRES = 720;
 
   // Internal signals
-  logic [15:0] data[7:0];  // Each entry holds {red, green, blue} = 24 bits
+  logic [15:0] data[7:0];  // Each entry holds {red, green, blue} = ?????????? 24 bits
   logic [26:0] addr;
   logic next_data_ready;
   logic [$clog2(HRES)-1:0] hcount;
@@ -89,7 +89,7 @@ module test_stacker (
   assign data_fifo_valid_in = next_data_ready;
 
   // Address FIFO data
-  assign addr_fifo_data_in = addr;
+  assign addr_fifo_data_in = addr << 4;
 
   // Data FIFO data assembly
   assign data_fifo_data_in = {

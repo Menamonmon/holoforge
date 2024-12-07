@@ -181,7 +181,7 @@ module top_level (
       .sender_clk(clk_camera),
       .sender_axis_tvalid(addr_fifo_valid_in),
       .sender_axis_tready(addr_fifo_ready_out),
-      .sender_axis_tdata(write_addr),
+      .sender_axis_tdata({5'b0,write_addr}),
       .sender_axis_tlast(stacker_last),
       .sender_axis_prog_full(),
 
@@ -268,7 +268,7 @@ module top_level (
       .ui_clk         (clk_ui),              // output			ui_clk
       .ui_clk_sync_rst(sys_rst_ui),          // output			ui_clk_sync_rst
       .mmcm_locked    (mmcm_locked),         // output			mmcm_locked
-      .aresetn        (!sys_rst_migref),     // input			aresetn
+      .aresetn        (sys_rst_ui),     // input			aresetn
       .app_sr_req     (1'b0),                // input			app_sr_req
       .app_ref_req    (1'b0),                // input			app_ref_req
       .app_zq_req     (1'b0),                // input			app_zq_req
@@ -281,7 +281,7 @@ module top_level (
       .s_axi_awaddr   (s_axi_awaddr[26:0]),  // input [26:0]			s_axi_awaddr
       //FIXED
       .s_axi_awlen    (8'b0),                // input [7:0]			s_axi_awlen
-      .s_axi_awsize   (3'b111),              // input [2:0]			s_axi_awsize
+      .s_axi_awsize   (3'b100),              // input [2:0]			s_axi_awsize
       .s_axi_awburst  (2'b00),               // input [1:0]			s_axi_awburst
 
       .s_axi_awlock (1'b0),  // input [0:0]			s_axi_awlock
@@ -308,11 +308,11 @@ module top_level (
       //this matters
       // wlast is 1 will result in 1 element bursts
       // TODO: LOOK INTO THIS IF WE GET TOO MUCH DELAY FROM DRAM....
-      .s_axi_wlast(s_axi_wlast),  // input			s_axi_wlast
+      .s_axi_wlast(1'b1),  // input			s_axi_wlast
       .s_axi_wvalid(s_axi_wvalid),  // input			s_axi_wvalid
       .s_axi_wready(s_axi_wready),  // output			s_axi_wready
       // Slave Interface Write Response Ports
-      .s_axi_bid(4'b0000),  // output [3:0]			s_axi_bid
+      .s_axi_bid(),  // output [3:0]			s_axi_bid
       .s_axi_bresp(s_axi_bresp),  // output [1:0]			s_axi_bresp
       .s_axi_bvalid(s_axi_bvalid),  // output			s_axi_bvalid
       .s_axi_bready(1'b1),  // input			s_axi_bready
@@ -321,7 +321,7 @@ module top_level (
       .s_axi_araddr(s_axi_araddr),  // input [26:0]			s_axi_araddr
 
       .s_axi_arlen  (8'b0),    // input [7:0]			s_axi_arlen
-      .s_axi_arsize (3'b111),  // input [2:0]			s_axi_arsize
+      .s_axi_arsize (3'b100),  // input [2:0]			s_axi_arsize
       .s_axi_arburst(2'b00),   // input [1:0]			s_axi_arburst
       .s_axi_arlock (1'b0),    // input [0:0]			s_axi_arlock
       .s_axi_arcache(4'b0),    // input [3:0]			s_axi_arcache
@@ -332,9 +332,9 @@ module top_level (
       .s_axi_arready(s_axi_arready),  // output			s_axi_arready
 
       // Slave Interface Read Data Ports
-      .s_axi_rid  (4'b0000),      // output [3:0]			s_axi_rid
+      .s_axi_rid  (),      // output [3:0]			s_axi_rid
       .s_axi_rdata(s_axi_rdata),  // output [127:0]			s_axi_rdata
-      .s_axi_rresp(s_axi_rresp),  // output [1:0]			s_axi_rresp
+      .s_axi_rresp(s_axi_rresp),  // output  [1:0]			s_axi_rresp
 
       //this matters
       .s_axi_rlast (s_axi_rlast),   // output			s_axi_rlast
@@ -425,7 +425,7 @@ module top_level (
 
   logic [15:0] frame_buff_pixel;
   // TODO: CHECK WHY THIS IS GIVING BLUE AT THE BEGINNING OF THE SCREEN....
-  assign frame_buff_pixel = frame_buff_tvalid & frame_buff_tready ? frame_buff_tdata : 16'h2277; // only take a pixel when a handshake happens???
+  assign frame_buff_pixel = frame_buff_tvalid & frame_buff_tready ? frame_buff_tdata : 16'hf800; // only take a pixel when a handshake happens???
   always_ff @(posedge clk_pixel) begin
     fb_red   <= {frame_buff_pixel[15:11], 3'b0};
     fb_green <= {frame_buff_pixel[10:5], 2'b0};
