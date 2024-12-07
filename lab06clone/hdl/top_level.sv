@@ -227,7 +227,9 @@ module top_level (
 
   logic [ 26:0] read_addr;
 
+  logic [6:0] ss_c;
 
+  
   assign s_axi_arvalid = 1'b1;
   evt_counter #(
       .MAX_COUNT(115200)
@@ -238,6 +240,31 @@ module top_level (
       .count_out(s_axi_araddr)
   );
 
+  logic [20:0] next_addr;
+  evt_counter #(
+    .MAX_COUNT(70000)
+  ) addr_display(
+    .clk_in(clk_camera),
+    .rst_in(sys_rst_camera),
+    .evt_in(1'b1),
+    .count_out(next_addr)
+  );
+  logic [31:0] seven_seg_write;
+  always_comb begin
+  if(next_addr==0)begin
+    seven_seg_write=read_addr;
+  end
+  end
+
+  seven_segment_controller(
+    .clk_in(clk_ui),
+    .rst_in(sys_rst_ui),
+    .val_in(seven_seg_write),
+    .cat_out(ss_c),
+    .an_out({ss0_an,ss1_an})
+  );
+  assign ss0_c=ss_c;
+  assign ss1_c=ss_c;
   // the MIG IP!
 
   //empty signals to not make it mad
@@ -268,7 +295,7 @@ module top_level (
       .ui_clk         (clk_ui),              // output			ui_clk
       .ui_clk_sync_rst(sys_rst_ui),          // output			ui_clk_sync_rst
       .mmcm_locked    (mmcm_locked),         // output			mmcm_locked
-      .aresetn        (sys_rst_ui),     // input			aresetn
+      .aresetn        (!sys_rst_ui),     // input			aresetn
       .app_sr_req     (1'b0),                // input			app_sr_req
       .app_ref_req    (1'b0),                // input			app_ref_req
       .app_zq_req     (1'b0),                // input			app_zq_req
@@ -318,7 +345,7 @@ module top_level (
       .s_axi_bready(1'b1),  // input			s_axi_bready
       // Slave Interface Read Address Ports
       .s_axi_arid(4'b0000),  // input [3:0]			s_axi_arid
-      .s_axi_araddr(s_axi_araddr),  // input [26:0]			s_axi_araddr
+      .s_axi_araddr(s_axi_araddr<<4),  // input [26:0]			s_axi_araddr
 
       .s_axi_arlen  (8'b0),    // input [7:0]			s_axi_arlen
       .s_axi_arsize (3'b100),  // input [2:0]			s_axi_arsize

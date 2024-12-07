@@ -85,17 +85,19 @@ module test_stacker (
   endgenerate
 
   // FIFO outputs
-  assign addr_fifo_valid_in = next_data_ready;
-  assign data_fifo_valid_in = next_data_ready;
+  always_ff@(posedge clk_in)begin
+      addr_fifo_valid_in <= next_data_ready;
+      data_fifo_valid_in <= next_data_ready;
+  end
 
   // Address FIFO data
   assign addr_fifo_data_in = addr << 4;
 
   // Data FIFO data assembly
-  assign data_fifo_data_in = {
-    data[7], data[6], data[5], data[4], data[3], data[2], data[1], data[0]
-  };
-  //   assign data_fifo_data_in  = 128'hFF00_0F0F_00FF_F0F0_FF00_0F0F_00FF_F0F0;
+  // assign data_fifo_data_in = {
+  //   data[7], data[6], data[5], data[4], data[3], data[2], data[1], data[0]
+  // };
+    assign data_fifo_data_in  = 128'hFFFF_DB6D_B6DB_9249_6DB6_4924_2492_0000;
 
 endmodule
 
