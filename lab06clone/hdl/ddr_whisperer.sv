@@ -20,48 +20,57 @@ module ddr_whisperer (
     input wire input_data_clk_in,
     input wire input_data_rst,
 
-    input wire output_data_clk_in
+    input wire output_data_clk_in,
     input wire output_data_rst_in,
 
-    input logic clk_migref,
-    input logic sys_rst_migref,
+    input wire clk_migref,
+    input wire sys_rst_migref,
 
     //Write AXI signals in and out
     //data
-    input logic [127:0] write_data,
-    input logic last_write,
-    input logic data_fifo_valid_in,
-    output logic data_fifo_ready_out,
+    input wire [127:0] write_data,
+    input wire last_write,
+    input wire data_fifo_valid_in,
+    output wire data_fifo_ready_out,
 
     //addr
-    input logic addr_fifo_valid_in,
-    output logic addr_fifo_ready_out,
-    input logic [26:0] write_addr,
+    input wire addr_fifo_valid_in,
+    output wire addr_fifo_ready_out,
+    input wire [26:0] write_addr,
 
     //Read Data Axi Signals in and out
 
     //Addr
-    input logic s_axi_arvalid,
-    output logic s_axi_arready,
-    input logic [26:0] s_axi_araddr,
+    input wire s_axi_arvalid,
+    output wire s_axi_arready,
+    input wire [26:0] s_axi_araddr,
     //data
-    output logic s_axi_rvalid,
-    output logic s_axi_rready,
+    output wire s_axi_rvalid,
+    output wire s_axi_rready,
 
-    input logic data_reciever_rdy,
-    output logic data_reciever_valid,
-    output logic data_reciever_last,
-    output logic [127:0] data_reciever_data
+    input wire data_reciever_rdy,
+    output wire data_reciever_valid,
+    output wire data_reciever_last,
+    output wire [127:0] data_reciever_data,
 
-    input logic last_frame_chunk;
+    input wire last_frame_chunk,
+
+    output wire clk_ui,
+    output wire sys_rst_ui
+
 
 );
-    logic clk_ui
+    // logic clk_ui
 
     //dumb ddr signals
     logic app_ref_ack;
     logic app_sr_active;
     logic app_zq_ack;
+
+    logic s_axi_rlast;
+    logic init_calib_complete;
+    logic mmcm_locked;
+    logic s_axi_rresp;
 
     //axi write addr signals
     logic [127:0] s_axi_wdata;
@@ -81,13 +90,6 @@ module ddr_whisperer (
 
     logic [1:0] s_axi_bresp;
     logic s_axi_bvalid;
-
-
-
-
-
-
-
 
     ddr_fifo_wrap write_data_fifo (
       .sender_rst(input_data_clk_in),
