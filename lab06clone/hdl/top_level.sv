@@ -122,7 +122,7 @@ module top_level (
   //read addy;
   logic               s_axi_arvalid;
   logic               s_axi_arready;
-  logic               s_axi_araddr;
+  logic             [26:0]  s_axi_araddr;
   //read_data;
   logic [127:0]       s_axi_rdata;
   logic               s_axi_rresp;
@@ -141,6 +141,11 @@ module top_level (
   logic               addr_fifo_valid_in;
   logic               data_fifo_valid_in;
   logic               stacker_last;
+  
+  logic prev_btn;
+  always_ff@(posedge clk_camera)begin
+    prev_btn<=btn[1];
+  end
 
   test_stacker test_stacker_inst (
       .clk_in(clk_camera),
@@ -252,7 +257,7 @@ module top_level (
   logic [31:0] seven_seg_write;
   always_comb begin
   if(next_addr==0)begin
-    seven_seg_write=read_addr;
+    seven_seg_write=s_axi_araddr;
   end
   end
 
@@ -316,6 +321,7 @@ module top_level (
       .s_axi_awprot (3'b0),  // input [2:0]			s_axi_awprot
       .s_axi_awqos  (4'b0),  // input [3:0]			s_axi_awqos
 
+      //TODO:CHANGEME
       .s_axi_awvalid(s_axi_awvalid),  // input			s_axi_awvalid
       .s_axi_awready(s_axi_awready),  // output			s_axi_awready
       // Slave Interface Write Data Ports
@@ -336,6 +342,7 @@ module top_level (
       // wlast is 1 will result in 1 element bursts
       // TODO: LOOK INTO THIS IF WE GET TOO MUCH DELAY FROM DRAM....
       .s_axi_wlast(1'b1),  // input			s_axi_wlast
+      //TODO:CHANGE ME
       .s_axi_wvalid(s_axi_wvalid),  // input			s_axi_wvalid
       .s_axi_wready(s_axi_wready),  // output			s_axi_wready
       // Slave Interface Write Response Ports
