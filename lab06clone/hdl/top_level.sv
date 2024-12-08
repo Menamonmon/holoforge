@@ -118,6 +118,22 @@ module top_level (
 
   logic stacker_last;
 
+  cw_hdmi_clk_wiz wizard_hdmi (
+      .sysclk(clk_100_passthrough),
+      .clk_pixel(clk_pixel),
+      .clk_tmds(clk_5x),
+      .reset(0)
+  );
+
+  cw_fast_clk_wiz wizard_migcam (
+      .clk_in1(clk_100mhz),
+      .clk_camera(clk_camera),
+      .clk_mig(clk_migref),
+      .clk_xc(clk_xc),
+      .clk_100(clk_100_passthrough),
+      .reset(0)
+  );
+
 evt_counter #(
         .MAX_COUNT(115200)
     ) read_req_addr (

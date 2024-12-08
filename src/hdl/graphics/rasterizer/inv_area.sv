@@ -44,21 +44,27 @@ module inv_area #(
     DIV
   } state;
 
-  fixed_point_slow_dot #(
+  fixed_point_fast_dot #(
       .A_WIDTH(XWIDTH),
       .A_FRAC_BITS(FRAC),
       .B_WIDTH(SUB_WIDTH),
       .B_FRAC_BITS(FRAC),
-      .P_FRAC_BITS(FRAC),
-      .N(N)
+      .P_FRAC_BITS(FRAC)
   ) dot (
       .clk_in(clk_in),
       .rst_in(rst_in),
       .A(xv),
       .B(sub_out),
-      .valid_in(dot_valid_in),
-      .valid_out(dot_valid_out),
-      .P(dot_out)
+      .D(dot_out)
+  );
+
+  pipeline #(
+      .DATA_WIDTH (1),
+      .STAGES(4)   // check for correctness
+  ) pipe (
+      .clk_in(clk_in),
+      .data(state == IDLE && valid_in),
+      .data_out(dot_valid_out)
   );
 
 
@@ -95,7 +101,7 @@ module inv_area #(
             sub_out[0] <= ($signed(y[1]) - $signed(y[2]));
             sub_out[1] <= ($signed(y[2]) - $signed(y[0]));
             sub_out[2] <= ($signed(y[0]) - $signed(y[1]));
-            dot_valid_in <= 1;
+            // dot_valid_in <= 1;
           end else begin
             valid_out <= 0;
             done <= 0;
@@ -104,7 +110,7 @@ module inv_area #(
         end
 
         DOT: begin
-          dot_valid_in <= 0;
+          //   dot_valid_in <= 0;
           if (dot_valid_out) begin
             state <= DIV;
           end

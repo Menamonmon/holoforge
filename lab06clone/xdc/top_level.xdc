@@ -9,7 +9,6 @@ set_property CONFIG_VOLTAGE 3.3 [current_design]
 
 
 # CAMERA BOARD v2
-set_property CLOCK_DEDICATED_ROUTE FALSE [get_nets btn_IBUF[0]] 
 
 
 # pmoda[0]

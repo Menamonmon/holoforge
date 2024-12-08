@@ -1,8 +1,0 @@
-<testsuites name="results">
-  <testsuite name="all" package="all">
-    <property name="random_seed" value="1733458222" />
-    <testcase name="test_pattern" classname="test_req_gen" file="/Users/yabi/Documents/Schooly_Stuff/6.111/holoforge/sim/test_req_gen.py" lineno="337" time="0.005274057388305664" sim_time_ns="130.001" ratio_time="24649.14399457529">
-      <failure message="Test failed with RANDOM_SEED=1733458222" />
-    </testcase>
-  </testsuite>
-</testsuites>
