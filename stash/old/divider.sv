@@ -1,5 +1,3 @@
-`timescale 1ns / 1ps `default_nettype none
-
 module divider #(
     parameter WIDTH = 32
 ) (

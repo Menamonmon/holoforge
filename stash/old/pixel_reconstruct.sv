@@ -1,5 +1,3 @@
-`timescale 1ns / 1ps `default_nettype none
-
 module pixel_reconstruct #(
     parameter HCOUNT_WIDTH = 11,
     parameter VCOUNT_WIDTH = 10
