@@ -10,7 +10,6 @@ set_property CONFIG_VOLTAGE 3.3 [current_design]
 
 # CAMERA BOARD v2
 
-
 # pmoda[0]
 set_property -dict {PACKAGE_PIN F14 IOSTANDARD LVCMOS33}  [ get_ports "camera_d[1]" ]
 # pmoda[1]

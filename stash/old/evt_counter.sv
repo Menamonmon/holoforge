@@ -18,6 +18,7 @@ module evt_counter #(
       end
     end
   end
+  
 
 endmodule
 `default_nettype wire
