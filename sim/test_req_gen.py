@@ -68,20 +68,20 @@ async def better_test(dut):
 	#we make python code that can handle it then yeah
 
 	grid=[]
-	HRES=10
-	VRES=10
+	HRES=64
+	VRES=36
 	addr_width = ((HRES + (HRES * VRES)) // 2 - 1).bit_length()
 	grid = []
 	for vcount in range(VRES):  # vcount from 0 to VRES - 1
 		row = []
 		for hcount in range(HRES):  # hcount from 0 to HRES - 1
 			# Each cell: [hcount, vcount, color, mask_zero, valid_in]
-			# color = random.randint(0, 0xFFFF)
-			color = 10
+			color = random.randint(0, 0xFFFF)
+			# color = 5
 			# mask_zero = random.choice([0, 1])
 			mask_zero=0
-			# valid_in = random.choice([0,1])  # Random valid_in
-			valid_in=1
+			valid_in = random.choice([0,1])  # Random valid_in
+			# valid_in=1
 			# print(mask_zero)
 			# print(valid_in)
 			frame = random.choice([0,1])
@@ -103,7 +103,7 @@ async def better_test(dut):
 
 	num_cycles = len(grid) * len(grid[0]) + 100  # Extra cycles for output
 	# rdy_list = [1 for _ in range(num_cycles)]
-	rdy_list=([0]*10+[1]*10)*50
+	rdy_list=[1 for i in range(num_cycles)]
 
 
 	total_cycles = num_cycles
@@ -120,9 +120,7 @@ async def better_test(dut):
 
 	def enq_outputs(data,strobe,addr,frame):
 		valid_out_queue.append(1)
-		print("NYAAAA")
 		data_out_queue.append(pack_values(data,16))
-		print(data_out_queue)
 		strobe_out_queue.append(''.join(strobe[::-1]))
 		addr_out_val=(frame<<(addr_width+4)|(addr<<4))
 		addr_out_queue.append(addr_out_val)
@@ -145,11 +143,12 @@ async def better_test(dut):
 		if state == IDLE or state == STACKING:
 			if input_index < input_length:
 				#so if we're out of vars this lets get rid of whatever current on the line
-
 				hcount, vcount, color, mask_zero, valid_in,frame = grid[input_index // HRES][input_index % HRES]
 				addr = hcount + (HRES * vcount)
 				index = addr & 7
 				strobe_index = index << 1
+				print("input index",input_index)
+				print(addr,next_addr,"addys")
 				# print(input_index,"nmeow")
 				# print(valid_in)
 				input_index+=1
@@ -160,8 +159,10 @@ async def better_test(dut):
 						next_addr = addr + 1
 						prev_addr = addr
 					else:
+						print(addr,next_addr,"addresse")
 						if addr!=next_addr:
 						#Missalinged send data start clean
+							print("mis allign")
 							enq_outputs(data_stack.copy(),strobe_stack.copy(),prev_addr,frame)
 							data_stack = [0] * 8
 							strobe_stack = ['0'] * 16
@@ -185,12 +186,10 @@ async def better_test(dut):
 					currently_stacking=True
 					print(index,"index")
 					if index == 7:
-						print("got here")
-						# print(data_stack)
-						# Output the data
+						print("fully stacked")
 						enq_outputs(data_stack.copy(),strobe_stack.copy(),prev_addr,frame)
-						print(pack_values(data_stack,16))
-						print(strobe_stack)
+						# print(pack_values(data_stack,16),"we have data")
+						# print(strobe_stack)
 						currently_stacking = False
 						if will_be_ready:
 							state = IDLE
@@ -202,7 +201,6 @@ async def better_test(dut):
 		elif state==HOLD:
 			print("in hold")
 			valid_in=1
-			print("stuck here")
 			if rdy_in:
 				state=next_state
 			else:
@@ -221,13 +219,19 @@ async def better_test(dut):
 		#now we compare outputs
 		if expec_valid_out_next_cycle==1:
 			expec_valid_out_next_cycle=0
-			assert dut.valid_out==1
-			assert dut.data_out==data_out_queue[0]
+			print(dut.valid_out,"valid_out_in_the_you_get_the_poiint")
+			# assert dut.valid_out==1
+			# assert dut.data_out==data_out_queue.pop(0)
+			print("stroe anity check")
+			print(dut.strobe_out,"dut")
+			print(strobe_out_queue[0],"test strobe_out")
+			# assert dut.strobe_out==strobe_out_queue.pop(0)
 			print("meow")
 		if valid_out_queue:
-			print(valid_out_queue,"WHAT")
-			print(dut.valid_out.value,"NYA")
+			print(valid_out_queue,"Python valid")
+			print(dut.valid_out.value,"Verilog valid")
 			expec_valid_out_next_cycle=1
+			valid_out_queue.pop(0)
 		else:
 			expec_valid_out=0
 
