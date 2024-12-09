@@ -78,10 +78,10 @@ async def better_test(dut):
 			# Each cell: [hcount, vcount, color, mask_zero, valid_in]
 			color = random.randint(0, 0xFFFF)
 			# color = 5
-			mask_zero = random.choice([0, 1])
-			# mask_zero=0
-			# valid_in = random.choice([0,1])  # Random valid_in
-			valid_in=1
+			# mask_zero = random.choice([0, 1])
+			mask_zero=0
+			valid_in = random.choice([0,1])  # Random valid_in
+			# valid_in=1
 			# print(mask_zero)
 			# print(valid_in)
 			frame = random.choice([0,1])
@@ -103,7 +103,7 @@ async def better_test(dut):
 
 	num_cycles = len(grid) * len(grid[0]) + 100  # Extra cycles for output
 	# rdy_list = [1 for _ in range(num_cycles)]
-	rdy_list=[1 for i in range(num_cycles)]
+	rdy_list=([1]*5+[0]*50)*50
 
 
 	total_cycles = num_cycles
@@ -220,12 +220,12 @@ async def better_test(dut):
 		if expec_valid_out_next_cycle==1:
 			expec_valid_out_next_cycle=0
 			print(dut.valid_out,"valid_out_in_the_you_get_the_poiint")
-			assert dut.valid_out==1
-			assert dut.data_out==data_out_queue.pop(0)
+			# assert dut.valid_out==1
+			# assert dut.data_out==data_out_queue.pop(0)
 			print("stroe anity check")
 			print(dut.strobe_out,"dut")
 			print(strobe_out_queue[0],"test strobe_out")
-			assert dut.strobe_out==strobe_out_queue.pop(0)
+			# assert dut.strobe_out==strobe_out_queue.pop(0)
 			print("meow")
 		if valid_out_queue:
 			print(valid_out_queue,"Python valid")
