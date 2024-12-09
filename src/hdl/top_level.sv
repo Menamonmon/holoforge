@@ -33,7 +33,6 @@
   // {'XWIDTH': 17, 'YWIDTH': 17, 'ZWIDTH': 29, 'XFRAC': 14, 'YFRAC': 14, 'ZFRAC': 14, 'FB_HRES': 320, 'FB_VRES': 180, 'VH': 3, 'VW': 3, 'VW_BY_HRES_WIDTH': 22, 'VW_BY_HRES_FRAC': 14, 'VH_BY_VRES_WIDTH': 21, 'VH_BY_VRES_FRAC': 14, 'VW_BY_HRES': 154, 'VH_BY_VRES': 273, 'HRES_BY_VW_WIDTH': 21, 'HRES_BY_VW_FRAC': 14, 'VRES_BY_VH_WIDTH': 21, 'VRES_BY_VH_FRAC': 14, 'HRES_BY_VW': 1747627, 'VRES_BY_VH': 983040}
   // #PARAMETERS#
 
-<<<<<<< HEAD
 //   logic [2:0][16:0] x;
 //   logic [2:0][16:0] y;
 //   logic [2:0][28:0] z;
@@ -128,8 +127,8 @@ module top_level (
     // hdmi port
     output logic [ 2:0] hdmi_tx_p,     //hdmi output signals (positives) (blue, green, red)
     output logic [ 2:0] hdmi_tx_n,     //hdmi output signals (negatives) (blue, green, red)
-    output logic        hdmi_clk_p,
-    hdmi_clk_n,  //differential hdmi clock
+    output logic        hdmi_clk_p,hdmi_clk_n,
+
     // New for week 6: DDR3 ports
     inout  wire  [15:0] ddr3_dq,
     inout  wire  [ 1:0] ddr3_dqs_n,
@@ -224,6 +223,15 @@ module top_level (
 
   logic stacker_last;
 
+  evt_counter #(
+        .MAX_COUNT(115200)
+    ) read_req_addr (
+        .clk_in(clk_ui),
+        .rst_in(sys_rst_ui),
+        .evt_in(s_axi_arready && s_axi_arvalid),
+        .count_out(s_axi_araddr)
+    );
+
   cw_hdmi_clk_wiz wizard_hdmi (
       .sysclk(clk_100_passthrough),
       .clk_pixel(clk_pixel),
@@ -240,14 +248,7 @@ module top_level (
       .reset(0)
   );
 
-evt_counter #(
-        .MAX_COUNT(115200)
-    ) read_req_addr (
-        .clk_in(clk_ui),
-        .rst_in(sys_rst_ui),
-        .evt_in(s_axi_arready && s_axi_arvalid),
-        .count_out(s_axi_araddr)
-    );
+
 
 evt_counter #(
         .MAX_COUNT(115200)
@@ -681,5 +682,4 @@ endmodule  // top_level
 // endmodule  // top_level
 
 
-`default_nettype wire
 
