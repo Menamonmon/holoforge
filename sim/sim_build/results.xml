@@ -1,14 +1,6 @@
 <testsuites name="results">
   <testsuite name="all" package="all">
-<<<<<<< Updated upstream
-    <property name="random_seed" value="1733713977" />
-    <testcase name="test_pattern" classname="test_req_gen" file="/Users/yabi/Documents/Schooly_Stuff/6.111/holoforge/sim/test_req_gen.py" lineno="341" time="0.006389141082763672" sim_time_ns="180.001" ratio_time="28172.957470856036">
-      <failure message="Test failed with RANDOM_SEED=1733713977" />
-=======
-    <property name="random_seed" value="1733710883" />
-    <testcase name="test_pattern" classname="test_req_gen" file="/Users/yabi/Documents/Schooly_Stuff/6.111/holoforge/sim/test_req_gen.py" lineno="342" time="0.004611968994140625" sim_time_ns="180.001" ratio_time="39029.10020181969">
-      <failure message="Test failed with RANDOM_SEED=1733710883" />
->>>>>>> Stashed changes
-    </testcase>
+    <property name="random_seed" value="1733736035" />
+    <testcase name="test_pattern" classname="test_req_gen" file="/Users/yabi/Documents/Schooly_Stuff/6.111/holoforge/sim/test_req_gen.py" lineno="341" time="10.584450006484985" sim_time_ns="4121650.001" ratio_time="389406.157001517" />
   </testsuite>
 </testsuites>

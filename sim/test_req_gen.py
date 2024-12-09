@@ -47,9 +47,9 @@ async def basic_stacking_test(dut,hlist,vlist,data,rdy_list,mask):
 		dut.valid_in.value=1
 		dut.hcount.value=hlist[i]
 		dut.vcount.value=vlist[i]
-		dut.color.value=data[i]
-		dut.mask_zero.value=mask[i]
-		dut.rdy_in.value=1
+		dut.data_in.value=data[i]
+		dut.strobe_in.value=mask[i]
+		dut.ready_in.value=1
 		if(mask[i]==0):
 			expec_strob= expec_strob[:i*2] + "11" + expec_strob[i*2+2:]
 		print(expec_strob)
@@ -76,7 +76,7 @@ async def better_test(dut):
 		row = []
 		for hcount in range(HRES):  # hcount from 0 to HRES - 1
 			# Each cell: [hcount, vcount, color, mask_zero, valid_in]
-			color = random.randint(0, 0xFFFF)
+			color = random.choice([0,0xFFFF])
 			# color = 5
 			# mask_zero = random.choice([0, 1])
 			mask_zero=0
@@ -175,7 +175,7 @@ async def better_test(dut):
 								next_state=STACKING
 					#stack data
 					data_stack[index] = color
-					if(mask_zero):
+					if(not mask_zero):
 						strobe_stack[strobe_index]="0"
 						strobe_stack[strobe_index+1]="0"
 					else:
@@ -209,9 +209,9 @@ async def better_test(dut):
 		dut.valid_in.value=valid_in
 		dut.hcount.value=hcount
 		dut.vcount.value=vcount
-		dut.color.value=color
-		dut.mask_zero.value=mask_zero
-		dut.rdy_in.value=rdy_in
+		dut.data_in.value=color
+		dut.strobe_in.value=mask_zero
+		dut.ready_in.value=rdy_in
 		await RisingEdge(dut.clk_in)
 		cycle+=1
 		# print(cycle)
@@ -346,26 +346,85 @@ async def test_pattern(dut):
 	cocotb.start_soon(Clock(dut.clk_in, 10, units="ns").start())
 	dut.hcount.value=0
 	dut.vcount.value=0
-	dut.color.value=0
-	dut.frame.value=0
-	dut.mask_zero.value=0
-	dut.rdy_in.value=0
+	dut.data_in.value=0
+	dut.strobe_in.value=0
+	dut.ready_in.value=0
 	dut.valid_in.value=0
 	await reset(dut.rst_in,dut.clk_in)
 	# (hcount,vcount,valid_in,rdy_in,mask_zero,)
-	basic_hcount=[x for x in range(24)]
-	basic_vcount=[0,0,0,0,0,0,2,0]*3
-	basic_data=[0,10,0,20,0,10,30,10]*3
-	basic_rdy_list=[1,1,1,1,1,1,1,1]*3
-	mask_list=[0,0,0,0,0,0,0,0]*3
+	grid=[]
+	HRES=64
+	VRES=32
+	addr_width = ((HRES + (HRES * VRES)) // 2 - 1).bit_length()
+	grid = []
+	for vcount in range(VRES):  # vcount from 0 to VRES - 1
+		row = []
+		for hcount in range(HRES):  # hcount from 0 to HRES - 1
+			row.append(random.randint(0,0xFFFF))
+		grid.append(row)
+
+	out_req=[]
+
+	for vcount in range(VRES):
+		for hcount in range(HRES):
+			dut.valid_in.value=1
+			dut.ready_in.value=random.randint(0,1)
+			strobe_in=random.randint(0,1)
+			dut.strobe_in.value=strobe_in
+			dut.data_in.value=grid[vcount][hcount]
+			if(strobe_in==0):
+				grid[vcount][hcount]=None
+			dut.hcount.value=hcount
+			dut.vcount.value=vcount
+			
+			dut.ready_in.value=0
+			x=200
+			for _ in range(x):
+				await RisingEdge(dut.clk_in)
+			dut.ready_in.value=1
+
+			while dut.ready_out.value==0:
+				await RisingEdge(dut.clk_in)
+				if(dut.valid_out.value==1 and dut.ready_in.value==1):
+					out_req.append([dut.data_out.value,dut.strobe_out.value,dut.addr_out.value])
+
+			await RisingEdge(dut.clk_in)
+			if(dut.valid_out.value==1 and dut.ready_in.value==1):
+				out_req.append([dut.data_out.value,dut.strobe_out.value,dut.addr_out.value])
+	for _ in range(6):
+		dut.valid_in.value=0
+		await RisingEdge(dut.clk_in)
+		if(dut.valid_out.value==1 and dut.ready_in.value==1):
+			out_req.append([dut.data_out.value,dut.strobe_out.value,dut.addr_out.value])
+	ans_grid=[[None for _ in range(HRES)] for __ in range(VRES)]
+	for ans in out_req:
+		raw_addr=ans[2]<<3
+		data=ans[0]
+		strobe=ans[1]
+		for i in range(8):
+			cur_addr=raw_addr+i
+			# print(cur_addr//HRES,"addr")
+			# print(cur_addr)
+			# print(len(grid),"grid")
+			# print(len(grid[0]),"grid again")
+			flip=8-i-1
+			if(strobe.binstr[2*flip:2*flip+2]=="11"):
+				ans_grid[cur_addr//HRES][cur_addr%HRES]=int(data.binstr[flip*16:(flip+1)*16],2)
+	for vcount in range(VRES):
+		for hcount in range(HRES):
+			print(hcount,vcount)
+			print(ans_grid[vcount][hcount],"answer")
+			print(grid[vcount][hcount],"out grid")
+			assert ans_grid[vcount][hcount]==grid[vcount][hcount]
+
+
+
+
 
 	#one flaw in this test bench is i need the extra cycle but the valid ins will save me here
-	await better_test(dut)
+	# await better_test(dut)
 	# await basic_stacking_test(dut,basic_hcount,basic_vcount,basic_data,basic_rdy_list,mask_list)
-	basic_hcount=[0,1,2,3,4,5,6,7,1]
-	basic_vcount=[0,0,0,0,0,0,0,0,0]
-	basic_data=[0,10,0,200,1000,1000,30,10,1]
-	basic_rdy_list=[1,1,1,1,1,1,1,1]
+	
 
 
 	 
@@ -377,7 +436,7 @@ def test_TEST_NAME(): #chang ethis
 	proj_path = Path(__file__).resolve().parent.parent
 	sys.path.append(str(proj_path / "sim" / "model"))
 	sources = [
-		proj_path / "src" /"hdl"/ "graphics"/ "framebuffer"/ "mig_write_req_generator.sv"
+		proj_path / "src" /"hdl"/ "graphics"/ "framebuffer"/ "pixel_stacker.sv"
 		] #change this
 	build_test_args = ["-Wall"]
 	parameters = {}
@@ -385,7 +444,7 @@ def test_TEST_NAME(): #chang ethis
 	runner = get_runner(sim)
 	runner.build(
 		sources=sources,
-		hdl_toplevel="mig_write_req_generator", #change this
+		hdl_toplevel="pixel_stacker", #change this
 		always=True,
 		build_args=build_test_args,
 		parameters=parameters,
@@ -394,7 +453,7 @@ def test_TEST_NAME(): #chang ethis
 	)
 	run_test_args = []
 	runner.test(
-		hdl_toplevel="mig_write_req_generator", #change this
+		hdl_toplevel="pixel_stacker", #change this
 		test_module="test_req_gen", #change this
 		test_args=run_test_args,
 		waves=True

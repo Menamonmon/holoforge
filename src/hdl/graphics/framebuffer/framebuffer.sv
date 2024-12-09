@@ -1,5 +1,17 @@
+module framebuffer#()(
+    input clk_in,
+    input rst_in,
+
+    output rdy_out,
+    input valid_in,
+    input [2:0][15:0] coords,
+    
+
+
+);
 
     assign valid_depth_write=(valid_piped && depth>=z)
+
     pipeline#(.STAGES(2),.WIDTH(1)) valid_piped(
         .clk_in(clk_in),
         .data(valid_in),
@@ -19,4 +31,10 @@
         .enb(1'b1),
         .doutb(depth)
   );
+
+  ddr_whisperer(
+
+  );
+
+endmodule
   
