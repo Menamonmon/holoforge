@@ -1,6 +1,6 @@
 <testsuites name="results">
   <testsuite name="all" package="all">
-    <property name="random_seed" value="1733736035" />
-    <testcase name="test_pattern" classname="test_req_gen" file="/Users/yabi/Documents/Schooly_Stuff/6.111/holoforge/sim/test_req_gen.py" lineno="341" time="10.584450006484985" sim_time_ns="4121650.001" ratio_time="389406.157001517" />
+    <property name="random_seed" value="1733775439" />
+    <testcase name="test_pattern" classname="test_req_gen" file="/Users/yabi/Documents/Schooly_Stuff/6.111/holoforge/sim/test_req_gen.py" lineno="341" time="0.1130366325378418" sim_time_ns="20750.001" ratio_time="183568.81777288814" />
   </testsuite>
 </testsuites>

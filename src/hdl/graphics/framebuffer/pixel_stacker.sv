@@ -41,7 +41,7 @@ module pixel_stacker#(
     logic [2:0] index;
 
     always_comb begin
-        data_full=(prev_addr[2:0]==7)||((addr>>3)!=(prev_addr>>3)) || (prev_addr>addr);
+        data_full=((prev_addr[2:0]==7)||((addr>>3)!=(prev_addr>>3)) || (prev_addr>addr)) ;
         ready_out=!data_full || will_be_ready;
         will_be_ready=(!valid_out)||(ready_in);
         addr=(HRES*vcount)+hcount;

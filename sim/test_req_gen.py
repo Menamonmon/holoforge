@@ -357,30 +357,34 @@ async def test_pattern(dut):
 	VRES=32
 	addr_width = ((HRES + (HRES * VRES)) // 2 - 1).bit_length()
 	grid = []
+	valid_grid=[]
 	for vcount in range(VRES):  # vcount from 0 to VRES - 1
 		row = []
+		valid_row=[]
 		for hcount in range(HRES):  # hcount from 0 to HRES - 1
+			valid_row.append(1)
 			row.append(random.randint(0,0xFFFF))
 		grid.append(row)
+		valid_grid.append(valid_row)
 
 	out_req=[]
-
+	x=1
 	for vcount in range(VRES):
 		for hcount in range(HRES):
-			dut.valid_in.value=1
-			dut.ready_in.value=random.randint(0,1)
-			strobe_in=random.randint(0,1)
+			dut.valid_in.value=valid_grid[vcount][hcount]
+			# dut.ready_in.value=random.randint(0,1)
+			strobe_in=1
 			dut.strobe_in.value=strobe_in
 			dut.data_in.value=grid[vcount][hcount]
-			if(strobe_in==0):
+			if(strobe_in==0 or valid_grid[vcount][hcount]==0):
 				grid[vcount][hcount]=None
 			dut.hcount.value=hcount
 			dut.vcount.value=vcount
 			
-			dut.ready_in.value=0
-			x=200
-			for _ in range(x):
-				await RisingEdge(dut.clk_in)
+			# dut.ready_in.value=0
+			# x=75
+			# for _ in range(x):
+			# 	await RisingEdge(dut.clk_in)
 			dut.ready_in.value=1
 
 			while dut.ready_out.value==0:
@@ -391,8 +395,10 @@ async def test_pattern(dut):
 			await RisingEdge(dut.clk_in)
 			if(dut.valid_out.value==1 and dut.ready_in.value==1):
 				out_req.append([dut.data_out.value,dut.strobe_out.value,dut.addr_out.value])
-	for _ in range(6):
+	for _ in range(random.randint(0,200)):
 		dut.valid_in.value=0
+		dut.hcount.value=random.randint(0,63)
+		dut.vcount.value=random.randint(0,31)
 		await RisingEdge(dut.clk_in)
 		if(dut.valid_out.value==1 and dut.ready_in.value==1):
 			out_req.append([dut.data_out.value,dut.strobe_out.value,dut.addr_out.value])
@@ -412,10 +418,11 @@ async def test_pattern(dut):
 				ans_grid[cur_addr//HRES][cur_addr%HRES]=int(data.binstr[flip*16:(flip+1)*16],2)
 	for vcount in range(VRES):
 		for hcount in range(HRES):
-			print(hcount,vcount)
+			print(hcount,vcount,valid_grid[vcount][hcount],"coords")
 			print(ans_grid[vcount][hcount],"answer")
 			print(grid[vcount][hcount],"out grid")
 			assert ans_grid[vcount][hcount]==grid[vcount][hcount]
+		
 
 
 

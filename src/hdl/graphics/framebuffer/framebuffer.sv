@@ -5,6 +5,8 @@ module framebuffer#()(
     output rdy_out,
     input valid_in,
     input [2:0][15:0] coords,
+    input frame,
+    input 
     
 
 
