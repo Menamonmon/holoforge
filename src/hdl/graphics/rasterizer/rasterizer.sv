@@ -108,12 +108,15 @@ module rasterizer #(
       .iarea(iarea_out)
   );
 
+  logic freeze;
+  assign freeze = !ready_in && state == RASTERIZE; // freeze signal for freezing components of the pipeline to make sure we're not losing data
+
   boundary_evt_counter #(
       .MAX_COUNT(FB_HRES)
   ) hcount_counter (
       .clk_in(clk_in),
       .rst_in(rst_in || state != RASTERIZE),
-      .evt(1'b1),
+      .evt(!freeze),
       .max(hcount_max),
       .min(hcount_min),
       .count_out(hcount)
@@ -124,27 +127,29 @@ module rasterizer #(
   ) vcount_counter (
       .clk_in(clk_in),
       .rst_in(rst_in || state != RASTERIZE),
-      .evt(hcount == hcount_max),
+      .evt((hcount == hcount_max) && !freeze),
       .max(vcount_max),
       .min(vcount_min),
       .count_out(vcount)
   );
 
-  pipeline #(
+  freezable_pipeline #(
       .STAGES(10),
       .DATA_WIDTH(HWIDTH)
   ) pipe_hcount (
       .clk_in(clk_in),
       .data(hcount),
+      .freeze(freeze),
       .data_out(hcount_out)
   );
 
-  pipeline #(
+  freezable_pipeline #(
       .STAGES(10),
       .DATA_WIDTH(VWIDTH)
   ) pipe_vcount (
       .clk_in(clk_in),
       .data(vcount),
+      .freeze(freeze),
       .data_out(vcount_out)
   );
 
@@ -159,6 +164,7 @@ module rasterizer #(
   ) barycentric_interpolator_inst (
       .clk_in(clk_in),
       .rst_in(rst_in || state != RASTERIZE),
+      .freeze(freeze),
       .vals_in(zv),
       .iarea_in(iarea),
       .x_in(x_curr),
@@ -184,9 +190,6 @@ module rasterizer #(
             state <= BBOX_GEN;
             xv <= x;
             yv <= y;
-            // zv[0] <= {1'b0, z[0]};
-            // zv[1] <= {1'b0, z[1]};
-            // zv[2] <= {1'b0, z[2]};
             zv <= z;
           end
         end
@@ -270,15 +273,17 @@ module rasterizer #(
         end
 
         RASTERIZE: begin
-          if (hcount_out == hcount_max && vcount_out == vcount_max) begin
-            state <= IDLE;
-            last_pixel <= 1;
-          end else begin
-            if (hcount == hcount_max) begin
-              x_curr <= x_min;
-              y_curr <= y_incremented;
+          if (!freeze) begin
+            if (hcount_out == hcount_max && vcount_out == vcount_max) begin
+              state <= IDLE;
+              last_pixel <= 1;
             end else begin
-              x_curr <= x_incremented;
+              if (hcount == hcount_max) begin
+                x_curr <= x_min;
+                y_curr <= y_incremented;
+              end else begin
+                x_curr <= x_incremented;
+              end
             end
           end
         end
