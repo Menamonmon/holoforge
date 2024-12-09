@@ -16,6 +16,7 @@ module barycentric_interpolator #(
     input wire signed [2:0][VAL_WIDTH-1:0] vals_in,
     input wire signed [2:0][XWIDTH-1:0] x_tri,
     input wire signed [2:0][YWIDTH-1:0] y_tri,
+    input wire freeze,
     output logic signed [VAL_WIDTH-1:0] inter_val_out,
     output logic valid_out  // tells me whether x, y values are in the triangle
 );
@@ -38,6 +39,7 @@ module barycentric_interpolator #(
       .clk_in(clk_in),
       .rst_in(rst_in),
       .iarea_in(iarea_in),
+      .freeze(freeze),
       .x_in(x_in),
       .y_in(y_in),
       .x_tri(x_tri),
@@ -46,17 +48,18 @@ module barycentric_interpolator #(
       .valid_out(in_tri)
   );
 
-  pipeline #(
+  freezable_pipeline #(
       .STAGES(6),  // TODO: check stage count
       .DATA_WIDTH(3 * VAL_WIDTH)
   ) pipe_vals (
       .clk_in(clk_in),
       .data(rst_in ? 0 : vals_in),
+      .freeze(freeze),
       .data_out(vals)
   );
   // stage 4: dot product of vals and scaled areas
   // TODO: can manually do this since we know what the values would be and if overflow happens we automatically send invalid
-  fixed_point_fast_dot #(
+  freezable_fixed_point_fast_dot #(
       .A_WIDTH(VAL_WIDTH),
       .A_FRAC_BITS(VAL_FRAC),
       .B_WIDTH(A_WIDTH),
@@ -65,6 +68,7 @@ module barycentric_interpolator #(
   ) inter_val (
       .clk_in(clk_in),
       .rst_in(rst_in),
+      .freeze(freeze),
       .A(vals),
       .B(coeffs),
       .D(inter_val_out_full)
@@ -72,12 +76,13 @@ module barycentric_interpolator #(
 
   assign inter_val_out = inter_val_out_full[VAL_WIDTH-1:0]; // truncate the value (at this point val_out should be scaled by a fraction and cannot be bigger than a fp number of VAL_WIDTH width)
 
-  pipeline #(
+  freezable_pipeline #(
       .STAGES(3),  // TODO:.check stage count
       .DATA_WIDTH(1)
   ) pipe_tri (
       .clk_in(clk_in),
       .data(in_tri),
+      .freeze(freeze),
       .data_out(valid_out)
   );
 
