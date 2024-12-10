@@ -97,7 +97,6 @@ parameters = {
 }
 
 
-
 print("#PARAMETERS#")
 print(parameters)
 print("#PARAMETERS#")
@@ -190,6 +189,9 @@ async def test_rasterizer(dut):
 				try:
 					hcount = int(dut.hcount_out.value)
 					vcount = int(dut.vcount_out.value)
+					addr = vcount * FB_HRES + hcount
+					addr_out = int(dut.addr_out.value)
+					assert addr == addr_out
 					buffer[vcount][hcount] = int(dut.z_out.value) / 2**ZFRAC
 					pixel_cycles += 1
 				except:
@@ -225,12 +227,7 @@ def main():
 		/ "graphics"
 		/ "rasterizer"
 		/ "barycentric_interpolator.sv",
-		proj_path
-		/ "src"
-		/ "hdl"
-		/ "graphics"
-		/ "common"
-		/ "barycentric_coeffs.sv",
+		proj_path / "src" / "hdl" / "graphics" / "common" / "barycentric_coeffs.sv",
 		proj_path / "src" / "hdl" / "graphics" / "rasterizer" / "rasterizer.sv",
 		proj_path / "src" / "hdl" / "graphics" / "rasterizer" / "inv_area.sv",
 		proj_path / "src" / "hdl" / "common" / "fixed_point_slow_dot.sv",

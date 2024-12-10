@@ -56,6 +56,7 @@ module graphics_pipeline_no_brom #(
     output logic [$clog2(FB_HRES)-1:0] hcount_out,
     output logic [$clog2(FB_VRES)-1:0] vcount_out,
     output logic [ZWIDTH:0] z_out,
+    output logic [$clog2(FB_HRES*FB_VRES)-1:0] addr_out,
     output logic [COLOR_WIDTH-1:0] color_out
 );
 
@@ -142,6 +143,7 @@ module graphics_pipeline_no_brom #(
       .valid_out(valid_out),
       .hcount_out(hcount_out),
       .vcount_out(vcount_out),
+      .addr_out(addr_out),
       .z_out(z_out),
       .last_pixel(last_pixel_out)
   );

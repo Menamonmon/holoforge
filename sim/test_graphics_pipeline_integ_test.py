@@ -33,21 +33,21 @@ VW_OVER_TWO_WIDTH = get_bit_width(VW_OVER_TWO, FRAC_BITS)
 two_over_vw_fam = FXfamily(FRAC_BITS, VW_OVER_TWO_WIDTH - FRAC_BITS)
 
 VH_OVER_TWO = int(
-    BinaryValue(
-        two_over_vh_fam(VH_OVER_TWO).toBinaryString().replace(".", ""),
-        VH_OVER_TWO_WIDTH,
-        True,
-        2,
-    )
+	BinaryValue(
+		two_over_vh_fam(VH_OVER_TWO).toBinaryString().replace(".", ""),
+		VH_OVER_TWO_WIDTH,
+		True,
+		2,
+	)
 )
 
 VW_OVER_TWO = int(
-    BinaryValue(
-        two_over_vw_fam(VW_OVER_TWO).toBinaryString().replace(".", ""),
-        VW_OVER_TWO_WIDTH,
-        True,
-        2,
-    )
+	BinaryValue(
+		two_over_vw_fam(VW_OVER_TWO).toBinaryString().replace(".", ""),
+		VW_OVER_TWO_WIDTH,
+		True,
+		2,
+	)
 )
 
 
@@ -100,308 +100,311 @@ print(f"VW_OVER_TWO: {VW_OVER_TWO}, {VW_OVER_TWO / 2**FRAC_BITS}")
 
 
 params = {
-    "P_WIDTH": P_WIDTH,
-    "C_WIDTH": C_WIDTH,
-    "V_WIDTH": V_WIDTH,
-    "FRAC_BITS": FRAC_BITS,
-    "VH_OVER_TWO": VH_OVER_TWO,
-    "VH_OVER_TWO_WIDTH": VH_OVER_TWO_WIDTH,
-    "VW_OVER_TWO": VW_OVER_TWO,
-    "VW_OVER_TWO_WIDTH": VW_OVER_TWO_WIDTH,
-    # "VIEWPORT_H_POSITION_WIDTH": VIEWPORT_H_POSITION_WIDTH + 1,
-    # "VIEWPORT_W_POSITION_WIDTH": VIEWPORT_W_POSITION_WIDTH + 1,
-    "VIEWPORT_H_POSITION_WIDTH": VIEWPORT_H_POSITION_WIDTH,
-    "VIEWPORT_W_POSITION_WIDTH": VIEWPORT_W_POSITION_WIDTH,
-    "NUM_TRI": NUM_TRI,
-    "NUM_COLORS": NUM_COLORS,
-    "FB_HRES": FB_HRES,
-    "FB_VRES": FB_VRES,
-    "HRES_BY_VW_WIDTH": bits_vw_hres,
-    "HRES_BY_VW_FRAC": PRECISION,
-    "VRES_BY_VH_WIDTH": bits_vh_vres,
-    "VRES_BY_VH_FRAC": PRECISION,
-    "HRES_BY_VW": int(BinaryValue(hres_vw)),
-    "VRES_BY_VH": int(BinaryValue(vres_vh)),
-    "VW_BY_HRES_WIDTH": bits_hres_vw,
-    "VW_BY_HRES_FRAC": PRECISION,
-    "VH_BY_VRES_WIDTH": bits_vh_vres,
-    "VH_BY_VRES_FRAC": PRECISION,
-    "VW_BY_HRES": int(BinaryValue(vw_hres)),
-    "VH_BY_VRES": int(BinaryValue(vh_vres)),
+	"P_WIDTH": P_WIDTH,
+	"C_WIDTH": C_WIDTH,
+	"V_WIDTH": V_WIDTH,
+	"FRAC_BITS": FRAC_BITS,
+	"VH_OVER_TWO": VH_OVER_TWO,
+	"VH_OVER_TWO_WIDTH": VH_OVER_TWO_WIDTH,
+	"VW_OVER_TWO": VW_OVER_TWO,
+	"VW_OVER_TWO_WIDTH": VW_OVER_TWO_WIDTH,
+	# "VIEWPORT_H_POSITION_WIDTH": VIEWPORT_H_POSITION_WIDTH + 1,
+	# "VIEWPORT_W_POSITION_WIDTH": VIEWPORT_W_POSITION_WIDTH + 1,
+	"VIEWPORT_H_POSITION_WIDTH": VIEWPORT_H_POSITION_WIDTH,
+	"VIEWPORT_W_POSITION_WIDTH": VIEWPORT_W_POSITION_WIDTH,
+	"NUM_TRI": NUM_TRI,
+	"NUM_COLORS": NUM_COLORS,
+	"FB_HRES": FB_HRES,
+	"FB_VRES": FB_VRES,
+	"HRES_BY_VW_WIDTH": bits_vw_hres,
+	"HRES_BY_VW_FRAC": PRECISION,
+	"VRES_BY_VH_WIDTH": bits_vh_vres,
+	"VRES_BY_VH_FRAC": PRECISION,
+	"HRES_BY_VW": int(BinaryValue(hres_vw)),
+	"VRES_BY_VH": int(BinaryValue(vres_vh)),
+	"VW_BY_HRES_WIDTH": bits_hres_vw,
+	"VW_BY_HRES_FRAC": PRECISION,
+	"VH_BY_VRES_WIDTH": bits_vh_vres,
+	"VH_BY_VRES_FRAC": PRECISION,
+	"VW_BY_HRES": int(BinaryValue(vw_hres)),
+	"VH_BY_VRES": int(BinaryValue(vh_vres)),
 }
 print("parameters", params)
 
 
 def calculate_renorm(ndc):
-    x_renorm = float(ndc[0]) / float(ndc[2])
-    y_renorm = float(ndc[0]) / float(ndc[2])
-    return (x_renorm, y_renorm)
+	x_renorm = float(ndc[0]) / float(ndc[2])
+	y_renorm = float(ndc[0]) / float(ndc[2])
+	return (x_renorm, y_renorm)
 
 
 def calculate_ndc(P, C, u, v, n):
-    subbed_values = [0, 0, 0]
-    dotted_vals = [0, 0, 0]
-    spherical_coords = [u, v, n]
-    for i in range(3):
-        subbed_values[i] = P[i] - C[i]
-    for k in range(3):
-        for j in range(3):
-            dotted_vals[k] += float(subbed_values[j]) * float(spherical_coords[k][j])
-    return dotted_vals
+	subbed_values = [0, 0, 0]
+	dotted_vals = [0, 0, 0]
+	spherical_coords = [u, v, n]
+	for i in range(3):
+		subbed_values[i] = P[i] - C[i]
+	for k in range(3):
+		for j in range(3):
+			dotted_vals[k] += float(subbed_values[j]) * float(spherical_coords[k][j])
+	return dotted_vals
 
 
 async def reset_dut(dut):
-    """Reset the DUT."""
-    dut.rst_in.value = 1
-    await RisingEdge(dut.clk_in)
-    await RisingEdge(dut.clk_in)
-    dut.rst_in.value = 0
-    await RisingEdge(dut.clk_in)
+	"""Reset the DUT."""
+	dut.rst_in.value = 1
+	await RisingEdge(dut.clk_in)
+	await RisingEdge(dut.clk_in)
+	dut.rst_in.value = 0
+	await RisingEdge(dut.clk_in)
 
 
 def calculate_ndc(P, C, u, v, n):
-    subbed_values = [0, 0, 0]
-    dotted_vals = [0, 0, 0]
-    spherical_coords = [u, v, n]
-    for i in range(3):
-        subbed_values[i] = P[i] - C[i]
-    for k in range(3):
-        for j in range(3):
-            dotted_vals[k] += float(subbed_values[j]) * float(spherical_coords[k][j])
-    return dotted_vals
+	subbed_values = [0, 0, 0]
+	dotted_vals = [0, 0, 0]
+	spherical_coords = [u, v, n]
+	for i in range(3):
+		subbed_values[i] = P[i] - C[i]
+	for k in range(3):
+		for j in range(3):
+			dotted_vals[k] += float(subbed_values[j]) * float(spherical_coords[k][j])
+	return dotted_vals
 
 
 def calculate_projection(P, C, u, v, n):
-    ndcx, ndcy, ndcz = calculate_ndc(P, C, u, v, n)
-    x_renorm = ndcx / ndcz
-    y_renorm = ndcy / ndcz
-    return [x_renorm, y_renorm, ndcz]
+	ndcx, ndcy, ndcz = calculate_ndc(P, C, u, v, n)
+	x_renorm = ndcx / ndcz
+	y_renorm = ndcy / ndcz
+	return [x_renorm, y_renorm, ndcz]
 
 
 @cocotb.test()
 async def test_graphics(dut):
-    """Test simple projection case."""
-    # Initialize Clock
-    cocotb.start_soon(Clock(dut.clk_in, 10, units="ns").start())  # 100MHz clock
+	"""Test simple projection case."""
+	# Initialize Clock
+	cocotb.start_soon(Clock(dut.clk_in, 10, units="ns").start())  # 100MHz clock
 
-    # Reset DUT
-    await reset_dut(dut)
+	# Reset DUT
+	await reset_dut(dut)
 
-    # load obj file from path and populate the triangle vertices and normals
-    # with the data from the obj file
+	# load obj file from path and populate the triangle vertices and normals
+	# with the data from the obj file
 
-    triangles, normals = load_obj_as_numpy(
-        "../scripts/test_data/cube/model_normalized.obj"
-        # "../scripts/test_data/Car/Car_normalized_normalized.obj"
-    )
-    # print(len(triangles), len(normals))
-    colors = [2**16 - 1 for i in range(len(triangles))]
+	triangles, normals = load_obj_as_numpy(
+		"../scripts/test_data/cube/model_normalized.obj"
+		# "../scripts/test_data/Car/Car_normalized_normalized.obj"
+	)
+	# print(len(triangles), len(normals))
+	colors = [2**16 - 1 for i in range(len(triangles))]
 
-    dut.ready_in.value = 0
-    dut.valid_in.value = 0
-    await RisingEdge(dut.clk_in)
+	dut.ready_in.value = 0
+	dut.valid_in.value = 0
+	await RisingEdge(dut.clk_in)
 
-    assert dut.valid_out.value == 0
-    assert dut.ready_out.value == 1
+	assert dut.valid_out.value == 0
+	assert dut.ready_out.value == 1
 
-    # phi = math.radians(random.randint(1, 180))
-    # theta = math.radians(random.randint(1, 360))
-    phi = math.radians(175)
-    theta = math.radians(220)
-    radius = 2
-    C, v, u, n = calculate_camera_basis(phi, theta, radius)
+	# phi = math.radians(random.randint(1, 180))
+	# theta = math.radians(random.randint(1, 360))
+	phi = math.radians(175)
+	theta = math.radians(220)
+	radius = 2
+	C, v, u, n = calculate_camera_basis(phi, theta, radius)
 
-    print(f"C: {C}")
-    print(f"u: {u}")
-    print(f"v: {v}")
-    print(f"n: {n}")
-    tri_xes = []
-    tri_yes = []
-    tri_depths = []
+	print(f"C: {C}")
+	print(f"u: {u}")
+	print(f"v: {v}")
+	print(f"n: {n}")
+	tri_xes = []
+	tri_yes = []
+	tri_depths = []
 
-    pixel_map = np.full((FB_VRES, FB_HRES), 0)
-    dut.ready_in.value = 1
-    tri_idx = 0
+	pixel_map = np.full((FB_VRES, FB_HRES), 0)
+	dut.ready_in.value = 1
+	tri_idx = 0
 
-    for triangle, normal in zip(triangles, normals):
-        print("TRIANGLE NUMBER", tri_idx)
-        await feed_triangle_and_normal(
-            dut.pre_proc_shader_inst, triangle, normal, C, u, v, n, tri_idx
-        )
-        tri_idx += 1
+	for triangle, normal in zip(triangles, normals):
+		print("TRIANGLE NUMBER", tri_idx)
+		await feed_triangle_and_normal(
+			dut.pre_proc_shader_inst, triangle, normal, C, u, v, n, tri_idx
+		)
+		tri_idx += 1
 
-        # while dut.ready_out.value == 0:
-        #     await RisingEdge(dut.clk_in)
+		# while dut.ready_out.value == 0:
+		#     await RisingEdge(dut.clk_in)
 
-        # if dut.rasterizer_valid_in.value == 0:
-        #     continue
-        short_circuit = False
-        while dut.rasterizer_inst.valid_in.value == 0:
-            if (
-                dut.pre_proc_shader_inst.shader_short_circuit.value == 1
-                or dut.pre_proc_shader_inst.vertex_pre_proc_short_circuit.value == 1
-            ):
-                short_circuit = True
-                break
-            await RisingEdge(dut.clk_in)
+		# if dut.rasterizer_valid_in.value == 0:
+		#     continue
+		short_circuit = False
+		while dut.rasterizer_inst.valid_in.value == 0:
+			if (
+				dut.pre_proc_shader_inst.shader_short_circuit.value == 1
+				or dut.pre_proc_shader_inst.vertex_pre_proc_short_circuit.value == 1
+			):
+				short_circuit = True
+				break
+			await RisingEdge(dut.clk_in)
 
-        if short_circuit:
-            continue
+		if short_circuit:
+			continue
 
-        while dut.rasterizer_inst.ready_out.value == 0:
-            await RisingEdge(dut.clk_in)
+		while dut.rasterizer_inst.ready_out.value == 0:
+			await RisingEdge(dut.clk_in)
 
-        # ready results
-        depths = [
-            int(BinaryValue(x, dut.ZWIDTH.value, True, 0)) / 2**14
-            for x in split_bit_array((dut.z_depth.value.binstr), 3)
-        ]
-        # print("INFORMATION")
-        viewports_x = [
-            int(BinaryValue(x, VIEWPORT_W_POSITION_WIDTH, True, 2)) / 2**14
-            # x
-            for x in split_bit_array((dut.viewport_x_position.value.binstr), 3)
-        ]
+		# ready results
+		depths = [
+			int(BinaryValue(x, dut.ZWIDTH.value, True, 0)) / 2**14
+			for x in split_bit_array((dut.z_depth.value.binstr), 3)
+		]
+		# print("INFORMATION")
+		viewports_x = [
+			int(BinaryValue(x, VIEWPORT_W_POSITION_WIDTH, True, 2)) / 2**14
+			# x
+			for x in split_bit_array((dut.viewport_x_position.value.binstr), 3)
+		]
 
-        viewports_y = [
-            int(BinaryValue(x, VIEWPORT_H_POSITION_WIDTH, True, 2)) / 2**14
-            # x
-            for x in split_bit_array(
-                (dut.viewport_y_position.value.binstr),
-                3,
-            )
-        ]
-        tri_xes.append(list(viewports_x))
-        tri_yes.append(list(viewports_y))
-        tri_depths.append(list(depths))
-        x, y, z = project_triangle(triangle, C, u, v, n)
-        # print("DEPTHS: ", depths, z)
-        # print(
-        # 	"UNNORMALIZED DEPTHS",
-        # 	[z[0] * 2**FRAC_BITS, z[1] * 2**FRAC_BITS, z[2] * 2**FRAC_BITS],
-        # )
+		viewports_y = [
+			int(BinaryValue(x, VIEWPORT_H_POSITION_WIDTH, True, 2)) / 2**14
+			# x
+			for x in split_bit_array(
+				(dut.viewport_y_position.value.binstr),
+				3,
+			)
+		]
+		tri_xes.append(list(viewports_x))
+		tri_yes.append(list(viewports_y))
+		tri_depths.append(list(depths))
+		x, y, z = project_triangle(triangle, C, u, v, n)
+		# print("DEPTHS: ", depths, z)
+		# print(
+		# 	"UNNORMALIZED DEPTHS",
+		# 	[z[0] * 2**FRAC_BITS, z[1] * 2**FRAC_BITS, z[2] * 2**FRAC_BITS],
+		# )
 
-        # wait until we get a valid out from the toplevel module
-        count = 0
-        counted = False
-        display_frame_pixelized(pixel_map, "./full_renders")
-        negative_depths = 0
-        positive_depths = 0
-        for f in range(20_000):
-            # await RisingEdge(dut.clk_in)
+		# wait until we get a valid out from the toplevel module
+		count = 0
+		counted = False
+		display_frame_pixelized(pixel_map, "./full_renders")
+		negative_depths = 0
+		positive_depths = 0
+		for f in range(20_000):
+			# await RisingEdge(dut.clk_in)
 
-            # pause for a random number of cycle while driving the inputs at some random points
-            if random.randint(0, 1) == 0:
-                dut.ready_in.value = 0
-                for i in range(random.randint(0, 10)):
-                    # for i in range(5):
-                    await RisingEdge(dut.clk_in)
-                dut.ready_in.value = 1
-                await RisingEdge(dut.clk_in)
+			# pause for a random number of cycle while driving the inputs at some random points
+			if random.randint(0, 1) == 0:
+				dut.ready_in.value = 0
+				for i in range(random.randint(0, 10)):
+					# for i in range(5):
+					await RisingEdge(dut.clk_in)
+				dut.ready_in.value = 1
+				await RisingEdge(dut.clk_in)
 
-            if dut.valid_out.value == 1:
-                if (
-                    "x" in dut.hcount_out.value
-                    or "x" in dut.vcount_out.value
-                    or "x" in dut.z_out.value
-                ):
-                    # print("MALFORMED PIXEL")
-                    pass
-                else:
-                    hcount = int(dut.hcount_out.value)
-                    vcount = int(dut.vcount_out.value)
-                    depth = int(dut.z_out.value)
-                    if depth < 0:
-                        negative_depths += 1
-                        continue
+			if dut.valid_out.value == 1:
+				if (
+					"x" in dut.hcount_out.value
+					or "x" in dut.vcount_out.value
+					or "x" in dut.z_out.value
+				):
+					# print("MALFORMED PIXEL")
+					pass
+				else:
+					hcount = int(dut.hcount_out.value)
+					vcount = int(dut.vcount_out.value)
+					addr_out = int(dut.addr_out.value)
+					addr = vcount * FB_HRES + hcount
+					assert addr == addr_out
+					depth = int(dut.z_out.value)
+					if depth < 0:
+						negative_depths += 1
+						continue
 
-                    # make sure the depth is within the 3 values of the depths for that triangle
-                    # min_d = min(depths)
-                    # max_d = max(depths)
-                    # if depth < min_d or depth > max_d:
-                    #     negative_depths += 1
-                    #     continue
-                    if depth >= 40000 - 20:
-                        # print("DEPTH", depth)
-                        continue
+					# make sure the depth is within the 3 values of the depths for that triangle
+					# min_d = min(depths)
+					# max_d = max(depths)
+					# if depth < min_d or depth > max_d:
+					#     negative_depths += 1
+					#     continue
+					if depth >= 40000 - 20:
+						# print("DEPTH", depth)
+						continue
 
-                    positive_depths += 1
-                    if (
-                        pixel_map[vcount][hcount] == 0
-                        or pixel_map[vcount][hcount] > depth
-                    ):
-                        pixel_map[vcount][hcount] = depth
-                    # if pixel_map[vcount][hcount] == 0 or pixel_map[vcount][hcount] > depth:
-                    # pixel_map[vcount][hcount] = 1
-        print(np.max(pixel_map))
+					positive_depths += 1
+					if (
+						pixel_map[vcount][hcount] == 0
+						or pixel_map[vcount][hcount] > depth
+					):
+						pixel_map[vcount][hcount] = depth
+					# if pixel_map[vcount][hcount] == 0 or pixel_map[vcount][hcount] > depth:
+					# pixel_map[vcount][hcount] = 1
+		print(np.max(pixel_map))
 
-        tot = negative_depths + positive_depths
-        print(
-            f"NEGATIVE DEPTHS: {negative_depths/tot}, POSITIVE DEPTHS: {positive_depths/tot}"
-        )
-    print("X TRIANGLES")
-    display_frame_pixelized(pixel_map, "./full_renders")
-    pprint.pprint(tri_xes)
-    print("Y TRIANGLES")
-    pprint.pprint(tri_yes)
-    # plot_triangles(tri_xes, tri_yes)
+		tot = negative_depths + positive_depths
+		print(
+			f"NEGATIVE DEPTHS: {negative_depths/tot}, POSITIVE DEPTHS: {positive_depths/tot}"
+		)
+	print("X TRIANGLES")
+	display_frame_pixelized(pixel_map, "./full_renders")
+	pprint.pprint(tri_xes)
+	print("Y TRIANGLES")
+	pprint.pprint(tri_yes)
+	# plot_triangles(tri_xes, tri_yes)
 
 
 def main():
-    """Simulate the projection_3d_to_2d module using the Python runner."""
-    sim = os.getenv("SIM", "icarus")
-    proj_path = Path(__file__).resolve().parent.parent
-    sys.path.append(str(proj_path / "sim" / "model"))
-    sources = [
-        proj_path / "src" / "hdl" / "graphics" / "pre_proc" / "vertex_pre_proc.sv",
-        proj_path
-        / "src"
-        / "hdl"
-        / "graphics"
-        / "pre_proc"
-        / "project_vertex_to_viewport.sv",
-        proj_path / "src" / "hdl" / "common" / "fixed_point_div.sv",
-        proj_path / "src" / "hdl" / "common" / "pipeline.sv",
-        proj_path / "src" / "hdl" / "common" / "boundary_evt_counter.sv",
-        proj_path / "src" / "hdl" / "graphics" / "rasterizer" / "rasterizer.sv",
-        proj_path / "src" / "hdl" / "graphics" / "rasterizer" / "inv_area.sv",
-        proj_path
-        / "src"
-        / "hdl"
-        / "graphics"
-        / "rasterizer"
-        / "barycentric_interpolator.sv",
-        proj_path / "src" / "hdl" / "graphics" / "common" / "barycentric_coeffs.sv",
-        proj_path / "src" / "hdl" / "graphics" / "shader" / "light_intensity.sv",
-        proj_path / "src" / "hdl" / "graphics" / "shader" / "shader.sv",
-        proj_path / "src" / "hdl" / "common" / "brom.v",
-        proj_path / "src" / "hdl" / "common" / "fixed_point_fast_dot.sv",
-        proj_path / "src" / "hdl" / "common" / "fixed_adder.sv",
-        proj_path / "src" / "hdl" / "common" / "fixed_point_mult.sv",
-        proj_path / "src" / "hdl" / "graphics" / "tl" / "pre_proc_shader.sv",
-        proj_path / "src" / "hdl" / "graphics" / "tl" / "graphics_pipeline_no_brom.sv",
-    ]
-    # sources = find_sv_files(proj_path / "src" / "hdl")
-    build_test_args = ["-Wall"]
-    sys.path.append(str(proj_path / "sim"))
-    runner = get_runner(sim)
-    runner.build(
-        sources=sources,
-        hdl_toplevel="graphics_pipeline_no_brom",
-        always=True,
-        build_args=build_test_args,
-        parameters=params,
-        timescale=("1ns", "1ps"),
-        waves=True,
-    )
-    run_test_args = []
-    runner.test(
-        hdl_toplevel="graphics_pipeline_no_brom",
-        test_module="test_graphics_pipeline_integ_test",
-        test_args=run_test_args,
-        waves=True,
-    )
+	"""Simulate the projection_3d_to_2d module using the Python runner."""
+	sim = os.getenv("SIM", "icarus")
+	proj_path = Path(__file__).resolve().parent.parent
+	sys.path.append(str(proj_path / "sim" / "model"))
+	sources = [
+		proj_path / "src" / "hdl" / "graphics" / "pre_proc" / "vertex_pre_proc.sv",
+		proj_path
+		/ "src"
+		/ "hdl"
+		/ "graphics"
+		/ "pre_proc"
+		/ "project_vertex_to_viewport.sv",
+		proj_path / "src" / "hdl" / "common" / "fixed_point_div.sv",
+		proj_path / "src" / "hdl" / "common" / "pipeline.sv",
+		proj_path / "src" / "hdl" / "common" / "boundary_evt_counter.sv",
+		proj_path / "src" / "hdl" / "graphics" / "rasterizer" / "rasterizer.sv",
+		proj_path / "src" / "hdl" / "graphics" / "rasterizer" / "inv_area.sv",
+		proj_path
+		/ "src"
+		/ "hdl"
+		/ "graphics"
+		/ "rasterizer"
+		/ "barycentric_interpolator.sv",
+		proj_path / "src" / "hdl" / "graphics" / "common" / "barycentric_coeffs.sv",
+		proj_path / "src" / "hdl" / "graphics" / "shader" / "light_intensity.sv",
+		proj_path / "src" / "hdl" / "graphics" / "shader" / "shader.sv",
+		proj_path / "src" / "hdl" / "common" / "brom.v",
+		proj_path / "src" / "hdl" / "common" / "fixed_point_fast_dot.sv",
+		proj_path / "src" / "hdl" / "common" / "fixed_adder.sv",
+		proj_path / "src" / "hdl" / "common" / "fixed_point_mult.sv",
+		proj_path / "src" / "hdl" / "graphics" / "tl" / "pre_proc_shader.sv",
+		proj_path / "src" / "hdl" / "graphics" / "tl" / "graphics_pipeline_no_brom.sv",
+	]
+	# sources = find_sv_files(proj_path / "src" / "hdl")
+	build_test_args = ["-Wall"]
+	sys.path.append(str(proj_path / "sim"))
+	runner = get_runner(sim)
+	runner.build(
+		sources=sources,
+		hdl_toplevel="graphics_pipeline_no_brom",
+		always=True,
+		build_args=build_test_args,
+		parameters=params,
+		timescale=("1ns", "1ps"),
+		waves=True,
+	)
+	run_test_args = []
+	runner.test(
+		hdl_toplevel="graphics_pipeline_no_brom",
+		test_module="test_graphics_pipeline_integ_test",
+		test_args=run_test_args,
+		waves=True,
+	)
 
 
 if __name__ == "__main__":
-    main()
+	main()
