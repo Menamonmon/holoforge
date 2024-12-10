@@ -8,6 +8,13 @@ set_property CFGBVS VCCO [current_design]
 set_property CONFIG_VOLTAGE 3.3 [current_design]
 
 
+#sus sstuff
+set_max_delay -datapath_only 6 -from [get_clocks clk_camera_cw_fast] -to [get_clocks clk_pll_i]
+set_max_delay -datapath_only 6 -from  [get_clocks clk_pll_i] -to [get_clocks clk_pixel_cw_hdmi]
+set_max_delay -datapath_only 6 -from  [get_clocks clk_pixel_cw_hdmi] -to [get_clocks clk_pll_i]
+set_max_delay -datapath_only 6 -from  [get_clocks clk_pll_i] -to [get_clocks clk_camera_cw_fast]
+set_max_delay -datapath_only 6 -from  [get_clocks clk_100_cw_fast] -to [get_clocks clk_pll_i]
+set_max_delay -datapath_only 6 -from  [get_clocks clk_pll_i] -to [get_clocks clk_100_cw_fast]
 # CAMERA BOARD v2
 
 # pmoda[0]
