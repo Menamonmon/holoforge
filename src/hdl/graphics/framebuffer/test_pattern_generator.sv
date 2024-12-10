@@ -31,14 +31,14 @@ module test_pattern_generator #(
         end
       end
       2'b10: begin
-        red_out   = hcount_in[7:0];
-        green_out = hcount_in[7:0];
-        blue_out  = hcount_in[7:0];
+        red_out   = {hcount_in[5:0],2'b0};
+        green_out = {hcount_in[5:0],2'b0};
+        blue_out  = {hcount_in[5:0],2'b0};
       end
       2'b11: begin
-        red_out   = hcount_in[7:0];
-        green_out = vcount_in[7:0];
-        blue_out  = (hcount_in[7:0] + vcount_in[7:0]);
+        red_out   = {hcount_in[5:0],2'b0};
+        green_out = {vcount_in[5:0],2'b0};
+        blue_out  = {(hcount_in[5:0] + vcount_in[5:0]),2'b0};
       end
     endcase
   end

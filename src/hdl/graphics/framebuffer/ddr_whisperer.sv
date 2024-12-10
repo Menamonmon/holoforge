@@ -25,6 +25,7 @@ module ddr_whisperer (
 
     input wire clk_migref,
     input wire sys_rst_migref,
+    input wire frame_in,
 
     //Write AXI signals in and out
     //data
@@ -194,6 +195,7 @@ module ddr_whisperer (
 
       // Slave Interface Write Data Ports
       .s_axi_wdata(s_axi_wdata[143:16]),
+    //   .s_axi_wdata(128'hFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF),
       .s_axi_wstrb(s_axi_wdata[15:0]),  // input [15:0]			s_axi_wstrb
       .s_axi_wlast(1'b1),  // input			s_axi_wlast
       .s_axi_wvalid(s_axi_wvalid),  // input			s_axi_wvalid

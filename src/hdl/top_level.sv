@@ -127,8 +127,7 @@ module top_level (
     // hdmi port
     output logic [ 2:0] hdmi_tx_p,   //hdmi output signals (positives) (blue, green, red)
     output logic [ 2:0] hdmi_tx_n,   //hdmi output signals (negatives) (blue, green, red)
-    output logic        hdmi_clk_p,
-    hdmi_clk_n,
+    output logic        hdmi_clk_p,hdmi_clk_n,
 
     // New for week 6: DDR3 ports
     inout  wire [15:0] ddr3_dq,
@@ -150,6 +149,7 @@ module top_level (
   // shut up those RGBs
   assign rgb0 = 0;
   assign rgb1 = 0;
+  //clk_wiz stuff
 
   // Clock and Reset Signals: updated for a couple new clocks!
   logic sys_rst_camera;
@@ -158,7 +158,6 @@ module top_level (
   logic clk_camera;
   logic clk_pixel;
   logic clk_5x;
-  logic clk_xc;
 
 
   logic clk_migref;
@@ -168,14 +167,40 @@ module top_level (
   logic sys_rst_ui;
 
   logic clk_100_passthrough;
-  logic sys_rst;
+    cw_hdmi_clk_wiz wizard_hdmi (
+        .sysclk(clk_100_passthrough),
+        .clk_pixel(clk_pixel),
+        .clk_tmds(clk_5x),
+        .reset(0)
+    );
 
+    cw_fast_clk_wiz wizard_migcam (
+        .clk_in1(clk_100mhz),
+        .clk_camera(clk_camera),
+        .clk_mig(clk_migref),
+        .clk_xc(clk_xc),
+        .clk_100(clk_100_passthrough),
+        .reset(0)
+    );
+    // shut up those RGBs
+  assign rgb0 = 0;
+  assign rgb1 = 0;
 
-  assign cam_xclk = clk_xc;
+    assign cam_xclk = clk_xc;
 
   assign sys_rst_camera = btn[0];  //use for resetting camera side of logic
   assign sys_rst_pixel = btn[0];  //use for resetting hdmi/draw side of logic
   assign sys_rst_migref = btn[0];
+
+
+  logic sys_rst;
+
+
+  //DONT TOUCH THESE
+  logic clk_xc;
+  assign cam_xclk = clk_xc;
+
+  assign sys_rst_pixel = btn[0];  //use for resetting hdmi/draw side of logic
   assign sys_rst = btn[0];  // reset for graphics....
 
 
@@ -197,84 +222,15 @@ module top_level (
   assign blue  = fb_blue;
 
 
-  //all the ddr mem signals we need
-  logic input_data_clk_in;
-  logic input_data_rst;
-  logic [143:0] write_data;
-  logic data_fifo_valid_in;
-  logic data_fifo_ready_out;
-  logic addr_fifo_valid_in;
-  logic addr_fifo_ready_out;
-  logic [26:0] write_addr;
-  logic s_axi_arvalid;
-  assign s_axi_arvalid = 1'b1;
-  logic         s_axi_arready;
-  logic [ 26:0] s_axi_araddr;
-  logic [ 26:0] read_addr;
-  logic         s_axi_rready;
-  logic         s_axi_rvalid;
 
-  logic [127:0] display_axis_tdata;
-  logic         display_axis_tlast;
-  logic         display_axis_tready;
-  logic         display_axis_tvalid;
-  logic         display_axis_prog_empty;
-
-  logic         last_frame_chunk;
-
-  logic         stacker_last;
-  localparam int HRES = 1280;
-  localparam int VRES = 720;
+  localparam int HRES = 320;
+  localparam int VRES = 180;
   localparam int ADDR_MAX = (HRES * VRES);
 
-  evt_counter #(
-      .MAX_COUNT(115200)
-  ) read_req_addr (
-      .clk_in(clk_ui),
-      .rst_in(sys_rst_ui),
-      .evt_in(s_axi_arready && s_axi_arvalid),
-      .count_out(s_axi_araddr)
-  );
-
-  cw_hdmi_clk_wiz wizard_hdmi (
-      .sysclk(clk_100_passthrough),
-      .clk_pixel(clk_pixel),
-      .clk_tmds(clk_5x),
-      .reset(0)
-  );
-
-  cw_fast_clk_wiz wizard_migcam (
-      .clk_in1(clk_100mhz),
-      .clk_camera(clk_camera),
-      .clk_mig(clk_migref),
-      .clk_xc(clk_xc),
-      .clk_100(clk_100_passthrough),
-      .reset(0)
-  );
 
 
-  evt_counter #(
-      .MAX_COUNT(115200)
-  ) read_resp_addr (
-      .clk_in(clk_ui),
-      .rst_in(sys_rst_ui),
-      .evt_in(s_axi_rready && s_axi_rvalid),
-      .count_out(read_addr)
-  );
-  assign last_frame_chunk = read_addr == 115200 - 1;
 
-  // test_stacker test_stacker_inst (
-  //       .clk_in(clk_camera),
-  //       .rst_in(sys_rst_camera),
-  //       .addr_fifo_ready_in(addr_fifo_ready_out),
-  //       .data_fifo_ready_in(data_fifo_ready_out),
-  //       .pattern_sel_in(sw[15:14]),
-  //       .addr_fifo_valid_in(addr_fifo_valid_in),
-  //       .data_fifo_valid_in(data_fifo_valid_in),
-  //       .addr_fifo_data_in(write_addr),
-  //       .data_fifo_data_in(write_data),
-  //       .last_out(stacker_last)
-  //   );
+
 
   //im praying i can just copy paste this and it'll give me the excact same functionality
   // Compute next_data_ready based on FIFO readiness
@@ -339,127 +295,102 @@ module top_level (
   assign data = {test_red[7:3], test_green[7:2], test_blue[7:3]};
 
 
-  logic stacker_valid_out;
-  assign addr_fifo_valid_in = stacker_valid_out;
-  assign data_fifo_valid_in = stacker_valid_out;
-
-  pixel_stacker rolled_stacker (
-      .clk_in(clk_100_passthrough),
-      .rst_in(sys_rst),
-      .addr(stacker_addr),
-      .strobe_in(next_data_ready),
-      .ready_in(addr_fifo_ready_out && data_fifo_ready_out),
-      .data_in(data),
-      .valid_in(1'b1),
-      .ready_out(stacker_ready_out),
-      .addr_out(write_addr),
-      .data_out(write_data[143:16]),
-      .strobe_out(write_data[15:0]),
-      .valid_out(stacker_valid_out)
-  );
 
 
   //seven seg time
-  logic [ 6:0] ss_c;
-  logic [31:0] display_thingy;
-  logic [12:0] county;
-  evt_counter #(
-      .MAX_COUNT(10000)
-  ) clkkkky (
-      .clk_in(clk_100_passthrough),
-      .rst_in(sys_rst),
-      .evt_in(1'b1),
-      .count_out(county)
-  );
+//   logic [ 6:0] ss_c;
+//   logic [31:0] display_thingy;
+//   logic [12:0] county;
+//   evt_counter #(
+//       .MAX_COUNT(10000)
+//   ) clkkkky (
+//       .clk_in(clk_100_passthrough),
+//       .rst_in(sys_rst),
+//       .evt_in(1'b1),
+//       .count_out(county)
+//   );
 
-  always_ff @(posedge clk_100_passthrough) begin
-    if (county == 0) begin
-      display_thingy <= {fb_blue, fb_green, fb_red, 8'h0};
-    end
-  end
+//   always_ff @(posedge clk_100_passthrough) begin
+//     if (county == 0) begin
+//       display_thingy <= {fb_blue, fb_green, fb_red, 8'h0};
+//     end
+//   end
 
-  seven_segment_controller sevensegg (
-      .clk_in (clk_100_passthrough),
-      .rst_in (sys_rst),
-      .val_in (display_thingy),
-      .cat_out(ss_c),
-      .an_out ({ss0_an, ss1_an})
-  );
-  assign ss0_c = ss_c;
-  assign ss1_c = ss_c;
+//   seven_segment_controller sevensegg (
+//       .clk_in (clk_100_passthrough),
+//       .rst_in (sys_rst),
+//       .val_in (display_thingy),
+//       .cat_out(ss_c),
+//       .an_out ({ss0_an, ss1_an})
+//   );
+//   assign ss0_c = ss_c;
+//   assign ss1_c = ss_c;
 
-
-  ddr_whisperer ddr_time (
-      .ddr3_dq(ddr3_dq),
-      .ddr3_dqs_n(ddr3_dqs_n),
-      .ddr3_dqs_p(ddr3_dqs_p),
-      .ddr3_addr(ddr3_addr),
-      .ddr3_ba(ddr3_ba),
-      .ddr3_ras_n(ddr3_ras_n),
-      .ddr3_cas_n(ddr3_cas_n),
-      .ddr3_we_n(ddr3_we_n),
-      .ddr3_reset_n(ddr3_reset_n),
-      .ddr3_ck_p(ddr3_ck_p),
-      .ddr3_ck_n(ddr3_ck_n),
-      .ddr3_cke(ddr3_cke),
-      .ddr3_dm(ddr3_dm),
-      .ddr3_odt(ddr3_odt),
-
-      .input_data_clk_in(clk_100_passthrough),
-      .input_data_rst(btn[0]),
-      .output_data_clk_in(clk_pixel),
-      .output_data_rst_in(sys_rst_pixel),
-
-      .clk_migref(clk_migref),
-      .sys_rst_migref(sys_rst_migref),
-
-      .write_data(write_data),
-      .last_write(stacker_last),
-
-      .data_fifo_valid_in (stacker_valid_out),
-      .data_fifo_ready_out(data_fifo_ready_out),
-
-      .addr_fifo_valid_in (stacker_valid_out),
-      .addr_fifo_ready_out(addr_fifo_ready_out),
-
-      .write_addr(write_addr),
-
-      .s_axi_arvalid(s_axi_arvalid),
-      .s_axi_arready(s_axi_arready),
-      .s_axi_araddr (s_axi_araddr),
-
-      .s_axi_rready(s_axi_rready),
-      .s_axi_rvalid(s_axi_rvalid),
-
-      .data_reciever_rdy  (display_axis_tready),
-      .data_reciever_valid(display_axis_tvalid),
-      .data_reciever_last (display_axis_tlast),
-      .data_reciever_data (display_axis_tdata),
-
-      .last_frame_chunk(last_frame_chunk),
-      .clk_ui(clk_ui),
-      .sys_rst_ui(sys_rst_ui)
-
-  );
 
   logic        frame_buff_tvalid;
   logic        frame_buff_tready;
   logic [15:0] frame_buff_tdata;
   logic        frame_buff_tlast;
-  unstacker unstacker_inst (
-      .clk_in(clk_pixel),
-      .rst_in(sys_rst_pixel),
-      .chunk_tvalid(display_axis_tvalid),
-      .chunk_tready(display_axis_tready),
-      .chunk_tdata(display_axis_tdata),
-      .chunk_tlast(display_axis_tlast),
-      .pixel_tvalid(frame_buff_tvalid),
-      .pixel_tready(frame_buff_tready),
-      .pixel_tdata(frame_buff_tdata),
-      .pixel_tlast(frame_buff_tlast)
-  );
-
   logic [15:0] frame_buff_pixel;
+
+
+  logic frame_tester;
+  always_ff@(posedge clk_100_passthrough)begin
+    if(stacker_addr==0)begin
+        frame_tester<=!frame_tester;
+    end
+
+  end
+    
+    localparam Z_WIDTH = 16;
+framebuffer #(
+        .Z_WIDTH(Z_WIDTH),
+        .HRES(HRES),
+        .VRES(VRES)
+    ) dut (
+        .clk_100mhz        (clk_100mhz),
+        .sys_rst           (sys_rst),
+        .valid_in          (1'b1),
+        .addr_in           (stacker_addr),
+        .depth_in          (0),
+        .frame             (frame_tester),
+        .color_in          (data),
+        .rasterizer_rdy_out(stacker_ready_out),
+
+        .clk_100_passthrough,
+        .clk_pixel,
+        .clk_migref,
+        .sys_rst_migref,
+        .sw,
+
+        .ss0_an,
+        .ss1_an,
+        .ss0_c,
+        .ss1_c,
+
+        .frame_buff_tvalid (frame_buff_tvalid),
+        .frame_buff_tready (frame_buff_tready),
+        .frame_buff_tdata  (frame_buff_tdata),
+        .frame_buff_tlast  (frame_buff_tlast),
+
+        .ddr3_dq           (ddr3_dq),
+        .ddr3_dqs_n        (ddr3_dqs_n),
+        .ddr3_dqs_p        (ddr3_dqs_p),
+        .ddr3_addr         (ddr3_addr),
+        .ddr3_ba           (ddr3_ba),
+        .ddr3_ras_n        (ddr3_ras_n),
+        .ddr3_cas_n        (ddr3_cas_n),
+        .ddr3_we_n         (ddr3_we_n),
+        .ddr3_reset_n      (ddr3_reset_n),
+        .ddr3_ck_p         (ddr3_ck_p),
+        .ddr3_ck_n         (ddr3_ck_n),
+        .ddr3_cke          (ddr3_cke),
+        .ddr3_dm           (ddr3_dm),
+        .ddr3_odt          (ddr3_odt)
+    );
+
+
+
   // TODO: CHECK WHY THIS IS GIVING BLUE AT THE BEGINNING OF THE SCREEN....
   assign frame_buff_pixel = frame_buff_tvalid & frame_buff_tready ? frame_buff_tdata : 16'hf800; // only take a pixel when a handshake happens???
   always_ff @(posedge clk_pixel) begin
@@ -472,7 +403,7 @@ module top_level (
   // : assign frame_buff_tready
   // I did this in 1 (kind of long) line. an always_comb block could also work.
   //assign frame_buff_tready = (active_draw_hdmi)&&(!frame_buff_tlast || (hcount_hdmi==1279 && vcount_hdmi==719)); // change me!!
-  assign frame_buff_tready = frame_buff_tlast ? (active_draw_hdmi && hcount_hdmi ==  1279 && vcount_hdmi == 719) : active_draw_hdmi;
+  assign frame_buff_tready = frame_buff_tlast ? (active_draw_hdmi && hcount_hdmi ==  HRES-1 && vcount_hdmi == VRES-1) : (hcount_hdmi<HRES && vcount_hdmi<VRES);
 
   // HDMI video signal generator
   video_sig_gen vsg (
