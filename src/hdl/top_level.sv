@@ -278,7 +278,7 @@ module top_level (
   //im praying i can just copy paste this and it'll give me the excact same functionality
   // Compute next_data_ready based on FIFO readiness
   logic stacker_ready_out;
-  logic [7:0] data;  // Each entry holds {red, green, blue} = ?????????? 24 bits
+  logic [15:0] data;
   logic [26:0] addr;
   logic next_data_ready;
   logic [$clog2(HRES)-1:0] hcount;
@@ -323,6 +323,7 @@ module top_level (
   logic [7:0] test_red;
   logic [7:0] test_green;
   logic [7:0] test_blue;
+
   test_pattern_generator #(
       .HRES(HRES),
       .VRES(VRES)
@@ -372,7 +373,7 @@ module top_level (
 
   always_ff @(posedge clk_camera) begin
     if (county == 0) begin
-      display_thingy <= vcount;
+      display_thingy <= {fb_blue, fb_green, fb_red, 8'h0};
     end
   end
 
@@ -451,10 +452,6 @@ module top_level (
       .chunk_tready(display_axis_tready),
       .chunk_tdata(display_axis_tdata),
       .chunk_tlast(display_axis_tlast),
-      //   .chunk_tvalid(test_stacker_unstacker_tvalid),
-      //   .chunk_tready(test_stacker_unstacker_tready),
-      //   .chunk_tdata(test_stacker_unstacker_tdata),
-      //   .chunk_tlast(test_stacker_unstacker_tlast),
       .pixel_tvalid(frame_buff_tvalid),
       .pixel_tready(frame_buff_tready),
       .pixel_tdata(frame_buff_tdata),

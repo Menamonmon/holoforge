@@ -4,7 +4,7 @@ module test_pattern_generator #(
 ) (
     input logic [1:0] sel_in,
     input logic [$clog2(HRES)-1:0] hcount_in,
-    input logic [$clog2(VRES):0] vcount_in,
+    input logic [$clog2(VRES)-1:0] vcount_in,
     output logic [7:0] red_out,
     output logic [7:0] green_out,
     output logic [7:0] blue_out
