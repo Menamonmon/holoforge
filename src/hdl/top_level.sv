@@ -168,6 +168,7 @@ module top_level (
   logic sys_rst_ui;
 
   logic clk_100_passthrough;
+  logic sys_rst;
 
 
   assign cam_xclk = clk_xc;
@@ -175,6 +176,7 @@ module top_level (
   assign sys_rst_camera = btn[0];  //use for resetting camera side of logic
   assign sys_rst_pixel = btn[0];  //use for resetting hdmi/draw side of logic
   assign sys_rst_migref = btn[0];
+  assign sys_rst = btn[0];  // reset for graphics....
 
 
   // video signal generator signals
@@ -251,7 +253,6 @@ module top_level (
   );
 
 
-
   evt_counter #(
       .MAX_COUNT(115200)
   ) read_resp_addr (
@@ -291,8 +292,8 @@ module top_level (
   evt_counter #(
       .MAX_COUNT(ADDR_MAX)
   ) addr_counter (
-      .clk_in(clk_camera),
-      .rst_in(btn[0]),
+      .clk_in(clk_100_passthrough),
+      .rst_in(sys_rst),
       .evt_in(next_data_ready),
       .count_out(stacker_addr)
   );
@@ -300,8 +301,8 @@ module top_level (
   evt_counter #(
       .MAX_COUNT(HRES)
   ) hcounter (
-      .clk_in(clk_camera),
-      .rst_in(btn[0]),
+      .clk_in(clk_100_passthrough),
+      .rst_in(sys_rst),
       .evt_in(next_data_ready),
       .count_out(hcount)
   );
@@ -310,8 +311,8 @@ module top_level (
   evt_counter #(
       .MAX_COUNT(VRES)
   ) vcounter (
-      .clk_in(clk_camera),
-      .rst_in(btn[0]),
+      .clk_in(clk_100_passthrough),
+      .rst_in(sys_rst),
       .evt_in((hcount == HRES - 1) && next_data_ready),
       .count_out(vcount)
   );
@@ -343,8 +344,8 @@ module top_level (
   assign data_fifo_valid_in = stacker_valid_out;
 
   pixel_stacker rolled_stacker (
-      .clk_in(clk_camera),
-      .rst_in(btn[0]),
+      .clk_in(clk_100_passthrough),
+      .rst_in(sys_rst),
       .addr(stacker_addr),
       .strobe_in(next_data_ready),
       .ready_in(addr_fifo_ready_out && data_fifo_ready_out),
@@ -365,21 +366,21 @@ module top_level (
   evt_counter #(
       .MAX_COUNT(10000)
   ) clkkkky (
-      .clk_in(clk_camera),
-      .rst_in(btn[0]),
+      .clk_in(clk_100_passthrough),
+      .rst_in(sys_rst),
       .evt_in(1'b1),
       .count_out(county)
   );
 
-  always_ff @(posedge clk_camera) begin
+  always_ff @(posedge clk_100_passthrough) begin
     if (county == 0) begin
       display_thingy <= {fb_blue, fb_green, fb_red, 8'h0};
     end
   end
 
   seven_segment_controller sevensegg (
-      .clk_in (clk_camera),
-      .rst_in (btn[0]),
+      .clk_in (clk_100_passthrough),
+      .rst_in (sys_rst),
       .val_in (display_thingy),
       .cat_out(ss_c),
       .an_out ({ss0_an, ss1_an})
@@ -404,7 +405,7 @@ module top_level (
       .ddr3_dm(ddr3_dm),
       .ddr3_odt(ddr3_odt),
 
-      .input_data_clk_in(clk_camera),
+      .input_data_clk_in(clk_100_passthrough),
       .input_data_rst(btn[0]),
       .output_data_clk_in(clk_pixel),
       .output_data_rst_in(sys_rst_pixel),
