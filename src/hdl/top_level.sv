@@ -167,11 +167,9 @@ module top_level (
   logic sys_rst_ui;
 
   logic clk_100_passthrough;
-    // shut up those RGBs
-  assign rgb0 = 0;
-  assign rgb1 = 0;
+  
 
-    assign cam_xclk = clk_xc;
+  assign cam_xclk = clk_xc;
 
   assign sys_rst_camera = btn[0];  //use for resetting camera side of logic
   assign sys_rst_pixel = btn[0];  //use for resetting hdmi/draw side of logic
@@ -199,7 +197,7 @@ module top_level (
   //all the ddr mem signals we need
   logic input_data_clk_in;
   logic input_data_rst;
-  logic [127:0] write_data;
+  logic [143:0] write_data;
   logic data_fifo_valid_in;
   logic data_fifo_ready_out;
   logic addr_fifo_valid_in;
@@ -222,6 +220,9 @@ module top_level (
   logic         last_frame_chunk;
 
   logic stacker_last;
+  localparam int HRES = 1280 / 8;
+  localparam int VRES = 720;
+  localparam int ADDR_MAX=(HRES*VRES);
 
   evt_counter #(
         .MAX_COUNT(115200)
@@ -260,18 +261,150 @@ evt_counter #(
     );
     assign last_frame_chunk = read_addr == 115200 - 1;
 
-test_stacker test_stacker_inst (
-      .clk_in(clk_camera),
-      .rst_in(sys_rst_camera),
-      .addr_fifo_ready_in(addr_fifo_ready_out),
-      .data_fifo_ready_in(data_fifo_ready_out),
-      .pattern_sel_in(sw[15:14]),
-      .addr_fifo_valid_in(addr_fifo_valid_in),
-      .data_fifo_valid_in(data_fifo_valid_in),
-      .addr_fifo_data_in(write_addr),
-      .data_fifo_data_in(write_data),
-      .last_out(stacker_last)
+// test_stacker test_stacker_inst (
+//       .clk_in(clk_camera),
+//       .rst_in(sys_rst_camera),
+//       .addr_fifo_ready_in(addr_fifo_ready_out),
+//       .data_fifo_ready_in(data_fifo_ready_out),
+//       .pattern_sel_in(sw[15:14]),
+//       .addr_fifo_valid_in(addr_fifo_valid_in),
+//       .data_fifo_valid_in(data_fifo_valid_in),
+//       .addr_fifo_data_in(write_addr),
+//       .data_fifo_data_in(write_data),
+//       .last_out(stacker_last)
+//   );
+
+  //im praying i can just copy paste this and it'll give me the excact same functionality
+  // Compute next_data_ready based on FIFO readiness
+  logic stacker_ready_out;
+  logic [7:0] data;  // Each entry holds {red, green, blue} = ?????????? 24 bits
+  logic [26:0] addr;
+  logic next_data_ready;
+  logic [$clog2(HRES)-1:0] hcount;
+  logic [$clog2(VRES)-1:0] vcount;
+  assign next_data_ready = stacker_ready_out;
+
+  // Horizontal counter
+  
+  logic [$clog2(ADDR_MAX)-1:0] stacker_addr;
+evt_counter#(
+    .MAX_COUNT(ADDR_MAX)) addr_counter(
+    .clk_in(clk_camera),
+    .rst_in(btn[0]),
+    .evt_in(next_data_ready),
+    .count_out(stacker_addr)
   );
+
+  evt_counter#(
+    .MAX_COUNT(7)) stack_counter(
+    .clk_in(clk_camera),
+    .rst_in(btn[0]),
+    .evt_in(next_data_ready),
+    .count_out(i)
+  );
+  logic [2:0] i;
+  
+  evt_counter #(
+      .MAX_COUNT(HRES)
+  ) hcounter (
+      .clk_in(clk_camera),
+      .rst_in(btn[0]),
+      .evt_in(next_data_ready && i==7),
+      .count_out(hcount)
+  );
+
+  // Vertical counter
+  evt_counter #(
+      .MAX_COUNT(VRES)
+  ) vcounter (
+      .clk_in(clk_camera),
+      .rst_in(btn[0]),
+      .evt_in((hcount == HRES - 1) && next_data_ready && i==7),
+      .count_out(vcount)
+  );
+
+
+  // Adjusted horizontal count for 8 subpixels
+  logic [10:0] raw_hcount;
+
+
+  assign raw_hcount = hcount << 3;
+
+  logic stacker_valid_in;
+  logic stacker_valid;
+  assign stacker_valid= i<=7;
+
+  // Generate 8 instances of test_pattern_generator
+    wire [10:0] adjusted_hcount = raw_hcount + i;
+    wire [ 7:0] test_red;
+    wire [ 7:0] test_green;
+    wire [ 7:0] test_blue;
+    test_pattern_generator pattern_gen (
+          .sel_in(sw[15:14]),
+          .hcount_in(adjusted_hcount),
+          .vcount_in(vcount),
+          .red_out(test_red),
+          .green_out(test_green),
+          .blue_out(test_blue)
+    );
+    assign data = {test_red[7:3], test_green[7:2], test_blue[7:3]};
+
+
+logic stacker_valid_out;
+assign addr_fifo_valid_in=stacker_valid_out;
+assign data_fifo_valid_in=stacker_valid_out;
+
+
+
+
+
+
+
+pixel_stacker rolled_stacker(
+    .clk_in(clk_camera),
+    .rst_in(btn[0]),
+    .addr(stacker_addr),
+    .strobe_in(next_data_ready),
+    .ready_in(addr_fifo_ready_out && data_fifo_ready_out),
+    .data_in(data),
+    .valid_in(1'b1),
+    .ready_out(stacker_ready_out),
+    .addr_out(write_addr),
+    .data_out(write_data[143:16]),      
+    .strobe_out(write_data[15:0]),
+    .valid_out(stacker_valid_out)
+);
+
+
+//seven seg time
+logic [6:0] ss_c;
+logic [31:0] display_thingy;
+logic [12:0] county;
+evt_counter #(
+      .MAX_COUNT(10000)
+) clkkkky (
+      .clk_in(clk_camera),
+      .rst_in(btn[0]),
+      .evt_in(1'b1),
+      .count_out(county)
+  );
+
+  always_ff@(posedge clk_camera)begin
+    if(county==0)begin
+        display_thingy<=write_addr;
+    end
+  end
+
+seven_segment_controller sevensegg(
+    .clk_in(clk_camera),
+    .rst_in(btn[0]),
+    .val_in(display_thingy),
+    .cat_out(ss_c),
+    .an_out({ss0_an,ss1_an})
+);
+assign ss0_c=ss_c;
+assign ss1_c=ss_c;
+
 
 ddr_whisperer ddr_time(
     .ddr3_dq(ddr3_dq),
@@ -290,7 +423,7 @@ ddr_whisperer ddr_time(
     .ddr3_odt(ddr3_odt),
     
     .input_data_clk_in(clk_camera),
-    .input_data_rst(sys_rst_camera),
+    .input_data_rst(btn[0]),
     .output_data_clk_in(clk_pixel),
     .output_data_rst_in(sys_rst_pixel),
 
@@ -300,10 +433,10 @@ ddr_whisperer ddr_time(
     .write_data(write_data),
     .last_write(stacker_last),
 
-    .data_fifo_valid_in(data_fifo_valid_in),
+    .data_fifo_valid_in(stacker_valid_out),
     .data_fifo_ready_out(data_fifo_ready_out),
 
-    .addr_fifo_valid_in(addr_fifo_valid_in),
+    .addr_fifo_valid_in(stacker_valid_out),
     .addr_fifo_ready_out(addr_fifo_ready_out),
 
     .write_addr(write_addr),

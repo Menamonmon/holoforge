@@ -1,15 +1,14 @@
 module pixel_stacker#(
-    parameter HRES=64,
-    parameter VRES=32
+    parameter HRES=1280,
+    parameter VRES=720
 )
 (   input wire clk_in,
     input wire rst_in,
-    input wire [hres_width-1:0] hcount,
-    input wire [vres_width-1:0] vcount,
     input wire [15:0] data_in,
     input wire strobe_in,
     input wire ready_in,  //coming from out_fifo
     input wire valid_in,//coming from rasterizer
+    input wire [addr_width-1:0] addr,
     //output logic
     output logic ready_out,//back propagating rdy_in from out_fifo
     output logic [chunk_addr_width-1:0] addr_out,
@@ -17,7 +16,7 @@ module pixel_stacker#(
     output logic [15:0] strobe_out,
     output logic valid_out
 );
-    localparam addr_width=$clog2((HRES+(HRES*VRES))/2);
+    localparam addr_width=$clog2((HRES*VRES));
     localparam chunk_addr_width=$clog2((HRES*VRES)/8);
     localparam hres_width=$clog2(HRES);
     localparam vres_width=$clog2(VRES);
@@ -32,19 +31,18 @@ module pixel_stacker#(
 
     logic [7:0][15:0] data;
     logic [15:0] strobe;
-    logic [addr_width-1:0] addr;
     logic [addr_width-1:0] prev_addr;
 
     //ready_signals
     logic data_full;
     logic will_be_ready;
     logic [2:0] index;
+    logic [26:0] addr_adding;
 
     always_comb begin
-        data_full=((prev_addr[2:0]==7)||((addr>>3)!=(prev_addr>>3)) || (prev_addr>addr)) ;
+        data_full=((prev_addr[2:0]==7)||((addr[addr_width-1:3])!=(prev_addr[addr_width-1:3])) || (prev_addr>addr)) ;
         ready_out=!data_full || will_be_ready;
         will_be_ready=(!valid_out)||(ready_in);
-        addr=(HRES*vcount)+hcount;
         index=addr[2:0];
     end
     always_ff@(posedge clk_in)begin
@@ -68,8 +66,8 @@ module pixel_stacker#(
             if(ready_out)begin
                 //consume data and stack
                 data[addr[2:0]]<=data_in;
-                strobe[2*addr[2:0]+1]<=strobe_in;
-                strobe[2*addr[2:0]]<=strobe_in;
+                strobe[{addr[2:0],1'b0}+1]<=strobe_in;
+                strobe[{addr[2:0],1'b0}]<=strobe_in;
                 prev_addr<=addr;
 
             end else if(!temp_valid_in) begin
@@ -86,7 +84,7 @@ module pixel_stacker#(
             data_out<=data;
             strobe_out<=strobe;
             //chunk(sanity check)
-            addr_out<=prev_addr>>3; 
+            addr_out<=prev_addr[addr_width-1:3]; 
             valid_out<=1;
             //internal sigs
             if(temp_valid_in)begin

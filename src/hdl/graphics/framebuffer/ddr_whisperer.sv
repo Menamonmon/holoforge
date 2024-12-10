@@ -28,7 +28,7 @@ module ddr_whisperer (
 
     //Write AXI signals in and out
     //data
-    input wire [127:0] write_data,
+    input wire [143:0] write_data,
     input wire last_write,
     input wire data_fifo_valid_in,
     output wire data_fifo_ready_out,
@@ -73,7 +73,7 @@ module ddr_whisperer (
     logic s_axi_rresp;
 
     //axi write addr signals
-    logic [127:0] s_axi_wdata;
+    logic [143:0] s_axi_wdata;
     logic s_axi_wvalid;
     logic s_axi_wready;
     logic s_axi_wlast;
@@ -91,7 +91,7 @@ module ddr_whisperer (
     logic [1:0] s_axi_bresp;
     logic s_axi_bvalid;
 
-    ddr_fifo_wrap write_data_fifo (
+    ddr_fifo_wrap #(.BIT_WIDTH(144)) write_data_fifo(
       .sender_rst(input_data_rst),
       .sender_clk(input_data_clk_in),
       .sender_axis_tvalid(data_fifo_valid_in),
@@ -179,7 +179,7 @@ module ddr_whisperer (
 
       // Slave Interface Write Address Ports
       .s_axi_awid     (4'b0000),             // input [3:0]			s_axi_awid
-      .s_axi_awaddr   (s_axi_awaddr[26:0]),  // input [26:0]			s_axi_awaddr
+      .s_axi_awaddr   (s_axi_awaddr[26:0]<<4),  // input [26:0]			s_axi_awaddr
       .s_axi_awlen    (8'b0),                // input [7:0]			s_axi_awlen
       .s_axi_awsize   (3'b100),              // input [2:0]			s_axi_awsize
       .s_axi_awburst  (2'b00),               // input [1:0]			s_axi_awburst
@@ -191,8 +191,8 @@ module ddr_whisperer (
       .s_axi_awready(s_axi_awready),  // output			s_axi_awready
 
       // Slave Interface Write Data Ports
-      .s_axi_wdata(s_axi_wdata),
-      .s_axi_wstrb(16'hFFFF),  // input [15:0]			s_axi_wstrb
+      .s_axi_wdata(s_axi_wdata[143:16]),
+      .s_axi_wstrb(s_axi_wdata[15:0]),  // input [15:0]			s_axi_wstrb
       .s_axi_wlast(1'b1),  // input			s_axi_wlast
       .s_axi_wvalid(s_axi_wvalid),  // input			s_axi_wvalid
       .s_axi_wready(s_axi_wready),  // output			s_axi_wready
