@@ -1,21 +1,26 @@
-module test_pattern_generator (
-    input  logic [ 1:0] sel_in,
-    input  logic [10:0] hcount_in,
-    input  logic [ 9:0] vcount_in,
-    output logic [ 7:0] red_out,
-    output logic [ 7:0] green_out,
-    output logic [ 7:0] blue_out
+module test_pattern_generator #(
+    HRES = 1280,
+    VRES = 720
+) (
+    input logic [1:0] sel_in,
+    input logic [$clog2(HRES)-1:0] hcount_in,
+    input logic [$clog2(VRES):0] vcount_in,
+    output logic [7:0] red_out,
+    output logic [7:0] green_out,
+    output logic [7:0] blue_out
 );
 
+  localparam int HALF_HRES = HRES / 2;
+  localparam int HALF_VRES = VRES / 2;
   always_comb begin
     case (sel_in)
       2'b00: begin
-        red_out   = 8'd0;
-        green_out = 8'd191;
+        red_out   = 8'd255;
+        green_out = 8'd0;
         blue_out  = 8'd255;
       end
       2'b01: begin
-        if (vcount_in == 360 || hcount_in == 640) begin
+        if (vcount_in == HALF_VRES || hcount_in == HALF_HRES) begin
           red_out   = 8'hFF;
           green_out = 8'hFF;
           blue_out  = 8'hFF;
@@ -39,4 +44,3 @@ module test_pattern_generator (
   end
 
 endmodule
-

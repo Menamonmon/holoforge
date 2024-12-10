@@ -1,37 +1,37 @@
 
 
-  // localparam A_WIDTH = 18
-  // localparam A_FRAC_BITS = 14;
-  // localparam B_WIDTH = 25;
-  // localparam B_FRAC_BITS = 14;
-  // localparam P_FRAC_BITS = 14;
-  // localparam N = 3;
+// localparam A_WIDTH = 18
+// localparam A_FRAC_BITS = 14;
+// localparam B_WIDTH = 25;
+// localparam B_FRAC_BITS = 14;
+// localparam P_FRAC_BITS = 14;
+// localparam N = 3;
 
-  // localparam P_WIDTH = A_WIDTH + B_WIDTH - A_FRAC_BITS - B_FRAC_BITS + P_FRAC_BITS;
-  // logic signed [P_WIDTH - 1:0] P;
-  // logic signed [N-1:0][A_WIDTH-1:0] A;
-  // logic signed [N-1:0][B_WIDTH-1:0] B;
-  // logic done;
+// localparam P_WIDTH = A_WIDTH + B_WIDTH - A_FRAC_BITS - B_FRAC_BITS + P_FRAC_BITS;
+// logic signed [P_WIDTH - 1:0] P;
+// logic signed [N-1:0][A_WIDTH-1:0] A;
+// logic signed [N-1:0][B_WIDTH-1:0] B;
+// logic done;
 
-  // fixed_point_slow_dot #(
-  //     .A_WIDTH(18),
-  //     .B_WIDTH(25),
-  //     .A_FRAC_BITS(14),
-  //     .B_FRAC_BITS(14),
-  //     .P_FRAC_BITS(14)
-  // ) test_slow_dot (
-  //     .clk_in(clk_100mhz),
-  //     .rst_in(1'b0),
-  //     .A(A),
-  //     .B(B),
-  //     .valid_in(1'b1),
-  //     .valid_out(done),
-  //     .P(P)
-  // );
-  // assign led = P[15:0];
-  // #PARAMETERS#
-  // {'XWIDTH': 17, 'YWIDTH': 17, 'ZWIDTH': 29, 'XFRAC': 14, 'YFRAC': 14, 'ZFRAC': 14, 'FB_HRES': 320, 'FB_VRES': 180, 'VH': 3, 'VW': 3, 'VW_BY_HRES_WIDTH': 22, 'VW_BY_HRES_FRAC': 14, 'VH_BY_VRES_WIDTH': 21, 'VH_BY_VRES_FRAC': 14, 'VW_BY_HRES': 154, 'VH_BY_VRES': 273, 'HRES_BY_VW_WIDTH': 21, 'HRES_BY_VW_FRAC': 14, 'VRES_BY_VH_WIDTH': 21, 'VRES_BY_VH_FRAC': 14, 'HRES_BY_VW': 1747627, 'VRES_BY_VH': 983040}
-  // #PARAMETERS#
+// fixed_point_slow_dot #(
+//     .A_WIDTH(18),
+//     .B_WIDTH(25),
+//     .A_FRAC_BITS(14),
+//     .B_FRAC_BITS(14),
+//     .P_FRAC_BITS(14)
+// ) test_slow_dot (
+//     .clk_in(clk_100mhz),
+//     .rst_in(1'b0),
+//     .A(A),
+//     .B(B),
+//     .valid_in(1'b1),
+//     .valid_out(done),
+//     .P(P)
+// );
+// assign led = P[15:0];
+// #PARAMETERS#
+// {'XWIDTH': 17, 'YWIDTH': 17, 'ZWIDTH': 29, 'XFRAC': 14, 'YFRAC': 14, 'ZFRAC': 14, 'FB_HRES': 320, 'FB_VRES': 180, 'VH': 3, 'VW': 3, 'VW_BY_HRES_WIDTH': 22, 'VW_BY_HRES_FRAC': 14, 'VH_BY_VRES_WIDTH': 21, 'VH_BY_VRES_FRAC': 14, 'VW_BY_HRES': 154, 'VH_BY_VRES': 273, 'HRES_BY_VW_WIDTH': 21, 'HRES_BY_VW_FRAC': 14, 'VRES_BY_VH_WIDTH': 21, 'VRES_BY_VH_FRAC': 14, 'HRES_BY_VW': 1747627, 'VRES_BY_VH': 983040}
+// #PARAMETERS#
 
 //   logic [2:0][16:0] x;
 //   logic [2:0][16:0] y;
@@ -108,42 +108,43 @@ module top_level (
     input  wire         clk_100mhz,
     output logic [15:0] led,
     // camera bus
-    input  wire  [ 7:0] camera_d,      // 8 parallel data wires
-    output logic        cam_xclk,      // XC driving camera
-    input  wire         cam_hsync,     // camera hsync wire
-    input  wire         cam_vsync,     // camera vsync wire
-    input  wire         cam_pclk,      // camera pixel clock
-    inout  wire         i2c_scl,       // i2c inout clock
-    inout  wire         i2c_sda,       // i2c inout data
+    input  wire  [ 7:0] camera_d,    // 8 parallel data wires
+    output logic        cam_xclk,    // XC driving camera
+    input  wire         cam_hsync,   // camera hsync wire
+    input  wire         cam_vsync,   // camera vsync wire
+    input  wire         cam_pclk,    // camera pixel clock
+    inout  wire         i2c_scl,     // i2c inout clock
+    inout  wire         i2c_sda,     // i2c inout data
     input  wire  [15:0] sw,
     input  wire  [ 3:0] btn,
     output logic [ 2:0] rgb0,
     output logic [ 2:0] rgb1,
     // seven segment
-    output logic [ 3:0] ss0_an,        //anode control for upper four digits of seven-seg display
-    output logic [ 3:0] ss1_an,        //anode control for lower four digits of seven-seg display
-    output logic [ 6:0] ss0_c,         //cathode controls for the segments of upper four digits
-    output logic [ 6:0] ss1_c,         //cathod controls for the segments of lower four digits
+    output logic [ 3:0] ss0_an,      //anode control for upper four digits of seven-seg display
+    output logic [ 3:0] ss1_an,      //anode control for lower four digits of seven-seg display
+    output logic [ 6:0] ss0_c,       //cathode controls for the segments of upper four digits
+    output logic [ 6:0] ss1_c,       //cathod controls for the segments of lower four digits
     // hdmi port
-    output logic [ 2:0] hdmi_tx_p,     //hdmi output signals (positives) (blue, green, red)
-    output logic [ 2:0] hdmi_tx_n,     //hdmi output signals (negatives) (blue, green, red)
-    output logic        hdmi_clk_p,hdmi_clk_n,
+    output logic [ 2:0] hdmi_tx_p,   //hdmi output signals (positives) (blue, green, red)
+    output logic [ 2:0] hdmi_tx_n,   //hdmi output signals (negatives) (blue, green, red)
+    output logic        hdmi_clk_p,
+    hdmi_clk_n,
 
     // New for week 6: DDR3 ports
-    inout  wire  [15:0] ddr3_dq,
-    inout  wire  [ 1:0] ddr3_dqs_n,
-    inout  wire  [ 1:0] ddr3_dqs_p,
-    output wire  [12:0] ddr3_addr,
-    output wire  [ 2:0] ddr3_ba,
-    output wire         ddr3_ras_n,
-    output wire         ddr3_cas_n,
-    output wire         ddr3_we_n,
-    output wire         ddr3_reset_n,
-    output wire         ddr3_ck_p,
-    output wire         ddr3_ck_n,
-    output wire         ddr3_cke,
-    output wire  [ 1:0] ddr3_dm,
-    output wire         ddr3_odt
+    inout  wire [15:0] ddr3_dq,
+    inout  wire [ 1:0] ddr3_dqs_n,
+    inout  wire [ 1:0] ddr3_dqs_p,
+    output wire [12:0] ddr3_addr,
+    output wire [ 2:0] ddr3_ba,
+    output wire        ddr3_ras_n,
+    output wire        ddr3_cas_n,
+    output wire        ddr3_we_n,
+    output wire        ddr3_reset_n,
+    output wire        ddr3_ck_p,
+    output wire        ddr3_ck_n,
+    output wire        ddr3_cke,
+    output wire [ 1:0] ddr3_dm,
+    output wire        ddr3_odt
 );
 
   // shut up those RGBs
@@ -167,7 +168,7 @@ module top_level (
   logic sys_rst_ui;
 
   logic clk_100_passthrough;
-  
+
 
   assign cam_xclk = clk_xc;
 
@@ -204,12 +205,12 @@ module top_level (
   logic addr_fifo_ready_out;
   logic [26:0] write_addr;
   logic s_axi_arvalid;
-  assign s_axi_arvalid=1'b1;
-  logic s_axi_arready;
-  logic [26:0] s_axi_araddr;
-  logic [26:0] read_addr;
-  logic s_axi_rready;
-  logic s_axi_rvalid;
+  assign s_axi_arvalid = 1'b1;
+  logic         s_axi_arready;
+  logic [ 26:0] s_axi_araddr;
+  logic [ 26:0] read_addr;
+  logic         s_axi_rready;
+  logic         s_axi_rvalid;
 
   logic [127:0] display_axis_tdata;
   logic         display_axis_tlast;
@@ -219,19 +220,19 @@ module top_level (
 
   logic         last_frame_chunk;
 
-  logic stacker_last;
-  localparam int HRES = 1280 / 8;
+  logic         stacker_last;
+  localparam int HRES = 1280;
   localparam int VRES = 720;
-  localparam int ADDR_MAX=(HRES*VRES);
+  localparam int ADDR_MAX = (HRES * VRES);
 
   evt_counter #(
-        .MAX_COUNT(115200)
-    ) read_req_addr (
-        .clk_in(clk_ui),
-        .rst_in(sys_rst_ui),
-        .evt_in(s_axi_arready && s_axi_arvalid),
-        .count_out(s_axi_araddr)
-    );
+      .MAX_COUNT(115200)
+  ) read_req_addr (
+      .clk_in(clk_ui),
+      .rst_in(sys_rst_ui),
+      .evt_in(s_axi_arready && s_axi_arvalid),
+      .count_out(s_axi_araddr)
+  );
 
   cw_hdmi_clk_wiz wizard_hdmi (
       .sysclk(clk_100_passthrough),
@@ -251,28 +252,28 @@ module top_level (
 
 
 
-evt_counter #(
-        .MAX_COUNT(115200)
-    ) read_resp_addr (
-        .clk_in(clk_ui),
-        .rst_in(sys_rst_ui),
-        .evt_in(s_axi_rready && s_axi_rvalid),
-        .count_out(read_addr)
-    );
-    assign last_frame_chunk = read_addr == 115200 - 1;
+  evt_counter #(
+      .MAX_COUNT(115200)
+  ) read_resp_addr (
+      .clk_in(clk_ui),
+      .rst_in(sys_rst_ui),
+      .evt_in(s_axi_rready && s_axi_rvalid),
+      .count_out(read_addr)
+  );
+  assign last_frame_chunk = read_addr == 115200 - 1;
 
-// test_stacker test_stacker_inst (
-//       .clk_in(clk_camera),
-//       .rst_in(sys_rst_camera),
-//       .addr_fifo_ready_in(addr_fifo_ready_out),
-//       .data_fifo_ready_in(data_fifo_ready_out),
-//       .pattern_sel_in(sw[15:14]),
-//       .addr_fifo_valid_in(addr_fifo_valid_in),
-//       .data_fifo_valid_in(data_fifo_valid_in),
-//       .addr_fifo_data_in(write_addr),
-//       .data_fifo_data_in(write_data),
-//       .last_out(stacker_last)
-//   );
+  // test_stacker test_stacker_inst (
+  //       .clk_in(clk_camera),
+  //       .rst_in(sys_rst_camera),
+  //       .addr_fifo_ready_in(addr_fifo_ready_out),
+  //       .data_fifo_ready_in(data_fifo_ready_out),
+  //       .pattern_sel_in(sw[15:14]),
+  //       .addr_fifo_valid_in(addr_fifo_valid_in),
+  //       .data_fifo_valid_in(data_fifo_valid_in),
+  //       .addr_fifo_data_in(write_addr),
+  //       .data_fifo_data_in(write_data),
+  //       .last_out(stacker_last)
+  //   );
 
   //im praying i can just copy paste this and it'll give me the excact same functionality
   // Compute next_data_ready based on FIFO readiness
@@ -285,31 +286,23 @@ evt_counter #(
   assign next_data_ready = stacker_ready_out;
 
   // Horizontal counter
-  
+
   logic [$clog2(ADDR_MAX)-1:0] stacker_addr;
-evt_counter#(
-    .MAX_COUNT(ADDR_MAX)) addr_counter(
-    .clk_in(clk_camera),
-    .rst_in(btn[0]),
-    .evt_in(next_data_ready),
-    .count_out(stacker_addr)
+  evt_counter #(
+      .MAX_COUNT(ADDR_MAX)
+  ) addr_counter (
+      .clk_in(clk_camera),
+      .rst_in(btn[0]),
+      .evt_in(next_data_ready),
+      .count_out(stacker_addr)
   );
 
-  evt_counter#(
-    .MAX_COUNT(7)) stack_counter(
-    .clk_in(clk_camera),
-    .rst_in(btn[0]),
-    .evt_in(next_data_ready),
-    .count_out(i)
-  );
-  logic [2:0] i;
-  
   evt_counter #(
       .MAX_COUNT(HRES)
   ) hcounter (
       .clk_in(clk_camera),
       .rst_in(btn[0]),
-      .evt_in(next_data_ready && i==7),
+      .evt_in(next_data_ready),
       .count_out(hcount)
   );
 
@@ -319,145 +312,133 @@ evt_counter#(
   ) vcounter (
       .clk_in(clk_camera),
       .rst_in(btn[0]),
-      .evt_in((hcount == HRES - 1) && next_data_ready && i==7),
+      .evt_in((hcount == HRES - 1) && next_data_ready),
       .count_out(vcount)
   );
 
 
-  // Adjusted horizontal count for 8 subpixels
-  logic [10:0] raw_hcount;
-
-
-  assign raw_hcount = hcount << 3;
-
   logic stacker_valid_in;
-  logic stacker_valid;
-  assign stacker_valid= i<=7;
 
   // Generate 8 instances of test_pattern_generator
-    wire [10:0] adjusted_hcount = raw_hcount + i;
-    wire [ 7:0] test_red;
-    wire [ 7:0] test_green;
-    wire [ 7:0] test_blue;
-    test_pattern_generator pattern_gen (
-          .sel_in(sw[15:14]),
-          .hcount_in(adjusted_hcount),
-          .vcount_in(vcount),
-          .red_out(test_red),
-          .green_out(test_green),
-          .blue_out(test_blue)
-    );
-    assign data = {test_red[7:3], test_green[7:2], test_blue[7:3]};
+  logic [7:0] test_red;
+  logic [7:0] test_green;
+  logic [7:0] test_blue;
+  test_pattern_generator #(
+      .HRES(HRES),
+      .VRES(VRES)
+  ) pattern_gen (
+      .sel_in(sw[15:14]),
+      .hcount_in(hcount),
+      .vcount_in(vcount),
+      .red_out(test_red),
+      .green_out(test_green),
+      .blue_out(test_blue)
+  );
+  assign data = {test_red[7:3], test_green[7:2], test_blue[7:3]};
 
 
-logic stacker_valid_out;
-assign addr_fifo_valid_in=stacker_valid_out;
-assign data_fifo_valid_in=stacker_valid_out;
+  logic stacker_valid_out;
+  assign addr_fifo_valid_in = stacker_valid_out;
+  assign data_fifo_valid_in = stacker_valid_out;
+
+  pixel_stacker rolled_stacker (
+      .clk_in(clk_camera),
+      .rst_in(btn[0]),
+      .addr(stacker_addr),
+      .strobe_in(next_data_ready),
+      .ready_in(addr_fifo_ready_out && data_fifo_ready_out),
+      .data_in(data),
+      .valid_in(1'b1),
+      .ready_out(stacker_ready_out),
+      .addr_out(write_addr),
+      .data_out(write_data[143:16]),
+      .strobe_out(write_data[15:0]),
+      .valid_out(stacker_valid_out)
+  );
 
 
-
-
-
-
-
-pixel_stacker rolled_stacker(
-    .clk_in(clk_camera),
-    .rst_in(btn[0]),
-    .addr(stacker_addr),
-    .strobe_in(next_data_ready),
-    .ready_in(addr_fifo_ready_out && data_fifo_ready_out),
-    .data_in(data),
-    .valid_in(1'b1),
-    .ready_out(stacker_ready_out),
-    .addr_out(write_addr),
-    .data_out(write_data[143:16]),      
-    .strobe_out(write_data[15:0]),
-    .valid_out(stacker_valid_out)
-);
-
-
-//seven seg time
-logic [6:0] ss_c;
-logic [31:0] display_thingy;
-logic [12:0] county;
-evt_counter #(
+  //seven seg time
+  logic [ 6:0] ss_c;
+  logic [31:0] display_thingy;
+  logic [12:0] county;
+  evt_counter #(
       .MAX_COUNT(10000)
-) clkkkky (
+  ) clkkkky (
       .clk_in(clk_camera),
       .rst_in(btn[0]),
       .evt_in(1'b1),
       .count_out(county)
   );
 
-  always_ff@(posedge clk_camera)begin
-    if(county==0)begin
-        display_thingy<=write_addr;
+  always_ff @(posedge clk_camera) begin
+    if (county == 0) begin
+      display_thingy <= vcount;
     end
   end
 
-seven_segment_controller sevensegg(
-    .clk_in(clk_camera),
-    .rst_in(btn[0]),
-    .val_in(display_thingy),
-    .cat_out(ss_c),
-    .an_out({ss0_an,ss1_an})
-);
-assign ss0_c=ss_c;
-assign ss1_c=ss_c;
+  seven_segment_controller sevensegg (
+      .clk_in (clk_camera),
+      .rst_in (btn[0]),
+      .val_in (display_thingy),
+      .cat_out(ss_c),
+      .an_out ({ss0_an, ss1_an})
+  );
+  assign ss0_c = ss_c;
+  assign ss1_c = ss_c;
 
 
-ddr_whisperer ddr_time(
-    .ddr3_dq(ddr3_dq),
-    .ddr3_dqs_n(ddr3_dqs_n),
-    .ddr3_dqs_p(ddr3_dqs_p),
-    .ddr3_addr(ddr3_addr),
-    .ddr3_ba(ddr3_ba),
-    .ddr3_ras_n(ddr3_ras_n),
-    .ddr3_cas_n(ddr3_cas_n),
-    .ddr3_we_n(ddr3_we_n),
-    .ddr3_reset_n(ddr3_reset_n),
-    .ddr3_ck_p(ddr3_ck_p),
-    .ddr3_ck_n(ddr3_ck_n),
-    .ddr3_cke(ddr3_cke),
-    .ddr3_dm(ddr3_dm),
-    .ddr3_odt(ddr3_odt),
-    
-    .input_data_clk_in(clk_camera),
-    .input_data_rst(btn[0]),
-    .output_data_clk_in(clk_pixel),
-    .output_data_rst_in(sys_rst_pixel),
+  ddr_whisperer ddr_time (
+      .ddr3_dq(ddr3_dq),
+      .ddr3_dqs_n(ddr3_dqs_n),
+      .ddr3_dqs_p(ddr3_dqs_p),
+      .ddr3_addr(ddr3_addr),
+      .ddr3_ba(ddr3_ba),
+      .ddr3_ras_n(ddr3_ras_n),
+      .ddr3_cas_n(ddr3_cas_n),
+      .ddr3_we_n(ddr3_we_n),
+      .ddr3_reset_n(ddr3_reset_n),
+      .ddr3_ck_p(ddr3_ck_p),
+      .ddr3_ck_n(ddr3_ck_n),
+      .ddr3_cke(ddr3_cke),
+      .ddr3_dm(ddr3_dm),
+      .ddr3_odt(ddr3_odt),
 
-    .clk_migref(clk_migref),
-    .sys_rst_migref(sys_rst_migref),
+      .input_data_clk_in(clk_camera),
+      .input_data_rst(btn[0]),
+      .output_data_clk_in(clk_pixel),
+      .output_data_rst_in(sys_rst_pixel),
 
-    .write_data(write_data),
-    .last_write(stacker_last),
+      .clk_migref(clk_migref),
+      .sys_rst_migref(sys_rst_migref),
 
-    .data_fifo_valid_in(stacker_valid_out),
-    .data_fifo_ready_out(data_fifo_ready_out),
+      .write_data(write_data),
+      .last_write(stacker_last),
 
-    .addr_fifo_valid_in(stacker_valid_out),
-    .addr_fifo_ready_out(addr_fifo_ready_out),
+      .data_fifo_valid_in (stacker_valid_out),
+      .data_fifo_ready_out(data_fifo_ready_out),
 
-    .write_addr(write_addr),
+      .addr_fifo_valid_in (stacker_valid_out),
+      .addr_fifo_ready_out(addr_fifo_ready_out),
 
-    .s_axi_arvalid(s_axi_arvalid),
-    .s_axi_arready(s_axi_arready),
-    .s_axi_araddr(s_axi_araddr),
+      .write_addr(write_addr),
 
-    .s_axi_rready(s_axi_rready),
-    .s_axi_rvalid(s_axi_rvalid),
+      .s_axi_arvalid(s_axi_arvalid),
+      .s_axi_arready(s_axi_arready),
+      .s_axi_araddr (s_axi_araddr),
 
-    .data_reciever_rdy(display_axis_tready),
-    .data_reciever_valid(display_axis_tvalid),
-    .data_reciever_last(display_axis_tlast),
-    .data_reciever_data(display_axis_tdata),
+      .s_axi_rready(s_axi_rready),
+      .s_axi_rvalid(s_axi_rvalid),
 
-    .last_frame_chunk(last_frame_chunk),
-    .clk_ui(clk_ui),
-    .sys_rst_ui(sys_rst_ui)
+      .data_reciever_rdy  (display_axis_tready),
+      .data_reciever_valid(display_axis_tvalid),
+      .data_reciever_last (display_axis_tlast),
+      .data_reciever_data (display_axis_tdata),
 
-);
+      .last_frame_chunk(last_frame_chunk),
+      .clk_ui(clk_ui),
+      .sys_rst_ui(sys_rst_ui)
+
+  );
 
   logic        frame_buff_tvalid;
   logic        frame_buff_tready;
