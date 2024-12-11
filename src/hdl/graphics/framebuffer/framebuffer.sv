@@ -146,10 +146,10 @@ module framebuffer#(
         .data_out(depth_piped)
     );
 
-    // assign valid_depth_write=(valid_piped && depth_piped<=depth);
+    assign valid_depth_write=(valid_piped && depth_piped<=16'hFFFF);
     logic last_frame_chunk;
     assign last_frame_chunk = read_addr == CHUNK_DEPTH - 1;
-    assign valid_depth_write=1'b1;
+    // assign valid_depth_write=1'b1;
     xilinx_true_dual_port_read_first_1_clock_ram#(
         //IF WE GET ERROR CHANGE RAM WIDTH
         .RAM_WIDTH(Z_WIDTH),
@@ -178,11 +178,11 @@ module framebuffer#(
     ) rollled_stacker (
       .clk_in(clk_100_passthrough),
       .rst_in(sys_rst),
-      .addr(addr_in),
+      .addr(addr_piped),
       .strobe_in(1'b1),
       .ready_in(addr_fifo_ready_out && data_fifo_ready_out),
-      .data_in(color_in),
-      .valid_in(valid_in),
+      .data_in(color_piped),
+      .valid_in(valid_piped),
       .ready_out(rasterizer_rdy_out),
       .addr_out(write_addr),
       .data_out(write_data[143:16]),
