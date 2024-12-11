@@ -3,17 +3,17 @@
 # SW Build 5076996 on Wed May 22 18:36:09 MDT 2024
 # IP Build 5075265 on Wed May 22 21:45:21 MDT 2024
 # SharedData Build 5076995 on Wed May 22 18:29:18 MDT 2024
-# Start of session at: Tue Dec 10 18:20:37 2024
-# Process ID: 4606
-# Current directory: /home/fpga/worker_place/temp/e6bb0843a8584cdab5911990e6655c07
+# Start of session at: Tue Dec 10 20:21:19 2024
+# Process ID: 5082
+# Current directory: /home/fpga/worker_place/temp/01bead858a1b47c2aa51c5d0adae1c70
 # Command line: vivado -mode batch -source build.tcl
-# Log file: /home/fpga/worker_place/temp/e6bb0843a8584cdab5911990e6655c07/vivado.log
-# Journal file: /home/fpga/worker_place/temp/e6bb0843a8584cdab5911990e6655c07/vivado.jou
-# Running On        :eecs-digital-41
+# Log file: /home/fpga/worker_place/temp/01bead858a1b47c2aa51c5d0adae1c70/vivado.log
+# Journal file: /home/fpga/worker_place/temp/01bead858a1b47c2aa51c5d0adae1c70/vivado.jou
+# Running On        :eecs-digital-38
 # Platform          :Ubuntu
 # Operating System  :Ubuntu 24.04.1 LTS
 # Processor Detail  :AMD Ryzen 7 2700X Eight-Core Processor
-# CPU Frequency     :2200.000 MHz
+# CPU Frequency     :4240.794 MHz
 # CPU Physical cores:8
 # CPU Logical cores :16
 # Host memory       :16686 MB

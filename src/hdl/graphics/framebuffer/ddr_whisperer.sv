@@ -118,7 +118,7 @@ module ddr_whisperer (
       .sender_clk(input_data_clk_in),
       .sender_axis_tvalid(addr_fifo_valid_in),
       .sender_axis_tready(addr_fifo_ready_out),
-      .sender_axis_tdata({5'b0, write_addr}),
+      .sender_axis_tdata({5'b0,!frame_in,write_addr[21:0],4'b0}),
       .sender_axis_tlast(last_write),
       .sender_axis_prog_full(),
 
@@ -182,7 +182,7 @@ module ddr_whisperer (
 
       // Slave Interface Write Address Ports
       .s_axi_awid   (4'b0000),                  // input [3:0]			s_axi_awid
-      .s_axi_awaddr (s_axi_awaddr[26:0] << 4),  // input [26:0]			s_axi_awaddr
+      .s_axi_awaddr (s_axi_awaddr[26:0]),  // input [26:0]			s_axi_awaddr
       .s_axi_awlen  (8'b0),                     // input [7:0]			s_axi_awlen
       .s_axi_awsize (3'b100),                   // input [2:0]			s_axi_awsize
       .s_axi_awburst(2'b00),                    // input [1:0]			s_axi_awburst
@@ -207,7 +207,7 @@ module ddr_whisperer (
 
       // Slave Interface Read Address Ports
       .s_axi_arid(4'b0000),  // input [3:0]			s_axi_arid
-      .s_axi_araddr(s_axi_araddr << 4),  // input [26:0]			s_axi_araddr
+      .s_axi_araddr({frame_in,s_axi_araddr[21:0],4'b0}),  // input [26:0]			s_axi_araddr
       .s_axi_arlen(8'b0),  // input [7:0]			s_axi_arlen
       .s_axi_arsize(3'b100),  // input [2:0]			s_axi_arsize
       .s_axi_arburst(2'b00),  // input [1:0]			s_axi_arburst

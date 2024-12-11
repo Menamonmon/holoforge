@@ -145,8 +145,49 @@ module framebuffer#(
         .data(depth_in),
         .data_out(depth_piped)
     );
+    //Variable buffer/Clearing State Check
+    logic [2:0] clearing_state;
 
-    assign valid_depth_write=(valid_piped && depth_piped<=16'hFFFF);
+
+    logic [26:0] actual_addr_in;
+    logic [15:0] actual_color_in;
+    logic actual_strobe_in;
+    logic actual_valid_in;
+
+    logic actual_depth;
+    assign actual_addr_in=addr_piped;
+    assign actual_color_in=color_piped;
+    assign actual_valid_in=valid_piped;
+    assign strobe_in=valid_depth_write;
+    // always_ff@(posedge clk_100_passthrough)begin
+    //     case(clearing_state)
+    //         0:begin
+    //             actual_addr_in<=addr_piped;
+    //             actual_color_in<=color_piped;
+    //             actual_valid_in<=valid_piped;
+    //             actual_strobe_in<=valid_depth_write;
+    //         end
+    //         1:begin
+    //             actual_color_in<=16'b0;        
+    //             actual_strobe_in<=1'b0;
+    //             actual_addr_in<=5;
+    //             actual_valid_in<=1;
+    //         end
+    //         2:begin
+    //             actual_color_in<=16'b0;
+    //             actual_addr_in<=5;
+    //             actual_valid_in<=1;
+    //             actual_strobe_in<=1'b1;
+    //             // if(//TODO)begin
+    //             //     clearing_state<=0;
+    //             // end
+    //         end
+
+    //     endcase
+    // end
+    
+
+    assign valid_depth_write=(valid_piped && depth_piped<=depth);
     logic last_frame_chunk;
     assign last_frame_chunk = read_addr == CHUNK_DEPTH - 1;
     // assign valid_depth_write=1'b1;
@@ -178,11 +219,11 @@ module framebuffer#(
     ) rollled_stacker (
       .clk_in(clk_100_passthrough),
       .rst_in(sys_rst),
-      .addr(addr_piped),
-      .strobe_in(1'b1),
+      .addr(actual_addr_in),
+      .strobe_in(acutal_strobe_in),
       .ready_in(addr_fifo_ready_out && data_fifo_ready_out),
-      .data_in(color_piped),
-      .valid_in(valid_piped),
+      .data_in(actual_color_in),
+      .valid_in(actual_valid_in),
       .ready_out(rasterizer_rdy_out),
       .addr_out(write_addr),
       .data_out(write_data[143:16]),
@@ -290,11 +331,11 @@ module framebuffer#(
   always_ff @(posedge clk_100_passthrough) begin
     if (county == 0) begin
       case(sw[3:0])
-      0:display_thing<=s_axi_araddr;
-      1:display_thing<=read_addr;
-      2:display_thing<=addr_in;
-      3:display_thing<=color_in;
-      4:display_thing<=frame_buff_tdata;
+      0:display_thing<=depth_in;
+      1:display_thing<=depth;
+      2:display_thing<=frame;
+      3:display_thing<=rasterizer_rdy_out;
+      4:display_thing<=32'hDEADBEEF;
       endcase
 
     end

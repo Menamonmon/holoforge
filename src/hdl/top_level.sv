@@ -285,7 +285,7 @@ module top_level (
       .HRES(HRES),
       .VRES(VRES)
   ) pattern_gen (
-      .sel_in(sw[15:14]),
+      .sel_in(frame_tester),
       .hcount_in(hcount),
       .vcount_in(vcount),
       .red_out(test_red),
@@ -335,12 +335,71 @@ module top_level (
 
 
   logic frame_tester;
-  always_ff@(posedge clk_100_passthrough)begin
-    if(stacker_addr==0)begin
-        frame_tester<=!frame_tester;
+  logic [6:0] frame_delay;
+    evt_counter #(
+      .MAX_COUNT(100)
+    ) frame_counter (
+      .clk_in(clk_100_passthrough),
+      .rst_in(sys_rst),
+      .evt_in(ADDR_MAX-1==stacker_addr),
+      .count_out(frame_delay)
+  );
+//   always_ff@(posedge clk_100_passthrough)begin
+//     if(frame_delay==0)begin
+//         frame_tester<=!frame_tester;
+//     end
+
+    assign frame_tester=btn[1];
+
+    logic [26:0] addr_in;
+    logic valid_in;
+    logic [15:0] data_in;
+    logic [ADDR_MAX-1:0] erase_counter;
+    logic [1:0]clearing_state;
+
+    logic start_clear;
+    logic depth_bypass;
+    // //clearing counter
+    // evt_counter #(
+    //   .MAX_COUNT(ADDR_MAX)
+    // ) clear_counter (
+    //   .clk_in(clk_100_passthrough),
+    //   .rst_in(sys_rst),
+    //   .evt_in(clearing_state && stacker_ready_out),
+    //   .count_out(frame_delay)
+    // );
+
+
+    always_ff@(posedge clk_100_passthrough)begin
+        if(start_clear)begin
+            clearing_state<=1;
+        end
     end
 
-  end
+    // case(clearing_state)
+    // 0:begin
+    //     assign data=data_in;
+    //     assign addr_in=stacker_addr;
+    //     assign valid_in=sw[4];
+    // end
+
+    // 1:begin
+    //     assign data=16'b0000;
+    //     assign in_clear=16'b1;
+    //     assign depth_bypass=1'b1
+    // end
+    // //clearing
+    // 2:begin
+    //     assign data_in=16'b0;
+    //     assign depth_in={Z_WIDTH{1'b1}};
+    //     assign addr_in=erase_counter;
+    //     assign valid_in=1;
+    //     if(erase_counter==ADDR_MAX-1)begin
+    //         clearing_state<=0;
+    //         frame_tester<=!frame_tester;
+    //     end
+    // end
+    // endcase
     
     localparam Z_WIDTH = 16;
 framebuffer #(
@@ -350,9 +409,9 @@ framebuffer #(
     ) dut (
         .clk_100mhz        (clk_100mhz),
         .sys_rst           (sys_rst),
-        .valid_in          (1'b1),
+        .valid_in          (sw[4]),
         .addr_in           (stacker_addr),
-        .depth_in          (0),
+        .depth_in          ({sw[13:11],4'b0}),
         .frame             (frame_tester),
         .color_in          (data),
         .rasterizer_rdy_out(stacker_ready_out),
