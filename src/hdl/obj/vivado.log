@@ -3,24 +3,24 @@
 # SW Build 5076996 on Wed May 22 18:36:09 MDT 2024
 # IP Build 5075265 on Wed May 22 21:45:21 MDT 2024
 # SharedData Build 5076995 on Wed May 22 18:29:18 MDT 2024
-# Start of session at: Wed Dec 11 07:19:37 2024
-# Process ID: 7862
-# Current directory: /home/fpga/worker_place/temp/6f452c2b4be34953991566b9495f6cd8
+# Start of session at: Wed Dec 11 06:42:48 2024
+# Process ID: 2430
+# Current directory: /home/fpga/worker_place/temp/be776920708046058320e7f4835b0fdf
 # Command line: vivado -mode batch -source build.tcl
-# Log file: /home/fpga/worker_place/temp/6f452c2b4be34953991566b9495f6cd8/vivado.log
-# Journal file: /home/fpga/worker_place/temp/6f452c2b4be34953991566b9495f6cd8/vivado.jou
-# Running On        :eecs-digital-40
+# Log file: /home/fpga/worker_place/temp/be776920708046058320e7f4835b0fdf/vivado.log
+# Journal file: /home/fpga/worker_place/temp/be776920708046058320e7f4835b0fdf/vivado.jou
+# Running On        :eecs-digital-47
 # Platform          :Ubuntu
 # Operating System  :Ubuntu 24.04.1 LTS
 # Processor Detail  :AMD Ryzen 7 2700X Eight-Core Processor
-# CPU Frequency     :2200.000 MHz
+# CPU Frequency     :2894.435 MHz
 # CPU Physical cores:8
 # CPU Logical cores :16
 # Host memory       :16688 MB
 # Swap memory       :4294 MB
 # Total Virtual     :20983 MB
-# Available Virtual :19959 MB
+# Available Virtual :20038 MB
 #-----------------------------------------------------------
 source build.tcl
 couldn't read file "build.tcl": no such file or directory
-INFO: [Common 17-206] Exiting Vivado at Wed Dec 11 07:19:39 2024...
+INFO: [Common 17-206] Exiting Vivado at Wed Dec 11 06:42:52 2024...

@@ -285,7 +285,7 @@ module top_level (
       .HRES(HRES),
       .VRES(VRES)
   ) pattern_gen (
-      .sel_in(frame_tester),
+      .sel_in(frame_tester+2),
       .hcount_in(hcount),
       .vcount_in(vcount),
       .red_out(test_red),
@@ -297,35 +297,7 @@ module top_level (
 
 
 
-  //seven seg time
-//   logic [ 6:0] ss_c;
-//   logic [31:0] display_thingy;
-//   logic [12:0] county;
-//   evt_counter #(
-//       .MAX_COUNT(10000)
-//   ) clkkkky (
-//       .clk_in(clk_100_passthrough),
-//       .rst_in(sys_rst),
-//       .evt_in(1'b1),
-//       .count_out(county)
-//   );
-
-//   always_ff @(posedge clk_100_passthrough) begin
-//     if (county == 0) begin
-//       display_thingy <= {fb_blue, fb_green, fb_red, 8'h0};
-//     end
-//   end
-
-//   seven_segment_controller sevensegg (
-//       .clk_in (clk_100_passthrough),
-//       .rst_in (sys_rst),
-//       .val_in (display_thingy),
-//       .cat_out(ss_c),
-//       .an_out ({ss0_an, ss1_an})
-//   );
-//   assign ss0_c = ss_c;
-//   assign ss1_c = ss_c;
-
+  //hear up you have to integrate rasterizer stuff
 
   logic        frame_buff_tvalid;
   logic        frame_buff_tready;
@@ -336,7 +308,7 @@ module top_level (
 
   logic frame_tester;
   logic [6:0] frame_delay;
-    evt_counter #(
+  evt_counter #(
       .MAX_COUNT(100)
     ) frame_counter (
       .clk_in(clk_100_passthrough),
@@ -344,65 +316,10 @@ module top_level (
       .evt_in(ADDR_MAX-1==stacker_addr),
       .count_out(frame_delay)
   );
-//   always_ff@(posedge clk_100_passthrough)begin
-//     if(frame_delay==0)begin
-//         frame_tester<=!frame_tester;
-//     end
-
-    assign frame_tester=btn[1];
-
-    logic [26:0] addr_in;
-    logic valid_in;
-    logic [15:0] data_in;
-    logic [ADDR_MAX-1:0] erase_counter;
-    logic [1:0]clearing_state;
-
-    logic start_clear;
-    logic depth_bypass;
-    // //clearing counter
-    // evt_counter #(
-    //   .MAX_COUNT(ADDR_MAX)
-    // ) clear_counter (
-    //   .clk_in(clk_100_passthrough),
-    //   .rst_in(sys_rst),
-    //   .evt_in(clearing_state && stacker_ready_out),
-    //   .count_out(frame_delay)
-    // );
-
-
-    always_ff@(posedge clk_100_passthrough)begin
-        if(start_clear)begin
-            clearing_state<=1;
-        end
-    end
-
-    // case(clearing_state)
-    // 0:begin
-    //     assign data=data_in;
-    //     assign addr_in=stacker_addr;
-    //     assign valid_in=sw[4];
-    // end
-
-    // 1:begin
-    //     assign data=16'b0000;
-    //     assign in_clear=16'b1;
-    //     assign depth_bypass=1'b1
-    // end
-    // //clearing
-    // 2:begin
-    //     assign data_in=16'b0;
-    //     assign depth_in={Z_WIDTH{1'b1}};
-    //     assign addr_in=erase_counter;
-    //     assign valid_in=1;
-    //     if(erase_counter==ADDR_MAX-1)begin
-    //         clearing_state<=0;
-    //         frame_tester<=!frame_tester;
-    //     end
-    // end
-    // endcase
-    
-    localparam Z_WIDTH = 16;
-framebuffer #(
+  logic clear_sig; 
+  localparam Z_WIDTH = 16;
+  assign frame_tester=sw[6];
+  framebuffer #(
         .Z_WIDTH(Z_WIDTH),
         .HRES(HRES),
         .VRES(VRES)
@@ -412,7 +329,6 @@ framebuffer #(
         .valid_in          (sw[4]),
         .addr_in           (stacker_addr),
         .depth_in          ({sw[13:11],4'b0}),
-        .frame             (frame_tester),
         .color_in          (data),
         .rasterizer_rdy_out(stacker_ready_out),
 
@@ -421,6 +337,11 @@ framebuffer #(
         .clk_migref,
         .sys_rst_migref,
         .sw,
+        //TODO:Change This
+        .clear_sig(btn[3]), 
+
+        //pretty useful debugging signal
+        .frame_override(frame_tester),
 
         .ss0_an,
         .ss1_an,

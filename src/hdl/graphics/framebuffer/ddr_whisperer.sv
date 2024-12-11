@@ -36,23 +36,23 @@ module ddr_whisperer (
 
     //addr
     input wire addr_fifo_valid_in,
-    output wire addr_fifo_ready_out,
+    output logic addr_fifo_ready_out,
     input wire [26:0] write_addr,
 
     //Read Data Axi Signals in and out
 
     //Addr
     input wire s_axi_arvalid,
-    output wire s_axi_arready,
+    output logic s_axi_arready,
     input wire [26:0] s_axi_araddr,
     //data
-    output wire s_axi_rvalid,
-    output wire s_axi_rready,
+    output logic s_axi_rvalid,
+    output logic s_axi_rready,
 
     input wire data_reciever_rdy,
     output wire data_reciever_valid,
     output wire data_reciever_last,
-    output wire [127:0] data_reciever_data,
+    output logic [127:0] data_reciever_data,
 
     input wire last_frame_chunk,
 
@@ -118,7 +118,7 @@ module ddr_whisperer (
       .sender_clk(input_data_clk_in),
       .sender_axis_tvalid(addr_fifo_valid_in),
       .sender_axis_tready(addr_fifo_ready_out),
-      .sender_axis_tdata({5'b0,!frame_in,write_addr[21:0],4'b0}),
+      .sender_axis_tdata({5'b0,frame_in,write_addr[21:0],4'b0}),
       .sender_axis_tlast(last_write),
       .sender_axis_prog_full(),
 
@@ -207,7 +207,7 @@ module ddr_whisperer (
 
       // Slave Interface Read Address Ports
       .s_axi_arid(4'b0000),  // input [3:0]			s_axi_arid
-      .s_axi_araddr({frame_in,s_axi_araddr[21:0],4'b0}),  // input [26:0]			s_axi_araddr
+      .s_axi_araddr({!frame_in,s_axi_araddr[21:0],4'b0}),  // input [26:0]			s_axi_araddr
       .s_axi_arlen(8'b0),  // input [7:0]			s_axi_arlen
       .s_axi_arsize(3'b100),  // input [2:0]			s_axi_arsize
       .s_axi_arburst(2'b00),  // input [1:0]			s_axi_arburst
