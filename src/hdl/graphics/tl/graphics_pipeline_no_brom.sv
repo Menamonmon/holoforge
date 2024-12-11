@@ -61,7 +61,7 @@ module graphics_pipeline_no_brom #(
 );
 
   localparam COLOR_WIDTH = 16;
-  localparam ZWIDTH = 4 + C_WIDTH;
+  localparam ZWIDTH = 1 + C_WIDTH;
   logic rasterizer_ready_out;
   logic rasterizer_valid_in;
   logic [2:0][VIEWPORT_H_POSITION_WIDTH-1:0] viewport_x_position, viewport_x_position_temp;

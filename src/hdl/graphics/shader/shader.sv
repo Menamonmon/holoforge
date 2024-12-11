@@ -3,7 +3,7 @@
 `ifdef SYNTHESIS
 `define FPATH(X) `"X`"
 `else  /* ! SYNTHESIS */
-`define FPATH(X) `"`"
+`define FPATH(X) `"../../../data/X`"
 `endif  /* ! SYNTHESIS */
 
 module shader #(
@@ -121,6 +121,7 @@ module shader #(
           end else begin
             if (cycle_count == 3 && !dont_cull_backface) begin
               state <= IDLE;
+              ready_out <= 1;
               short_circuit <= 1;
             end else begin
               cycle_count <= cycle_count + 1;
@@ -141,7 +142,7 @@ module shader #(
     end
   end
 
-  localparam COLOR_NORM_BROM_WIDTH = 3 * COLOR_ID_WIDTH + NORMAL_WIDTH;
+  localparam COLOR_NORM_BROM_WIDTH = 3 * NORMAL_WIDTH + 3 * COLOR_ID_WIDTH;
   logic [COLOR_NORM_BROM_WIDTH-1:0] colornorm_brom_out;
   brom #(
       .RAM_WIDTH(COLOR_NORM_BROM_WIDTH),
@@ -161,8 +162,8 @@ module shader #(
       .dina(0)
   );
 
-  assign color_ids  = colornorm_brom_out[2*COLOR_ID_WIDTH+NORMAL_WIDTH-1 : NORMAL_WIDTH];
-  assign raw_normal = colornorm_brom_out[NORMAL_WIDTH-1 : 0];
+  assign color_ids  = colornorm_brom_out[COLOR_NORM_BROM_WIDTH-1:3*NORMAL_WIDTH];
+  assign raw_normal = colornorm_brom_out[3*NORMAL_WIDTH-1 : 0];
 
   brom #(
       .RAM_WIDTH(COLOR_WIDTH),

@@ -101,9 +101,11 @@ module pre_proc_shader #(
       .color_out(color_out_temp),
       .valid_out(shader_valid_out),
       .ready_out(shader_ready_out),
-      .short_circuit(shader_short_circuit)
+      .short_circuit(short_circuit)
   );
 
+  //   assign shader_valid_out = 1'b1;
+  //   assign shader_short_circuit = 1'b0;
 
   enum logic [1:0] {
     IDLE,
@@ -143,6 +145,7 @@ module pre_proc_shader #(
             viewport_y_positions_out <= 0;
             z_depth_out <= 0;
             state <= IDLE;
+            ready_out <= 1;
           end
 
           if (shader_short_circuit) begin
@@ -150,6 +153,7 @@ module pre_proc_shader #(
             viewport_y_positions_out <= 0;
             z_depth_out <= 0;
             state <= IDLE;
+            ready_out <= 1;
           end
 
           // flash the outputs into the fifo as soon as they're ready
