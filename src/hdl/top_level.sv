@@ -319,6 +319,11 @@ module top_level (
   logic clear_sig; 
   localparam Z_WIDTH = 16;
   assign frame_tester=sw[6];
+  logic rising_edge_switch;
+  always_ff@(posedge clk_100_passthrough)begin
+    rising_edge_switch<=btn[3];
+    clear_sig<=!rising_edge_switch && btn[3];
+  end
   framebuffer #(
         .Z_WIDTH(Z_WIDTH),
         .HRES(HRES),
@@ -338,10 +343,10 @@ module top_level (
         .sys_rst_migref,
         .sw,
         //TODO:Change This
-        .clear_sig(btn[3]), 
+        .clear_sig, 
 
         //pretty useful debugging signal
-        .frame_override(frame_tester),
+        // .frame_override(frame_tester),
 
         .ss0_an,
         .ss1_an,

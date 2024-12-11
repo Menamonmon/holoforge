@@ -310,7 +310,10 @@ module framebuffer#(
       .ddr3_cke(ddr3_cke),
       .ddr3_dm(ddr3_dm),
       .ddr3_odt(ddr3_odt),
-      .frame_in(frame && !frame_override),
+    //   frame_in(frame && !frame_override),
+      .frame_in(frame),
+
+
 
       .input_data_clk_in(clk_100_passthrough),
       .input_data_rst(sys_rst),
