@@ -92,6 +92,14 @@ module ddr_whisperer (
   logic [1:0] s_axi_bresp;
   logic s_axi_bvalid;
 
+  logic frame_in_cdc_1;
+  logic frame_in_cdc_2;
+
+  always_ff@(posedge clk_ui)begin
+        frame_in_cdc_1<=frame_in;
+        frame_in_cdc_2<=frame_in_cdc_1;
+  end
+
   ddr_fifo_wrap #(
       .BIT_WIDTH(144)
   ) write_data_fifo (
@@ -207,7 +215,7 @@ module ddr_whisperer (
 
       // Slave Interface Read Address Ports
       .s_axi_arid(4'b0000),  // input [3:0]			s_axi_arid
-      .s_axi_araddr({!frame_in,s_axi_araddr[21:0],4'b0}),  // input [26:0]			s_axi_araddr
+      .s_axi_araddr({!frame_in_cdc_2,s_axi_araddr[21:0],4'b0}),  // input [26:0]			s_axi_araddr
       .s_axi_arlen(8'b0),  // input [7:0]			s_axi_arlen
       .s_axi_arsize(3'b100),  // input [2:0]			s_axi_arsize
       .s_axi_arburst(2'b00),  // input [1:0]			s_axi_arburst
