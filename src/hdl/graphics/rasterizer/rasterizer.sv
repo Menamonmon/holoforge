@@ -100,6 +100,14 @@ module rasterizer #(
   logic bary_valid_out;
 
 
+  always_comb begin
+    x_min_scaled = x_min * HRES_BY_VW;  // avoid overflow
+    x_max_scaled = x_max * HRES_BY_VW;
+    y_min_scaled = y_min * VRES_BY_VH;
+    y_max_scaled = y_max * VRES_BY_VH;
+  end
+
+
   // TODO: update FSM to take into account backpressure from the shader and the frame buffer
   /*
 	FSM:
@@ -136,6 +144,7 @@ module rasterizer #(
   logic freeze;
   assign freeze = !ready_in && state == RASTERIZE; // freeze signal for freezing components of the pipeline to make sure we're not losing data
 
+  // TODO: check bit width....
   boundary_evt_counter #(
       .MAX_COUNT(FB_HRES)
   ) hcount_counter (
@@ -311,10 +320,6 @@ module rasterizer #(
             end else begin
               state <= RASTERIZE;
               // rescale the x and y boundaries to be in the pixel space from the screen space 
-              x_min_scaled = x_min * HRES_BY_VW;  // avoid overflow
-              x_max_scaled = x_max * HRES_BY_VW;
-              y_min_scaled = y_min * VRES_BY_VH;
-              y_max_scaled = y_max * VRES_BY_VH;
 
               hcount_min <= x_min_scaled[XWIDTH + HRES_BY_VW_WIDTH - 1:((XWIDTH + HRES_BY_VW_WIDTH) - ((XWIDTH - XFRAC) + (HRES_BY_VW_WIDTH - HRES_BY_VW_FRAC)))]; // take the integer part of x
               hcount_max <= x_max_scaled[XWIDTH + HRES_BY_VW_WIDTH - 1:((XWIDTH + HRES_BY_VW_WIDTH) - ((XWIDTH - XFRAC) + (HRES_BY_VW_WIDTH - HRES_BY_VW_FRAC)))]; // take the integer part of x  	   
@@ -348,6 +353,15 @@ module rasterizer #(
     end
   end
   assign ready_out = state == IDLE;
+
+  assign x_min_out = x_min;
+  assign x_max_out = x_max;
+  assign y_min_out = y_min;
+  assign y_max_out = y_max;
+  assign hcount_min_out = hcount_min;
+  assign hcount_max_out = hcount_max;
+  assign vcount_min_out = vcount_min;
+  assign vcount_max_out = vcount_max;
 
   fixed_adder #(
       .WIDTH1(XWIDTH),

@@ -8,8 +8,8 @@ module pre_proc_shader #(
     parameter VH_OVER_TWO_WIDTH = 10,
     parameter VW_OVER_TWO_WIDTH = 10,
 
-    parameter signed [VH_OVER_TWO_WIDTH-1:0] VH_OVER_TWO = 0,
-    parameter signed [VW_OVER_TWO_WIDTH-1:0] VW_OVER_TWO = 0,
+    parameter VH_OVER_TWO = 0,
+    parameter VW_OVER_TWO = 0,
     parameter VIEWPORT_H_POSITION_WIDTH = 18,
     parameter VIEWPORT_W_POSITION_WIDTH = 20,
     parameter NUM_TRI = 2048,

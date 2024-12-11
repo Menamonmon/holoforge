@@ -1,6 +1,6 @@
 // HOLOFORGE - Top Level Module
 `timescale 1ns / 1ps `default_nettype none
-module top_level (
+module test_toplevel (
     input  wire         clk_100mhz,
     output logic [15:0] led,
     // camera bus
@@ -19,28 +19,28 @@ module top_level (
     output logic [ 3:0] ss0_an,      //anode control for upper four digits of seven-seg display
     output logic [ 3:0] ss1_an,      //anode control for lower four digits of seven-seg display
     output logic [ 6:0] ss0_c,       //cathode controls for the segments of upper four digits
-    output logic [ 6:0] ss1_c,       //cathod controls for the segments of lower four digits
-    // hdmi port
-    output logic [ 2:0] hdmi_tx_p,   //hdmi output signals (positives) (blue, green, red)
-    output logic [ 2:0] hdmi_tx_n,   //hdmi output signals (negatives) (blue, green, red)
-    output logic        hdmi_clk_p,
-    hdmi_clk_n,
+    output logic [ 6:0] ss1_c        //cathod controls for the segments of lower four digits
+    // // hdmi port
+    // output logic [ 2:0] hdmi_tx_p,   //hdmi output signals (positives) (blue, green, red)
+    // output logic [ 2:0] hdmi_tx_n,   //hdmi output signals (negatives) (blue, green, red)
+    // output logic        hdmi_clk_p,
+    // hdmi_clk_n,
 
-    // New for week 6: DDR3 ports
-    inout  wire [15:0] ddr3_dq,
-    inout  wire [ 1:0] ddr3_dqs_n,
-    inout  wire [ 1:0] ddr3_dqs_p,
-    output wire [12:0] ddr3_addr,
-    output wire [ 2:0] ddr3_ba,
-    output wire        ddr3_ras_n,
-    output wire        ddr3_cas_n,
-    output wire        ddr3_we_n,
-    output wire        ddr3_reset_n,
-    output wire        ddr3_ck_p,
-    output wire        ddr3_ck_n,
-    output wire        ddr3_cke,
-    output wire [ 1:0] ddr3_dm,
-    output wire        ddr3_odt
+    // // New for week 6: DDR3 ports
+    // inout  wire [15:0] ddr3_dq,
+    // inout  wire [ 1:0] ddr3_dqs_n,
+    // inout  wire [ 1:0] ddr3_dqs_p,
+    // output wire [12:0] ddr3_addr,
+    // output wire [ 2:0] ddr3_ba,
+    // output wire        ddr3_ras_n,
+    // output wire        ddr3_cas_n,
+    // output wire        ddr3_we_n,
+    // output wire        ddr3_reset_n,
+    // output wire        ddr3_ck_p,
+    // output wire        ddr3_ck_n,
+    // output wire        ddr3_cke,
+    // output wire [ 1:0] ddr3_dm,
+    // output wire        ddr3_odt
 );
 
   // Clock and Reset Signals: updated for a couple new clocks!
@@ -60,21 +60,22 @@ module top_level (
   logic sys_rst_ui;
 
   logic clk_100_passthrough;
-  cw_hdmi_clk_wiz wizard_hdmi (
-      .sysclk(clk_100_passthrough),
-      .clk_pixel(clk_pixel),
-      .clk_tmds(clk_5x),
-      .reset(0)
-  );
+  assign clk_100_passthrough = clk_100mhz;
+  //   cw_hdmi_clk_wiz wizard_hdmi (
+  //       .sysclk(clk_100_passthrough),
+  //       .clk_pixel(clk_pixel),
+  //       .clk_tmds(clk_5x),
+  //       .reset(0)
+  //   );
 
-  cw_fast_clk_wiz wizard_migcam (
-      .clk_in1(clk_100mhz),
-      .clk_camera(clk_camera),
-      .clk_mig(clk_migref),
-      .clk_xc(clk_xc),
-      .clk_100(clk_100_passthrough),
-      .reset(0)
-  );
+  //   cw_fast_clk_wiz wizard_migcam (
+  //       .clk_in1(clk_100mhz),
+  //       .clk_camera(clk_camera),
+  //       .clk_mig(clk_migref),
+  //       .clk_xc(clk_xc),
+  //       .clk_100(clk_100_passthrough),
+  //       .reset(0)
+  //   );
   // shut up those RGBs
   assign rgb0 = 0;
   assign rgb1 = 0;
@@ -216,13 +217,13 @@ module top_level (
   logic [31:0] ssd_out;
   logic [ 6:0] ss_c;
 
-  seven_segment_controller sevensegg (
-      .clk_in (clk_100_passthrough),
-      .rst_in (btn[0]),
-      .val_in (ssd_out),
-      .cat_out(ss_c),
-      .an_out ({ss0_an, ss1_an})
-  );
+//   seven_segment_controller sevensegg (
+//       .clk_in (clk_100_passthrough),
+//       .rst_in (btn[0]),
+//       .val_in (ssd_out),
+//       .cat_out(ss_c),
+//       .an_out ({ss0_an, ss1_an})
+//   );
   assign ss0_c = ss_c;
   assign ss1_c = ss_c;
 
@@ -294,14 +295,14 @@ module top_level (
 
   // TRIANGLE FETCH
 
-  tri_fetch tri_fetch_inst (
-      .clk_in(clk_100_passthrough),  //system clock
-      .rst_in(btn[0]),  //system reset
-      .ready_in(graphics_ready_out && btn_rising_edge),  // TODO: change this ot  //system reset
-      .valid_out(tri_valid),
-      //   .tri_vertices_out(tri_vertices),
-      .tri_id_out(tri_id)
-  );
+//   tri_fetch tri_fetch_inst (
+//       .clk_in(clk_100_passthrough),  //system clock
+//       .rst_in(btn[0]),  //system reset
+//       .ready_in(graphics_ready_out && btn_rising_edge),  // TODO: change this ot  //system reset
+//       .valid_out(tri_valid),
+//       //   .tri_vertices_out(tri_vertices),
+//       .tri_id_out(tri_id)
+//   );
 
 
   // GRAPHICS PIPELINE PARAMS
@@ -396,7 +397,7 @@ module top_level (
       .rst_in(sys_rst),
       //   .valid_in(tri_valid),
       .valid_in(1'b1),
-      .ready_in(framebuffer_ready_out),
+      .ready_in(btn_rising_edge2),
       .tri_id_in(tri_id),
       .P(tri_vertices),
       .C(C),
@@ -432,260 +433,6 @@ module top_level (
   logic [Z_WIDTH-1:0] graphics_depth_out;
   logic framebuffer_ready_out;
   logic graphics_ready_out;
-
-  framebuffer #(
-      .Z_WIDTH(Z_WIDTH),
-      .HRES(HRES),
-      .VRES(VRES)
-  ) dut (
-      .clk_100mhz        (clk_100mhz),
-      .sys_rst           (sys_rst),
-      .valid_in          (1'b0),
-      .addr_in           (graphics_addr_out),
-      .depth_in          (graphics_depth_out),
-      .frame             (frame_tester),
-      .color_in          (16'hf81f),
-      .rasterizer_rdy_out(framebuffer_ready_out),
-
-      .clk_100_passthrough,
-      .clk_pixel,
-      .clk_migref,
-      .sys_rst_migref,
-      .sw,
-
-      //   .ss0_an,
-      //   .ss1_an,
-      //   .ss0_c,
-      //   .ss1_c,
-
-      .frame_buff_tvalid(frame_buff_tvalid),
-      .frame_buff_tready(frame_buff_tready),
-      .frame_buff_tdata (frame_buff_tdata),
-      .frame_buff_tlast (frame_buff_tlast),
-
-      .ddr3_dq     (ddr3_dq),
-      .ddr3_dqs_n  (ddr3_dqs_n),
-      .ddr3_dqs_p  (ddr3_dqs_p),
-      .ddr3_addr   (ddr3_addr),
-      .ddr3_ba     (ddr3_ba),
-      .ddr3_ras_n  (ddr3_ras_n),
-      .ddr3_cas_n  (ddr3_cas_n),
-      .ddr3_we_n   (ddr3_we_n),
-      .ddr3_reset_n(ddr3_reset_n),
-      .ddr3_ck_p   (ddr3_ck_p),
-      .ddr3_ck_n   (ddr3_ck_n),
-      .ddr3_cke    (ddr3_cke),
-      .ddr3_dm     (ddr3_dm),
-      .ddr3_odt    (ddr3_odt)
-  );
-
-
-
-  // TODO: CHECK WHY THIS IS GIVING BLUE AT THE BEGINNING OF THE SCREEN....
-  assign frame_buff_pixel = frame_buff_tvalid & frame_buff_tready ? frame_buff_tdata : 16'hf800; // only take a pixel when a handshake happens???
-  always_ff @(posedge clk_pixel) begin
-    fb_red   <= {frame_buff_pixel[15:11], 3'b0};
-    fb_green <= {frame_buff_pixel[10:5], 2'b0};
-    fb_blue  <= {frame_buff_pixel[4:0], 3'b0};
-  end
-
-
-  // : assign frame_buff_tready
-  // I did this in 1 (kind of long) line. an always_comb block could also work.
-  assign frame_buff_tready = frame_buff_tlast ? (active_draw_hdmi && hcount_hdmi ==  HRES-1 && vcount_hdmi == VRES-1) : (hcount_hdmi<HRES && vcount_hdmi<VRES);
-
-  // HDMI video signal generator
-  video_sig_gen vsg (
-      .pixel_clk_in(clk_pixel),
-      .rst_in(sys_rst_pixel),
-      .hcount_out(hcount_hdmi),
-      .vcount_out(vcount_hdmi),
-      .vs_out(vsync_hdmi),
-      .hs_out(hsync_hdmi),
-      .nf_out(nf_hdmi),
-      .ad_out(active_draw_hdmi),
-      .fc_out(frame_count_hdmi)
-  );
-
-
-  // HDMI Output: just like before!
-
-  logic [9:0] tmds_10b   [0:2];  //output of each TMDS encoder!
-  logic       tmds_signal[2:0];  //output of each TMDS serializer!
-
-  tmds_encoder tmds_red (
-      .clk_in(clk_pixel),
-      .rst_in(sys_rst_pixel),
-      .data_in(red),
-      .control_in(2'b0),
-      .ve_in(active_draw_hdmi),
-      .tmds_out(tmds_10b[2])
-  );
-
-  tmds_encoder tmds_green (
-      .clk_in(clk_pixel),
-      .rst_in(sys_rst_pixel),
-      .data_in(green),
-      .control_in(2'b0),
-      .ve_in(active_draw_hdmi),
-      .tmds_out(tmds_10b[1])
-  );
-
-  tmds_encoder tmds_blue (
-      .clk_in(clk_pixel),
-      .rst_in(sys_rst_pixel),
-      .data_in(blue),
-      .control_in({vsync_hdmi, hsync_hdmi}),
-      .ve_in(active_draw_hdmi),
-      .tmds_out(tmds_10b[0])
-  );
-
-
-  //three tmds_serializers (blue, green, red):
-  //MISSING: two more serializers for the green and blue tmds signals.
-  tmds_serializer red_ser (
-      .clk_pixel_in(clk_pixel),
-      .clk_5x_in(clk_5x),
-      .rst_in(sys_rst_pixel),
-      .tmds_in(tmds_10b[2]),
-      .tmds_out(tmds_signal[2])
-  );
-  tmds_serializer green_ser (
-      .clk_pixel_in(clk_pixel),
-      .clk_5x_in(clk_5x),
-      .rst_in(sys_rst_pixel),
-      .tmds_in(tmds_10b[1]),
-      .tmds_out(tmds_signal[1])
-  );
-  tmds_serializer blue_ser (
-      .clk_pixel_in(clk_pixel),
-      .clk_5x_in(clk_5x),
-      .rst_in(sys_rst_pixel),
-      .tmds_in(tmds_10b[0]),
-      .tmds_out(tmds_signal[0])
-  );
-
-  //output buffers generating differential signals:
-  //three for the r,g,b signals and one that is at the pixel clock rate
-  //the HDMI receivers use recover logic coupled with the control signals asserted
-  //during blanking and sync periods to synchronize their faster bit clocks off
-  //of the slower pixel clock (so they can recover a clock of about 742.5 MHz from
-  //the slower 74.25 MHz clock)
-  OBUFDS OBUFDS_blue (
-      .I (tmds_signal[0]),
-      .O (hdmi_tx_p[0]),
-      .OB(hdmi_tx_n[0])
-  );
-  OBUFDS OBUFDS_green (
-      .I (tmds_signal[1]),
-      .O (hdmi_tx_p[1]),
-      .OB(hdmi_tx_n[1])
-  );
-  OBUFDS OBUFDS_red (
-      .I (tmds_signal[2]),
-      .O (hdmi_tx_p[2]),
-      .OB(hdmi_tx_n[2])
-  );
-  OBUFDS OBUFDS_clock (
-      .I (clk_pixel),
-      .O (hdmi_clk_p),
-      .OB(hdmi_clk_n)
-  );
-
-
-  // Nothing To Touch Down Here:
-  // register writes to the camera
-
-  // The OV5640 has an I2C bus connected to the board, which is used
-  // for setting all the hardware settings (gain, white balance,
-  // compression, image quality, etc) needed to start the camera up.
-  // We've taken care of setting these all these values for you:
-  // "rom.mem" holds a sequence of bytes to be sent over I2C to get
-  // the camera up and running, and we've written a design that sends
-  // them just after a reset completes.
-
-  // If the camera is not giving data, press your reset button.
-
-  logic busy, bus_active;
-  logic cr_init_valid, cr_init_ready;
-
-  logic recent_reset;
-  always_ff @(posedge clk_camera) begin
-    if (sys_rst_camera) begin
-      recent_reset  <= 1'b1;
-      cr_init_valid <= 1'b0;
-    end else if (recent_reset) begin
-      cr_init_valid <= 1'b1;
-      recent_reset  <= 1'b0;
-    end else if (cr_init_valid && cr_init_ready) begin
-      cr_init_valid <= 1'b0;
-    end
-  end
-
-  logic [23:0] bram_dout;
-  logic [ 7:0] bram_addr;
-
-  // ROM holding pre-built camera settings to send
-  xilinx_single_port_ram_read_first #(
-      .RAM_WIDTH(24),
-      .RAM_DEPTH(256),
-      .RAM_PERFORMANCE("HIGH_PERFORMANCE"),
-      .INIT_FILE("rom.mem")
-  ) registers (
-      .addra(bram_addr),  // Address bus, width determined from RAM_DEPTH
-      .dina(24'b0),  // RAM input data, width determined from RAM_WIDTH
-      .clka(clk_camera),  // Clock
-      .wea(1'b0),  // Write enable
-      .ena(1'b1),  // RAM Enable, for additional power savings, disable port when not in use
-      .rsta(sys_rst_camera),  // Output reset (does not affect memory contents)
-      .regcea(1'b1),  // Output register enable
-      .douta(bram_dout)  // RAM output data, width determined from RAM_WIDTH
-  );
-
-  logic [23:0] registers_dout;
-  logic [ 7:0] registers_addr;
-  assign registers_dout = bram_dout;
-  assign bram_addr = registers_addr;
-
-  logic con_scl_i, con_scl_o, con_scl_t;
-  logic con_sda_i, con_sda_o, con_sda_t;
-
-  // NOTE these also have pullup specified in the xdc file!
-  // access our inouts properly as tri-state pins
-  IOBUF IOBUF_scl (
-      .I (con_scl_o),
-      .IO(i2c_scl),
-      .O (con_scl_i),
-      .T (con_scl_t)
-  );
-  IOBUF IOBUF_sda (
-      .I (con_sda_o),
-      .IO(i2c_sda),
-      .O (con_sda_i),
-      .T (con_sda_t)
-  );
-
-  // provided module to send data BRAM -> I2C
-  camera_registers crw (
-      .clk_in(clk_camera),
-      .rst_in(sys_rst_camera),
-      .init_valid(cr_init_valid),
-      .init_ready(cr_init_ready),
-      .scl_i(con_scl_i),
-      .scl_o(con_scl_o),
-      .scl_t(con_scl_t),
-      .sda_i(con_sda_i),
-      .sda_o(con_sda_o),
-      .sda_t(con_sda_t),
-      .bram_dout(registers_dout),
-      .bram_addr(registers_addr)
-  );
-
-  //   // a handful of debug signals for writing to registers
-  //   assign led[0] = 0;
-  //   assign led[1] = cr_init_valid;
-  //   assign led[2] = cr_init_ready;
-  //   assign led[15:3] = 0;
 
 endmodule  // top_level
 

@@ -6,9 +6,8 @@ module project_vertex_to_viewport #(
     parameter FRAC_BITS = 14,  // Percision 
     parameter VH_OVER_TWO_WIDTH = 10,
     parameter VW_OVER_TWO_WIDTH = 10,
-
-    parameter signed [VH_OVER_TWO_WIDTH-1:0] VH_OVER_TWO = 0,
-    parameter signed [VW_OVER_TWO_WIDTH-1:0] VW_OVER_TWO = 0,
+    parameter VH_OVER_TWO = 0,
+    parameter VW_OVER_TWO = 0,
     parameter VIEWPORT_H_POSITION_WIDTH = 18,
     parameter VIEWPORT_W_POSITION_WIDTH = 20
 ) (
@@ -83,8 +82,17 @@ module project_vertex_to_viewport #(
   logic x_renorm_done, y_renorm_done, x_renorm_valid, y_renorm_valid, stop_x, stop_y;
   logic boundary_check;
 
-  assign viewport_x_position = x_renorm_completed[VIEWPORT_W_POSITION_WIDTH-1:0] + VW_OVER_TWO; // truncate the division extra bits (by this point the value should be in the range of the viewport width)
-  assign viewport_y_position = y_renorm_completed[VIEWPORT_H_POSITION_WIDTH-1:0] + VH_OVER_TWO; // truncate the division extra bits (by this point the value should be in the range of the viewport height)
+  // TODO: check with JOE
+  assign viewport_x_position = $signed(
+          x_renorm_completed[VIEWPORT_W_POSITION_WIDTH-1:0]
+      ) + $signed(
+          VW_OVER_TWO
+      );  // truncate the division extra bits (by this point the value should be in the range of the viewport width)
+  assign viewport_y_position = $signed(
+          y_renorm_completed[VIEWPORT_H_POSITION_WIDTH-1:0]
+      ) + $signed(
+          VH_OVER_TWO
+      );  // truncate the division extra bits (by this point the value should be in the range of the viewport height)
   //   assign viewport_x_position = x_renorm_completed[VIEWPORT_W_POSITION_WIDTH-1:0]; // truncate the division extra bits (by this point the value should be in the range of the viewport width)
   //   assign viewport_y_position = y_renorm_completed[VIEWPORT_H_POSITION_WIDTH-1:0]; // truncate the division extra bits (by this point the value should be in the range of the viewport height)
   //   assign z_depth = p_dot_z[C_WIDTH:0];  // a depth can never by further than the camera radius
@@ -168,7 +176,23 @@ module project_vertex_to_viewport #(
   // localparam logic [1:0] COMPUTE = 1;
   // localparam logic [1:0] HOLD = 2;
 
-  assign boundary_check = (x_renorm_completed > -VW_OVER_TWO && x_renorm_completed < VW_OVER_TWO && y_renorm_completed > -VH_OVER_TWO && y_renorm_completed < VH_OVER_TWO);
+  assign boundary_check = ($signed(
+      x_renorm_completed
+  ) > $signed(
+      -VW_OVER_TWO
+  ) && $signed(
+      x_renorm_completed
+  ) < $signed(
+      VW_OVER_TWO
+  ) && $signed(
+      y_renorm_completed
+  ) > $signed(
+      -VH_OVER_TWO
+  ) && $signed(
+      y_renorm_completed
+  ) < $signed(
+      VH_OVER_TWO
+  ));
 
   always_ff @(posedge clk_in) begin
     if (rst_in) begin
