@@ -99,13 +99,13 @@ module pre_proc_shader #(
       .tri_id_in(tri_id_in),
       .cam_normal_in(n),
       .color_out(color_out_temp),
-      .valid_out(shader_valid_out),
-      .ready_out(shader_ready_out),
-      .short_circuit(short_circuit)
+      //   .valid_out(shader_valid_out),
+      .ready_out(shader_ready_out)
+      //   .short_circuit(short_circuit)
   );
 
-  //   assign shader_valid_out = 1'b1;
-  //   assign shader_short_circuit = 1'b0;
+  assign shader_valid_out = 1'b1;
+  assign shader_short_circuit = 1'b0;
 
   enum logic [1:0] {
     IDLE,

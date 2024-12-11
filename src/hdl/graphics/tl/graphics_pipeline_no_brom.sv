@@ -57,7 +57,9 @@ module graphics_pipeline_no_brom #(
     output logic [$clog2(FB_VRES)-1:0] vcount_out,
     output logic [ZWIDTH:0] z_out,
     output logic [$clog2(FB_HRES*FB_VRES)-1:0] addr_out,
-    output logic [COLOR_WIDTH-1:0] color_out
+    output logic [COLOR_WIDTH-1:0] color_out,
+	
+	// TODO: add debug here....
 );
 
   localparam COLOR_WIDTH = 16;

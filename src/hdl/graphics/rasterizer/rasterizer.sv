@@ -48,9 +48,21 @@ module rasterizer #(
 
     output logic [HWIDTH-1:0] hcount_out,
     output logic [VWIDTH-1:0] vcount_out,
-    output logic signed [ZWIDTH-1:0] z_out,
+    output logic [ZWIDTH-1:0] z_out,
     output logic [PIXEL_ADDR_WIDTH-1:0] addr_out,
-    output logic last_pixel
+    output logic last_pixel,
+
+
+    // DEBUG VALUES
+    output logic [XWIDTH-1:0] x_min_out,
+    output logic [XWIDTH-1:0] x_max_out,
+    output logic [YWIDTH-1:0] y_min_out,
+    output logic [YWIDTH-1:0] y_max_out,
+    output logic [HWIDTH-1:0] hcount_min_out,
+    output logic [HWIDTH-1:0] hcount_max_out,
+    output logic [VWIDTH-1:0] vcount_min_out,
+    output logic [VWIDTH-1:0] vcount_max_out
+
 );
 
   localparam MAX_FRAC = XFRAC > YFRAC ? (XFRAC > ZFRAC ? XFRAC : ZFRAC) : (YFRAC > ZFRAC ? YFRAC : ZFRAC);
@@ -69,12 +81,12 @@ module rasterizer #(
   logic [HWIDTH-1:0] ahcount;
   logic [VWIDTH-1:0] avcount;
 
-  logic signed [2:0][XWIDTH-1:0] xv;
-  logic signed [2:0][YWIDTH-1:0] yv;
-  logic signed [2:0][ZWIDTH-1:0] zv;
+  logic [2:0][XWIDTH-1:0] xv;
+  logic [2:0][YWIDTH-1:0] yv;
+  logic [2:0][ZWIDTH-1:0] zv;
 
-  logic signed [XWIDTH-1:0] x_min, x_max, x_curr, x_incremented;
-  logic signed [YWIDTH-1:0] y_min, y_max, y_curr, y_incremented;
+  logic [XWIDTH-1:0] x_min, x_max, x_curr, x_incremented;
+  logic [YWIDTH-1:0] y_min, y_max, y_curr, y_incremented;
   logic inv_area_done, inv_area_valid_out;
   logic signed [INV_WIDTH-1:0] iarea_out;
   logic signed [INV_WIDTH-1:0] iarea;

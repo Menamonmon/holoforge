@@ -181,6 +181,8 @@ module top_level (
   logic [15:0] frame_buff_tdata;
   logic        frame_buff_tlast;
   logic [15:0] frame_buff_pixel;
+  logic [15:0] hcount;
+  logic [15:0] vcount;
 
 
   logic        frame_tester;
@@ -199,9 +201,15 @@ module top_level (
   logic prev_btn;
   logic btn_rising_edge;
 
+  logic prev_btn2;
+  logic btn_rising_edge2;
+
   always_ff @(posedge clk_100_passthrough) begin
     prev_btn <= btn[1];
     btn_rising_edge <= btn[1] & ~prev_btn;
+
+    prev_btn2 <= btn[2];
+    btn_rising_edge2 <= btn[2] & ~prev_btn2;
   end
 
 
@@ -257,7 +265,6 @@ module top_level (
       0:  ssd_out <= tri_id;
       1:  ssd_out <= current_tri_vertex;
       2:  ssd_out <= tri_valid;
-      3:  ssd_out <= 32'hDEADBEEF;
       4:  ssd_out <= graphics_addr_out;
       5:  ssd_out <= graphics_depth_out;
       6:  ssd_out <= graphics_color_out;
@@ -265,6 +272,8 @@ module top_level (
       8:  ssd_out <= graphics_ready_out;
       9:  ssd_out <= graphics_last_pixel_out;
       10: ssd_out <= framebuffer_ready_out;
+      11: ssd_out <= hcount;
+      12: ssd_out <= vcount;
       //   11: ssd_out <= data;
       //   12: ssd_out <= frame_buff_pixel;
       //   13: ssd_out <= frame_buff_tvalid;
@@ -280,7 +289,7 @@ module top_level (
   tri_fetch tri_fetch_inst (
       .clk_in(clk_100_passthrough),  //system clock
       .rst_in(btn[0]),  //system reset
-      .ready_in(graphics_ready_out),  // TODO: change this ot  //system reset
+      .ready_in(graphics_ready_out && btn_rising_edge),  // TODO: change this ot  //system reset
       .valid_out(tri_valid),
       .tri_vertices_out(tri_vertices),
       .tri_id_out(tri_id)
@@ -331,6 +340,8 @@ module top_level (
   assign v = 48'h000040000000;
   assign n = 48'h20000000c893;
 
+  assign tri_vertices = 144'h2000e000e0002000e0002000200020002000;
+
   graphics_pipeline_no_brom #(
       .P_WIDTH(16),
       .C_WIDTH(C_WIDTH),
@@ -362,8 +373,9 @@ module top_level (
   ) graphics_goes_brrrrrr (
       .clk_in(clk_100_passthrough),
       .rst_in(sys_rst),
-      .valid_in(tri_valid),
-      .ready_in(framebuffer_ready_out),
+      //   .valid_in(tri_valid),
+      .valid_in(1'b1),
+      .ready_in(btn_rising_edge2),
       .tri_id_in(tri_id),
       .P(tri_vertices),
       .C(C),
@@ -374,6 +386,8 @@ module top_level (
       .ready_out(graphics_ready_out),
       .last_pixel_out(graphics_last_pixel_out),
       .addr_out(graphics_addr_out),
+      .hcount_out(hcount),
+      .vcount_out(vcount),
       .z_out(graphics_depth_out),
       .color_out(graphics_color_out)
   );
