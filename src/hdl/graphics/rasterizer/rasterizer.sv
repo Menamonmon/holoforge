@@ -1,3 +1,7 @@
+
+`define FLOOR_LOG2(x) ((x) <= 1 ? 0 : 1 + `FLOOR_LOG2((x) >> 1))
+
+
 module rasterizer #(
     parameter XWIDTH = 16,
     parameter YWIDTH = 16,
@@ -42,9 +46,10 @@ module rasterizer #(
     output logic valid_out,  // pixel single cycle output for shader to process the pixel
     output logic ready_out,  // busy
 
-    output logic [$clog2(FB_HRES)-1:0] hcount_out,
-    output logic [$clog2(FB_VRES)-1:0] vcount_out,
+    output logic [HWIDTH-1:0] hcount_out,
+    output logic [VWIDTH-1:0] vcount_out,
     output logic signed [ZWIDTH-1:0] z_out,
+    output logic [PIXEL_ADDR_WIDTH-1:0] addr_out,
     output logic last_pixel
 );
 
@@ -55,6 +60,14 @@ module rasterizer #(
   localparam VWIDTH = $clog2(FB_VRES);
   localparam X_INCREM = VW_BY_HRES;
   localparam Y_INCREM = VH_BY_VRES;
+  localparam PIXEL_ADDR_WIDTH = $clog2(FB_HRES * FB_VRES);
+  localparam int HRES_FIRST_COMPONENT = FB_HRES % (1 << ($clog2(FB_HRES) - 1));
+  localparam int HRES_SECOND_COMPONENT = FB_HRES - HRES_FIRST_COMPONENT;
+  localparam int HRES_COMP1 = $clog2(HRES_FIRST_COMPONENT);
+  localparam int HRES_COMP2 = $clog2(HRES_SECOND_COMPONENT);
+
+  logic [HWIDTH-1:0] ahcount;
+  logic [VWIDTH-1:0] avcount;
 
   logic signed [2:0][XWIDTH-1:0] xv;
   logic signed [2:0][YWIDTH-1:0] yv;
@@ -152,6 +165,38 @@ module rasterizer #(
       .freeze(freeze),
       .data_out(vcount_out)
   );
+
+  freezable_pipeline #(
+      .STAGES(9),
+      .DATA_WIDTH(HWIDTH)
+  ) addr_hcount_pipe (
+      .clk_in(clk_in),
+      .data(hcount),
+      .freeze(freeze),
+      .data_out(ahcount)
+  );
+
+  freezable_pipeline #(
+      .STAGES(7),
+      .DATA_WIDTH(VWIDTH)
+  ) addr_vcount_pipe (
+      .clk_in(clk_in),
+      .data(vcount),
+      .freeze(freeze),
+      .data_out(avcount)
+  );
+
+  logic [1:0][PIXEL_ADDR_WIDTH-1:0] scaled_vcount;
+  logic [PIXEL_ADDR_WIDTH-1:0] scaled_vcount_sum;
+
+  always_ff @(posedge clk_in) begin
+    if (!freeze) begin
+      scaled_vcount[0] <= avcount << HRES_COMP1;
+      scaled_vcount[1] <= avcount << HRES_COMP2;
+      scaled_vcount_sum <= scaled_vcount[0] + scaled_vcount[1];
+      addr_out <= scaled_vcount_sum + ahcount;
+    end
+  end
 
   barycentric_interpolator #(  // TDOO: calc the n cycles for the interpolator
       .VAL_WIDTH(ZWIDTH),

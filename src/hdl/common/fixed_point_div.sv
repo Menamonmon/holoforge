@@ -98,8 +98,8 @@ module fixed_point_div #(
               busy <= 1;
               state <= INIT;
               diffsign <= asign ^ bsign;
-              AU = asign ? -A[WIDTHU-1:0] : A[WIDTHU-1:0];
-              BU = bsign ? -B[WIDTHU-1:0] : B[WIDTHU-1:0];
+              AU <= asign ? -A[WIDTHU-1:0] : A[WIDTHU-1:0];
+              BU <= bsign ? -B[WIDTHU-1:0] : B[WIDTHU-1:0];
             end
           end
         end
