@@ -339,7 +339,7 @@ module top_level (
   localparam C_WIDTH = 18;
   localparam Z_WIDTH = C_WIDTH + 1;
 
-  logic signed [C_WIDTH-1:0] C;
+  logic signed [2:0][C_WIDTH-1:0] C;
   logic signed [2:0][15:0] u, v, n;
 
   //   assign C = 
@@ -440,18 +440,20 @@ module top_level (
   ) dut (
       .clk_100mhz        (clk_100mhz),
       .sys_rst           (sys_rst),
-      .valid_in          (1'b0),
+      .valid_in          (graphics_valid_out),
       .addr_in           (graphics_addr_out),
       .depth_in          (graphics_depth_out),
-      .frame             (frame_tester),
-      .color_in          (16'hf81f),
+      //   .frame             (frame_tester),
+      .frame_override    (sw[6]),
+      .color_in          (graphics_valid_out ? graphics_addr_out : 16'hf81f),
       .rasterizer_rdy_out(framebuffer_ready_out),
+      .clear_sig         (btn_rising_edge2),
 
       .clk_100_passthrough,
       .clk_pixel,
       .clk_migref,
       .sys_rst_migref,
-      .sw,
+      //   .sw,
 
       //   .ss0_an,
       //   .ss1_an,
@@ -482,7 +484,7 @@ module top_level (
 
 
   // TODO: CHECK WHY THIS IS GIVING BLUE AT THE BEGINNING OF THE SCREEN....
-  assign frame_buff_pixel = frame_buff_tvalid & frame_buff_tready ? frame_buff_tdata : 16'hf800; // only take a pixel when a handshake happens???
+  assign frame_buff_pixel = frame_buff_tvalid & frame_buff_tready ? frame_buff_tdata : 16'h8410; // only take a pixel when a handshake happens???
   always_ff @(posedge clk_pixel) begin
     fb_red   <= {frame_buff_pixel[15:11], 3'b0};
     fb_green <= {frame_buff_pixel[10:5], 2'b0};
