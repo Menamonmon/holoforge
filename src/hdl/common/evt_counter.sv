@@ -1,3 +1,5 @@
+`default_nettype none
+
 module evt_counter #(
     MAX_COUNT = 1000
 ) (

@@ -21,16 +21,16 @@ module rasterizer #(
     parameter VRES_BY_VH_WIDTH = 6,
     parameter VRES_BY_VH_FRAC  = 0,
 
-    parameter [HRES_BY_VW_WIDTH-1:0] HRES_BY_VW = 1,
-    parameter [VRES_BY_VH_WIDTH-1:0] VRES_BY_VH = 1,
+    parameter HRES_BY_VW = 1,
+    parameter VRES_BY_VH = 1,
 
     parameter VW_BY_HRES_WIDTH = 6,
     parameter VW_BY_HRES_FRAC  = 0,
     parameter VH_BY_VRES_WIDTH = 7,
     parameter VH_BY_VRES_FRAC  = 0,
 
-    parameter [VW_BY_HRES_WIDTH-1:0] VW_BY_HRES = 1,
-    parameter [VH_BY_VRES_WIDTH-1:0] VH_BY_VRES = 1
+    parameter VW_BY_HRES = 1,
+    parameter VH_BY_VRES = 1
 ) (
     input wire clk_in,
     input wire rst_in,

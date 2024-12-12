@@ -32,7 +32,13 @@ module barycentric_coeffs #(
   logic in_tri;
   logic invalidate;
 
-  assign in_tri = (scaled_areas[0] >= 0) && (scaled_areas[1] >= 0) && (scaled_areas[2] >= 0);
+  assign in_tri = ($signed(
+      scaled_areas[0]
+  ) >= 0) && ($signed(
+      scaled_areas[1]
+  ) >= 0) && ($signed(
+      scaled_areas[2]
+  ) >= 0);
   assign valid_out = in_tri && !invalidate;
 
   assign coeffs_out[0] = scaled_areas[0][FRAC + 1:0]; // assumes that the fraction is between -1 and 1

@@ -77,7 +77,7 @@ module barycentric_interpolator #(
   assign inter_val_out = inter_val_out_full[VAL_WIDTH-1:0]; // truncate the value (at this point val_out should be scaled by a fraction and cannot be bigger than a fp number of VAL_WIDTH width)
 
   freezable_pipeline #(
-      .STAGES(3),  // TODO:.check stage count
+      .STAGES(4),  // TODO:.check stage count
       .DATA_WIDTH(1)
   ) pipe_tri (
       .clk_in(clk_in),
