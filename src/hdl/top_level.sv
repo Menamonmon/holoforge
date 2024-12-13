@@ -214,17 +214,24 @@ module top_level (
 
 
   logic [31:0] ssd_out;
-  logic [ 6:0] ss_c;
+//   logic [ 6:0] ss_c;
 
-  seven_segment_controller sevensegg (
-      .clk_in (clk_100_passthrough),
-      .rst_in (btn[0]),
-      .val_in (ssd_out),
-      .cat_out(ss_c),
-      .an_out ({ss0_an, ss1_an})
-  );
-  assign ss0_c = ss_c;
-  assign ss1_c = ss_c;
+//   seven_segment_controller sevensegg (
+//       .clk_in (clk_100_passthrough),
+//       .rst_in (btn[0]),
+//       .val_in (ssd_out),
+//       .cat_out(ss_c),
+//       .an_out ({ss0_an, ss1_an})
+//   );
+//   assign ss0_c = ss_c;
+//   assign ss1_c = ss_c;
+    logic btn_clean;
+    debouncer(
+        .clk_in(clk_100_passthrough),
+        .rst_in(sys_rst),
+        .dirty_in(btn[2]),
+        .clean_out(btn_clean)
+    );
 
   logic [15:0] current_tri_vertex;
   logic [16:0] tri_id;
@@ -299,7 +306,7 @@ module top_level (
       .rst_in(btn[0]),  //system reset
       .ready_in(graphics_ready_out && btn_rising_edge),  // TODO: change this ot  //system reset
       .valid_out(tri_valid),
-      //   .tri_vertices_out(tri_vertices),
+        .tri_vertices_out(tri_vertices),
       .tri_id_out(tri_id)
   );
 
@@ -348,7 +355,11 @@ module top_level (
   assign v = 48'h000040000000;
   assign n = 48'h20000000c893;
 
-  assign tri_vertices = 144'h2000e000e0002000e0002000200020002000;
+// assign C = sw[9] ? 54'b111110000000000000000000000000000000000011011101101101 : 54'b111000000000000000001101110110110100000000000000000000;
+//   assign v = sw[9] ? 48'hc8930000e000 : 48'hc893e0000000;
+//   assign u = sw[9] ? 48'h000040000000 : 48'h00000000c000;
+//   assign n = sw[9] ? 48'h20000000c893 : 48'h2000c8930000;
+//   assign tri_vertices = 144'h2000e000e0002000e0002000200020002000;
   // 0.5, 0.5, 0.5
 
 
@@ -394,7 +405,7 @@ module top_level (
   ) graphics_goes_brrrrrr (
       .clk_in(clk_100_passthrough),
       .rst_in(sys_rst),
-      //   .valid_in(tri_valid),
+        // .valid_in(tri_valid),
       .valid_in(1'b1),
       .ready_in(framebuffer_ready_out),
       .tri_id_in(tri_id),
@@ -445,7 +456,7 @@ module top_level (
       .depth_in          (graphics_depth_out),
       //   .frame             (frame_tester),
       .frame_override    (sw[6]),
-      .color_in          (graphics_valid_out ? graphics_addr_out : 16'hf81f),
+      .color_in          (graphics_depth_out),
       .rasterizer_rdy_out(framebuffer_ready_out),
       .clear_sig         (btn_rising_edge2),
 
@@ -453,12 +464,12 @@ module top_level (
       .clk_pixel,
       .clk_migref,
       .sys_rst_migref,
-      //   .sw,
+        .sw,
 
-      //   .ss0_an,
-      //   .ss1_an,
-      //   .ss0_c,
-      //   .ss1_c,
+        .ss0_an,
+        .ss1_an,
+        .ss0_c,
+        .ss1_c,
 
       .frame_buff_tvalid(frame_buff_tvalid),
       .frame_buff_tready(frame_buff_tready),

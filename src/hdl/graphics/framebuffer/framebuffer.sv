@@ -52,8 +52,8 @@ module framebuffer #(
     output wire [3:0] ss0_an,
     output wire [3:0] ss1_an,
     output wire [6:0] ss0_c,
-    output wire [6:0] ss1_c
-    // input  wire [15:0] sw
+    output wire [6:0] ss1_c,
+    input  wire [15:0] sw
 
 );
   localparam DEPTH = HRES * VRES;
@@ -141,7 +141,7 @@ module framebuffer #(
       .data_out(depth_piped)
   );
   freezable_pipeline #(
-      .STAGES(3),
+      .STAGES(2),
       .DATA_WIDTH(1)
   ) clear_pipe (
       .clk_in(clk_100_passthrough),
@@ -188,29 +188,30 @@ module framebuffer #(
 
   //Clearing State Logic
   always_ff @(posedge clk_100_passthrough) begin
+    // clearing_state<=CONSUMING;
+    // frame<=0;
     if (sys_rst) begin
       clearing_state <= CLEARING;
       frame <= 0;
     end else begin
-      //   if (clear_sig_piped) begin
-      //     clearing_state <= COMPLETE;
-      //   end
-      //   case (clearing_state)
-      //     COMPLETE: begin
-      //       if (complete_counter == 9 && stacker_rdy_out) begin
-      //         clearing_state <= CLEARING;
-      //         clear_reset <= 1;
-      //         frame <= !frame;
-      //       end
-      //     end
-      //     CLEARING: begin
-      //       clear_reset <= 0;
-      //       if (clear_counter == DEPTH - 1 && stacker_rdy_out) begin
-      //         clearing_state <= CONSUMING;
-      //       end
-      //     end
-      //   endcase
-      clearing_state <= CONSUMING;
+        if (clear_sig_piped) begin
+            clearing_state <= COMPLETE;
+        end
+        case (clearing_state)
+          COMPLETE: begin
+            if (complete_counter == 9 && stacker_rdy_out) begin
+              clearing_state <= CLEARING;
+              clear_reset <= 1;
+              frame <= !frame;
+            end
+          end
+          CLEARING: begin
+            clear_reset <= 0;
+            if (clear_counter == DEPTH - 1 && stacker_rdy_out) begin
+              clearing_state <= CONSUMING;
+            end
+          end
+        endcase
     end
   end
 
@@ -222,13 +223,13 @@ module framebuffer #(
         actual_color_in = color_piped;
         actual_valid_in = valid_piped;
         // valid_depth_write = (valid_piped && depth_piped <= depth);
-        valid_depth_write = 1'b0;
+        valid_depth_write = 1'b1;
         actual_depth = depth_piped;
         rasterizer_rdy_out = stacker_rdy_out;
       end
       COMPLETE: begin
         actual_addr_in = 16'b0;
-        actual_color_in = 128'hFFFF;
+        actual_color_in = 16'hFFFF;
         actual_valid_in = 1'b1;
         valid_depth_write = 1'b0;
         actual_depth = 1'b0;
@@ -289,7 +290,7 @@ module framebuffer #(
       .clk_in(clk_100_passthrough),
       .rst_in(sys_rst),
       .addr(actual_addr_in),
-      .strobe_in(clearing_state != COMPLETE),
+      .strobe_in(valid_depth_write),
       .ready_in(addr_fifo_ready_out && data_fifo_ready_out),
       //   .ready_in(1'b1),
       .data_in(actual_color_in),
@@ -399,28 +400,28 @@ module framebuffer #(
       .count_out(county)
   );
 
-  //   always_ff @(posedge clk_100_passthrough) begin
-  //     if (county == 0) begin
-  //       case (sw[3:0])
-  //         0: display_thing <= stacker_rdy_out;
-  //         1: display_thing <= clearing_state;
-  //         2: display_thing <= frame && !frame_override;
-  //         3: display_thing <= frame;
-  //         4: display_thing <= clear_counter;
-  //       endcase
+    always_ff @(posedge clk_100_passthrough) begin
+      if (county == 0) begin
+        case (sw[3:0])
+          0: display_thing <= stacker_rdy_out;
+          1: display_thing <= clearing_state;
+          2: display_thing <= frame && !frame_override;
+          3: display_thing <= frame;
+          4: display_thing <= clear_counter;
+        endcase
 
-  //     end
-  //   end
+      end
+    end
 
-  //   seven_segment_controller sevensegg (
-  //       .clk_in (clk_100_passthrough),
-  //       .rst_in (sys_rst),
-  //       .val_in (display_thing),
-  //       .cat_out(ss_c),
-  //       .an_out ({ss0_an, ss1_an})
-  //   );
-  //   assign ss0_c = ss_c;
-  //   assign ss1_c = ss_c;
+    seven_segment_controller sevensegg (
+        .clk_in (clk_100_passthrough),
+        .rst_in (sys_rst),
+        .val_in (display_thing),
+        .cat_out(ss_c),
+        .an_out ({ss0_an, ss1_an})
+    );
+    assign ss0_c = ss_c;
+    assign ss1_c = ss_c;
 
 
 

@@ -126,7 +126,7 @@ module ddr_whisperer (
       .sender_clk(input_data_clk_in),
       .sender_axis_tvalid(addr_fifo_valid_in),
       .sender_axis_tready(addr_fifo_ready_out),
-      .sender_axis_tdata({5'b0, !frame_in, write_addr[21:0], 4'b0}),
+      .sender_axis_tdata({5'b0, frame_in, write_addr[21:0], 4'b0}),
       .sender_axis_tlast(last_write),
       .sender_axis_prog_full(),
 
