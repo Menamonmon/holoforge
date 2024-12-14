@@ -154,8 +154,10 @@ def calculate_ndc(P, C, u, v, n):
 async def reset_dut(dut):
 	"""Reset the DUT."""
 	dut.btn.value = 1
+	dut.sw.value = 0xFF
 	await RisingEdge(dut.clk_100mhz)
 	await RisingEdge(dut.clk_100mhz)
+	dut.sw.value = 0x00
 	dut.btn.value = 0
 	await RisingEdge(dut.clk_100mhz)
 
@@ -187,23 +189,22 @@ async def test_test_test(dut):
 
 	# Reset DUT
 	await reset_dut(dut)
-	HRES = 1280
-	VRES = 720
+	HRES = 320
+	VRES = 180
 	pixel_map = np.full((VRES, HRES), 0)
 	for _ in range(2 * HRES * VRES):
 		dut.btn_rising_edge2.value = random.randint(0, 1)
 		await RisingEdge(dut.clk_100mhz)
 
-			# hcount = dut.hcount.value
-			# vcount = dut.vcount.value
-			# if "x" in hcount or "x" in vcount:
+		# hcount = dut.hcount.value
+		# vcount = dut.vcount.value
+		# if "x" in hcount or "x" in vcount:
 		# 	#     continue
 		# if dut.active_draw_hdmi:
 		# 	hcount = int(dut.hcount_hdmi.value)
 		# 	vcount = int(dut.vcount_hdmi.value)
 		# 	if "x" not in dut.pixel_depth:
 		# 		pixel_map[vcount][hcount] = int(dut.pixel_depth)
-
 
 	display_frame_pixelized(pixel_map, "./full_renders")
 	# # load obj file from path and populate the triangle vertices and normals
@@ -410,7 +411,7 @@ def main():
 		proj_path / "src" / "hdl" / "graphics" / "tl" / "pre_proc_shader.sv",
 		proj_path / "src" / "hdl" / "graphics" / "tl" / "graphics_pipeline_no_brom.sv",
 		proj_path / "src" / "hdl" / "graphics" / "framebuffer" / "framebuffer.sv",
-		proj_path / "src" / "hdl" / "graphics" / "framebuffer" / "pixel_stacker.sv",
+		proj_path / "src" / "hdl" / "graphics" / "tri_fetch.sv",
 		proj_path / "src" / "hdl" / "test_toplevel.sv",
 	]
 	# sources = find_sv_files(proj_path / "src" / "hdl")
