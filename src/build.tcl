@@ -57,7 +57,7 @@ generate_target all [get_ips]
 synth_ip [get_ips]
 
 #Run Synthesis
-synth_design -top top_level -part $partNum -verbose
+synth_design -top test_toplevel -part $partNum -verbose
 write_checkpoint -force $outputDir/post_synth.dcp
 report_timing_summary -file $outputDir/post_synth_timing_summary.rpt
 report_utilization -file $outputDir/post_synth_util.rpt -hierarchical -hierarchical_depth 4

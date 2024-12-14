@@ -36,23 +36,23 @@ module ddr_whisperer (
 
     //addr
     input wire addr_fifo_valid_in,
-    output wire addr_fifo_ready_out,
+    output logic addr_fifo_ready_out,
     input wire [26:0] write_addr,
 
     //Read Data Axi Signals in and out
 
     //Addr
     input wire s_axi_arvalid,
-    output wire s_axi_arready,
+    output logic s_axi_arready,
     input wire [26:0] s_axi_araddr,
     //data
-    output wire s_axi_rvalid,
-    output wire s_axi_rready,
+    output logic s_axi_rvalid,
+    output logic s_axi_rready,
 
     input wire data_reciever_rdy,
     output wire data_reciever_valid,
     output wire data_reciever_last,
-    output wire [127:0] data_reciever_data,
+    output logic [127:0] data_reciever_data,
 
     input wire last_frame_chunk,
 
@@ -80,7 +80,7 @@ module ddr_whisperer (
   logic s_axi_wlast;
 
   //axi write data signals
-  logic [26:0] s_axi_awaddr;
+  logic [31:0] s_axi_awaddr;
   logic s_axi_awvalid;
   logic s_axi_awready;
   logic s_axi_awlast;
@@ -91,6 +91,14 @@ module ddr_whisperer (
 
   logic [1:0] s_axi_bresp;
   logic s_axi_bvalid;
+
+  logic frame_in_cdc_1;
+  logic frame_in_cdc_2;
+
+  always_ff @(posedge clk_ui) begin
+    frame_in_cdc_1 <= frame_in;
+    frame_in_cdc_2 <= frame_in_cdc_1;
+  end
 
   ddr_fifo_wrap #(
       .BIT_WIDTH(144)
@@ -118,7 +126,7 @@ module ddr_whisperer (
       .sender_clk(input_data_clk_in),
       .sender_axis_tvalid(addr_fifo_valid_in),
       .sender_axis_tready(addr_fifo_ready_out),
-      .sender_axis_tdata({5'b0, write_addr}),
+      .sender_axis_tdata({5'b0, !frame_in, write_addr[21:0], 4'b0}),
       .sender_axis_tlast(last_write),
       .sender_axis_prog_full(),
 
@@ -181,21 +189,21 @@ module ddr_whisperer (
       .app_zq_ack     (app_zq_ack),     // output			app_zq_ack
 
       // Slave Interface Write Address Ports
-      .s_axi_awid   (4'b0000),                  // input [3:0]			s_axi_awid
-      .s_axi_awaddr (s_axi_awaddr[26:0] << 4),  // input [26:0]			s_axi_awaddr
-      .s_axi_awlen  (8'b0),                     // input [7:0]			s_axi_awlen
-      .s_axi_awsize (3'b100),                   // input [2:0]			s_axi_awsize
-      .s_axi_awburst(2'b00),                    // input [1:0]			s_axi_awburst
-      .s_axi_awlock (1'b0),                     // input [0:0]			s_axi_awlock
-      .s_axi_awcache(4'b0),                     // input [3:0]			s_axi_awcache
-      .s_axi_awprot (3'b0),                     // input [2:0]			s_axi_awprot
-      .s_axi_awqos  (4'b0),                     // input [3:0]			s_axi_awqos
-      .s_axi_awvalid(s_axi_awvalid),            // input			s_axi_awvalid
-      .s_axi_awready(s_axi_awready),            // output			s_axi_awready
+      .s_axi_awid   (4'b0000),             // input [3:0]			s_axi_awid
+      .s_axi_awaddr (s_axi_awaddr[26:0]),  // input [26:0]			s_axi_awaddr
+      .s_axi_awlen  (8'b0),                // input [7:0]			s_axi_awlen
+      .s_axi_awsize (3'b100),              // input [2:0]			s_axi_awsize
+      .s_axi_awburst(2'b00),               // input [1:0]			s_axi_awburst
+      .s_axi_awlock (1'b0),                // input [0:0]			s_axi_awlock
+      .s_axi_awcache(4'b0),                // input [3:0]			s_axi_awcache
+      .s_axi_awprot (3'b0),                // input [2:0]			s_axi_awprot
+      .s_axi_awqos  (4'b0),                // input [3:0]			s_axi_awqos
+      .s_axi_awvalid(s_axi_awvalid),       // input			s_axi_awvalid
+      .s_axi_awready(s_axi_awready),       // output			s_axi_awready
 
       // Slave Interface Write Data Ports
       .s_axi_wdata(s_axi_wdata[143:16]),
-    //   .s_axi_wdata(128'hFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF),
+      //   .s_axi_wdata(128'hFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF),
       .s_axi_wstrb(s_axi_wdata[15:0]),  // input [15:0]			s_axi_wstrb
       .s_axi_wlast(1'b1),  // input			s_axi_wlast
       .s_axi_wvalid(s_axi_wvalid),  // input			s_axi_wvalid
@@ -207,7 +215,7 @@ module ddr_whisperer (
 
       // Slave Interface Read Address Ports
       .s_axi_arid(4'b0000),  // input [3:0]			s_axi_arid
-      .s_axi_araddr(s_axi_araddr << 4),  // input [26:0]			s_axi_araddr
+      .s_axi_araddr({!frame_in_cdc_2, s_axi_araddr[21:0], 4'b0}),  // input [26:0]			s_axi_araddr
       .s_axi_arlen(8'b0),  // input [7:0]			s_axi_arlen
       .s_axi_arsize(3'b100),  // input [2:0]			s_axi_arsize
       .s_axi_arburst(2'b00),  // input [1:0]			s_axi_arburst

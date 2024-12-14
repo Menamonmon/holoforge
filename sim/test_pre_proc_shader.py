@@ -72,6 +72,7 @@ params = {
     "VW_OVER_TWO_WIDTH": VW_OVER_TWO_WIDTH,
     "VIEWPORT_H_POSITION_WIDTH": VIEWPORT_H_POSITION_WIDTH,
     "VIEWPORT_W_POSITION_WIDTH": VIEWPORT_W_POSITION_WIDTH,
+	"NUM_TRI": 30_000
 }
 
 
@@ -168,8 +169,8 @@ async def test_pre_proc_shader(dut):
     # with the data from the obj file
 
     triangles, normals = load_obj_as_numpy(
-        "../scripts/test_data/cube/model_normalized.obj"
-        # "../scripts/test_data/Car/turkey_normalized_normalized.obj"
+        # "../scripts/test_data/cube/model_normalized.obj"
+        "../scripts/test_data/car/model_normalized.obj"
     )
     triangles_norm = list(zip(triangles, normals))
     # random.shuffle(triangles_norm)

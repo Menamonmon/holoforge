@@ -57,11 +57,26 @@ module graphics_pipeline_no_brom #(
     output logic [$clog2(FB_VRES)-1:0] vcount_out,
     output logic [ZWIDTH:0] z_out,
     output logic [$clog2(FB_HRES*FB_VRES)-1:0] addr_out,
-    output logic [COLOR_WIDTH-1:0] color_out
+    output logic [COLOR_WIDTH-1:0] color_out,
+
+    // TODO: add debug here....
+    output logic [XWIDTH-1:0] x_min_out,
+    output logic [XWIDTH-1:0] x_max_out,
+    output logic [YWIDTH-1:0] y_min_out,
+    output logic [YWIDTH-1:0] y_max_out,
+    output logic [HWIDTH-1:0] hcount_min_out,
+    output logic [HWIDTH-1:0] hcount_max_out,
+    output logic [VWIDTH-1:0] vcount_min_out,
+    output logic [VWIDTH-1:0] vcount_max_out
 );
 
+  localparam HWIDTH = $clog2(FB_HRES);
+  localparam VWIDTH = $clog2(FB_VRES);
+  localparam XWIDTH = VIEWPORT_H_POSITION_WIDTH;
+  localparam YWIDTH = VIEWPORT_W_POSITION_WIDTH;
+
   localparam COLOR_WIDTH = 16;
-  localparam ZWIDTH = 4 + C_WIDTH;
+  localparam ZWIDTH = 1 + C_WIDTH;
   logic rasterizer_ready_out;
   logic rasterizer_valid_in;
   logic [2:0][VIEWPORT_H_POSITION_WIDTH-1:0] viewport_x_position, viewport_x_position_temp;
@@ -145,7 +160,18 @@ module graphics_pipeline_no_brom #(
       .vcount_out(vcount_out),
       .addr_out(addr_out),
       .z_out(z_out),
-      .last_pixel(last_pixel_out)
+      .last_pixel(last_pixel_out),
+      // DEBUGGING VALUES
+      .x_min_out(x_min_out),
+      .x_max_out(x_max_out),
+      .y_min_out(y_min_out),
+      .y_max_out(y_max_out),
+      .hcount_min_out(hcount_min_out),
+      .hcount_max_out(hcount_max_out),
+      .vcount_min_out(vcount_min_out),
+      .vcount_max_out(vcount_max_out)
   );
+
+
 
 endmodule

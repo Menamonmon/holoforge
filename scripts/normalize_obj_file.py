@@ -19,14 +19,17 @@ def parse_obj_file(obj_file_path):
 				texture_coords.append([float(x) for x in line.strip().split()[1:]])
 			elif line.startswith("f "):
 				face = line.strip().split()[1:]
-				faces.append([list(map(int, vertex.split("/"))) for vertex in face])
+				faces.append([list(map(lambda x: 0 if not x else int(x), vertex.split("/"))) for vertex in face])
 
+	print(faces)
 	vertices = np.array(vertices)
 	normals = np.array(normals)
 	texture_coords = np.array(texture_coords)
 	faces = np.array(faces)
 
 	return vertices, normals, texture_coords, faces
+
+
 
 
 def normalize_vertices(vertices):
@@ -81,7 +84,9 @@ def normalize_and_center_mesh(file_path):
 	#     raise ValueError("The file does not contain a valid triangle mesh.")
 
 	if isinstance(mesh, trimesh.Scene):
-		mesh = trimesh.util.concatenate([geometry for geometry in mesh.geometry.values()])
+		mesh = trimesh.util.concatenate(
+			[geometry for geometry in mesh.geometry.values()]
+		)
 
 	# mesh = mesh.triangulate()
 
@@ -114,12 +119,13 @@ def save_normalized_mesh(mesh, original_file_path):
 	return normalized_file_path
 
 
-args = argparse.ArgumentParser()
-args.add_argument("--input", type=str, required=True)
-args.add_argument("--output", type=str, required=True)
+if __name__ == "__main__":
+	args = argparse.ArgumentParser()
+	args.add_argument("--input", type=str, required=True)
+	args.add_argument("--output", type=str, required=True)
 
-args = args.parse_args()
+	args = args.parse_args()
 
-# vertices = parse_obj_file(args.input)[0]
-normalized_vertices = normalize_and_center_mesh(args.input)
-save_normalized_mesh(normalized_vertices, args.output)
+	# vertices = parse_obj_file(args.input)[0]
+	normalized_vertices = normalize_and_center_mesh(args.input)
+	save_normalized_mesh(normalized_vertices, args.output)

@@ -23,8 +23,8 @@ from cocotb.binary import BinaryValue
 from random import getrandbits
 import random
 
-HRES = 32
-VRES = 64
+HRES = 64
+VRES = 32
 
 
 def print_twos_complement(num, bit_size):
@@ -68,11 +68,13 @@ async def test_pattern(dut):
 	# (hcount,vcount,valid_in,rdy_in,mask_zero,)
 	grid = []
 	valid_grid = []
+	SUBGRIDW = 11
+	SUBGRIDH = 23
 	for vcount in range(VRES):  # vcount from 0 to VRES - 1
 		row = []
 		valid_row = []
 		for hcount in range(HRES):  # hcount from 0 to HRES - 1
-			valid_row.append(1)
+			valid_row.append(random.randint(0, 1))
 			row.append(random.randint(0, 0xFFFF))
 		grid.append(row)
 		valid_grid.append(valid_row)
@@ -83,7 +85,7 @@ async def test_pattern(dut):
 		for hcount in range(HRES):
 			dut.valid_in.value = valid_grid[vcount][hcount]
 			# dut.ready_in.value=random.randint(0,1)
-			strobe_in = 1
+			strobe_in = random.randint(0, 1)
 			dut.strobe_in.value = strobe_in
 			dut.data_in.value = grid[vcount][hcount]
 			if strobe_in == 0 or valid_grid[vcount][hcount] == 0:
@@ -101,7 +103,6 @@ async def test_pattern(dut):
 						[dut.data_out.value, dut.strobe_out.value, dut.addr_out.value]
 					)
 			dut.ready_in.value = 1
-
 			while dut.ready_out.value == 0:
 				await RisingEdge(dut.clk_in)
 				if dut.valid_out.value == 1 and dut.ready_in.value == 1:
