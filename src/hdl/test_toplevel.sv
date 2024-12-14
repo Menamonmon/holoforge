@@ -60,6 +60,11 @@ module test_toplevel (
   logic sys_rst_ui;
 
   logic clk_100_passthrough;
+
+  assign sys_rst = btn[0];  //use for resetting all logic
+  assign sys_rst_camera = btn[0];  //use for resetting camera side of logic
+  assign sys_rst_pixel = btn[0];  //use for resetting hdmi/draw side of logic
+  assign sys_rst_migref = btn[0];
   //   assign clk_100_passthrough = clk_100mhz;
   //   assign clk_pixel = clk_100_passthrough;
   //   cw_hdmi_clk_wiz wizard_hdmi (
@@ -82,26 +87,7 @@ module test_toplevel (
   assign rgb1 = 0;
 
   assign cam_xclk = clk_xc;
-  logic sys_rst;
-  assign sys_rst = btn[0];  //use for resetting all logic
-  assign sys_rst_camera = btn[0];  //use for resetting camera side of logic
-  assign sys_rst_pixel = btn[0];  //use for resetting hdmi/draw side of logic
-  assign sys_rst_migref = btn[0];
-  cw_hdmi_clk_wiz wizard_hdmi (
-      .sysclk(clk_100_passthrough),
-      .clk_pixel(clk_pixel),
-      .clk_tmds(clk_5x),
-      .reset(0)
-  );
-
-  cw_fast_clk_wiz wizard_migcam (
-      .clk_in1(clk_100mhz),
-      .clk_camera(clk_camera),
-      .clk_mig(clk_migref),
-      .clk_xc(clk_xc),
-      .clk_100(clk_100_passthrough),
-      .reset(0)
-  );
+  logic        sys_rst;
 
 
 
@@ -121,15 +107,7 @@ module test_toplevel (
 
   localparam int HRES = 320;
   localparam int VRES = 180;
-  localparam int ADDR_MAX = (HRES * VRES);
 
-
-
-
-
-
-  //im praying i can just copy paste this and it'll give me the excact same functionality
-  // Compute next_data_ready based on FIFO readiness
   logic stacker_ready_out;
   logic [15:0] data;
   logic [26:0] addr;
@@ -138,74 +116,17 @@ module test_toplevel (
   logic [$clog2(VRES)-1:0] vcount;
   assign next_data_ready = stacker_ready_out;
 
-  // Horizontal counter
-
-  //   logic [$clog2(ADDR_MAX)-1:0] stacker_addr;
-  //   evt_counter #(
-  //       .MAX_COUNT(ADDR_MAX)
-  //   ) addr_counter (
-  //       .clk_in(clk_100_passthrough),
-  //       .rst_in(sys_rst),
-  //       .evt_in(next_data_ready),
-  //       .count_out(stacker_addr)
-  //   );
-
-  //   evt_counter #(
-  //       .MAX_COUNT(HRES)
-  //   ) hcounter (
-  //       .clk_in(clk_100_passthrough),
-  //       .rst_in(sys_rst),
-  //       .evt_in(next_data_ready),
-  //       .count_out(hcount)
-  //   );
-
-  //   // Vertical counter
-  //   evt_counter #(
-  //       .MAX_COUNT(VRES)
-  //   ) vcounter (
-  //       .clk_in(clk_100_passthrough),
-  //       .rst_in(sys_rst),
-  //       .evt_in((hcount == HRES - 1) && next_data_ready),
-  //       .count_out(vcount)
-  //   );
-
-
-  //   // Generate 8 instances of test_pattern_generator
-  //   logic [7:0] test_red;
-  //   logic [7:0] test_green;
-  //   logic [7:0] test_blue;
-
-  //   test_pattern_generator #(
-  //       .HRES(HRES),
-  //       .VRES(VRES)
-  //   ) pattern_gen (
-  //       .sel_in(sw[15:14]),
-  //       .hcount_in(hcount),
-  //       .vcount_in(vcount),
-  //       .red_out(test_red),
-  //       .green_out(test_green),
-  //       .blue_out(test_blue)
-  //   );
-  //   assign data = {test_red[7:3], test_green[7:2], test_blue[7:3]};
-
   logic        frame_buff_tvalid;
   logic        frame_buff_tready;
   logic [15:0] frame_buff_tdata;
   logic        frame_buff_tlast;
   logic [15:0] pixel_depth;
-  //   logic [15:0] hcount;
-  //   logic [15:0] vcount;
+
+  localparam TRI_COUNT = 12;
+  localparam TRI_BRAM_SIZE = 20;
 
 
-  logic        frame_tester;
-  //   always_ff @(posedge clk_100_passthrough) begin
-  //     if (stacker_addr == 0) begin
-  //       frame_tester <= !frame_tester;
-  //     end
-  //   end
-  assign frame_tester = 1;
-
-
+  logic frame_tester;
   assign led = sw;  //to verify the switch values
 
 
@@ -226,22 +147,360 @@ module test_toplevel (
 
 
   logic [31:0] ssd_out;
-  logic [ 6:0] ss_c;
+  logic [6:0] ss_c;
 
-  //   seven_segment_controller sevensegg (
-  //       .clk_in (clk_100_passthrough),
-  //       .rst_in (btn[0]),
-  //       .val_in (ssd_out),
-  //       .cat_out(ss_c),
-  //       .an_out ({ss0_an, ss1_an})
-  //   );
-  assign ss0_c = ss_c;
-  assign ss1_c = ss_c;
 
   logic [15:0] current_tri_vertex;
   logic [16:0] tri_id;
   logic signed [2:0][2:0][15:0] tri_vertices;
   logic tri_valid;
+
+
+  // TRIANGLE FETCH
+
+  tri_fetch #(
+      .TRI_COUNT(TRI_COUNT)
+  ) tri_fetch_inst (
+      .clk_in(clk_100_passthrough),  //system clock
+      .rst_in(sys_rst),  //system reset
+      .ready_in(graphics_ready_out),  // TODO: change this ot  //system reset
+      .valid_out(tri_valid),
+      .tri_vertices_out(tri_vertices),
+      .tri_id_out(tri_id)
+  );
+
+
+  // GRAPHICS PIPELINE PARAMS
+
+  // parameters = {
+  //     "P_WIDTH": 16,
+  //     "C_WIDTH": 18,
+  //     "V_WIDTH": 16,
+  //     "FRAC_BITS": 14,
+  //     "VH_OVER_TWO": 12288,
+  //     "VH_OVER_TWO_WIDTH": 16,
+  //     "VW_OVER_TWO": 21791,
+  //     "VW_OVER_TWO_WIDTH": 17,
+  //     "VIEWPORT_H_POSITION_WIDTH": 18,
+  //     "VIEWPORT_W_POSITION_WIDTH": 19,
+  //     "NUM_TRI": 12,
+  //     "NUM_COLORS": 256,
+  //     "FB_HRES": 320,
+  //     "FB_VRES": 180,
+  //     "HRES_BY_VW_WIDTH": 22,
+  //     "HRES_BY_VW_FRAC": 14,
+  //     "VRES_BY_VH_WIDTH": 22,
+  //     "VRES_BY_VH_FRAC": 14,
+  //     "HRES_BY_VW": 1971008,
+  //     "VRES_BY_VH": 1966080,
+  //     "VW_BY_HRES_WIDTH": 23,
+  //     "VW_BY_HRES_FRAC": 14,
+  //     "VH_BY_VRES_WIDTH": 22,
+  //     "VH_BY_VRES_FRAC": 14,
+  //     "VW_BY_HRES": 136,
+  //     "VH_BY_VRES": 137,
+  // }
+
+
+  localparam C_WIDTH = 18;
+  localparam COLOR_WIDTH = 16;
+  localparam Z_WIDTH = C_WIDTH + 1;
+
+  logic signed [2:0][C_WIDTH-1:0] C;
+  logic signed [2:0][15:0] u, v, n;
+
+  //   assign C = 
+  always_comb begin
+    // case (sw[3:0])
+    //   0: begin
+    // C = 54'b110010100111100001000111111000000101001100100110101100;
+    // u = 48'h00003646de16;
+    // v = 48'hd070e94edbaf;
+    // n = 48'h2ad3e6ccd7aa;
+    C = 54'b111100000000000000000000000000000000000110111011011010;
+    u = 48'hc8930000e000;
+    v = 48'h000040000000;
+    n = 48'h20000000c893;
+    //   end
+
+    //   1: begin
+    //   end
+
+    //   2: begin
+    //     C = 54'b111100000000000000000110111011011010000000000000000000;
+    //     u = 48'h00000000c000;
+    //     v = 48'hc893e0000000;
+    //     n = 48'h2000c8930000;
+    //   end
+    // endcase
+  end
+
+  //   assign tri_vertices = 144'h2000e000e0002000e0002000200020002000;
+  // 0.5, 0.5, 0.5
+
+
+  localparam HWIDTH = $clog2(HRES);
+  localparam VWIDTH = $clog2(VRES);
+  localparam XWIDTH = 18;
+  localparam YWIDTH = 19;
+
+  logic [HWIDTH-1:0] hcount_max, hcount_min;
+  logic [VWIDTH-1:0] vcount_max, vcount_min;
+  logic [XWIDTH-1:0] x_max, x_min;
+  logic [YWIDTH-1:0] y_max, y_min;
+  logic graphics_valid_out;
+  logic graphics_last_pixel_out;
+  logic graphics_last_tri_out;
+  logic [26:0] graphics_addr_out;
+  logic [15:0] graphics_color_out;
+  logic [Z_WIDTH-1:0] graphics_depth_out;
+  logic framebuffer_ready_out;
+  logic graphics_ready_out;
+
+  graphics_pipeline_no_brom #(
+      .P_WIDTH(16),
+      .C_WIDTH(C_WIDTH),
+      .V_WIDTH(16),
+      .FRAC_BITS(14),
+      .VH_OVER_TWO(12288),
+      .VH_OVER_TWO_WIDTH(16),
+      .VW_OVER_TWO(21791),
+      .VW_OVER_TWO_WIDTH(17),
+      .VIEWPORT_H_POSITION_WIDTH(18),
+      .VIEWPORT_W_POSITION_WIDTH(19),
+      .NUM_TRI(TRI_COUNT),
+      .NUM_COLORS(256),
+      .N(3),
+      .FB_HRES(HRES),
+      .FB_VRES(VRES),
+      .HRES_BY_VW_WIDTH(22),
+      .HRES_BY_VW_FRAC(14),
+      .VRES_BY_VH_WIDTH(22),
+      .VRES_BY_VH_FRAC(14),
+      .HRES_BY_VW(1971008),
+      .VRES_BY_VH(1966080),
+      .VW_BY_HRES_WIDTH(23),
+      .VW_BY_HRES_FRAC(14),
+      .VH_BY_VRES_WIDTH(22),
+      .VH_BY_VRES_FRAC(14),
+      .VW_BY_HRES(136),
+      .VH_BY_VRES(137)
+  ) graphics_goes_brrrrrr (
+      .clk_in(clk_100_passthrough),
+      .rst_in(sys_rst),
+      .valid_in(tri_valid),
+      .ready_in(1'b1),
+      .tri_id_in(tri_id),
+      .P(tri_vertices),
+      .C(C),
+      .u(u),
+      .v(v),
+      .n(n),
+      .valid_out(graphics_valid_out),
+      .ready_out(graphics_ready_out),
+      .last_pixel_out(graphics_last_pixel_out),
+      .addr_out(graphics_addr_out),
+      .hcount_out(hcount),
+      .vcount_out(vcount),
+      .z_out(graphics_depth_out),
+      .color_out(graphics_color_out),
+
+      // DEBUGGING VALUES
+      .x_min_out(x_min),
+      .x_max_out(x_max),
+      .y_min_out(y_min),
+      .y_max_out(y_max),
+      .hcount_min_out(hcount_min),
+      .hcount_max_out(hcount_max),
+      .vcount_min_out(vcount_min),
+      .vcount_max_out(vcount_max)
+  );
+
+
+  localparam DEPTH = HRES * VRES;
+  logic [26:0] clearing_write_addr;
+  evt_counter #(
+      .MAX_COUNT(DEPTH)
+  ) write_addr_counter (
+      .clk_in(clk_100_passthrough),
+      .rst_in(sys_rst),
+      .evt_in(1'b1),
+      .count_out(clearing_write_addr)
+  );
+
+  // write addressing
+
+  logic [26:0] write_addr;
+  logic [26:0] pwrite_addr;
+  logic [15:0] write_color;
+  logic [15:0] pwrite_color;
+  logic pgraphics_valid_out;
+  logic [Z_WIDTH-1:0] pgraphics_depth_out;
+
+  logic clearing;
+  assign clearing = sw[7];
+
+  assign write_addr = clearing ? clearing_write_addr : graphics_addr_out;
+  assign write_color = clearing ? 16'h0000 : graphics_depth_out[Z_WIDTH-3:Z_WIDTH-18];
+
+  logic [15:0] pixel_color;
+
+  logic [Z_WIDTH-1:0] existing_depth;
+
+  logic depth_check;
+
+  // DEPTH MUXING LOGIC
+  // on cycle 0
+  // depth is generated
+  // pipeline the depth 2 cycles for depth check
+  // at cycle 2
+  // write enable going into the write port for depth ram and color is based on depth < depth_ram | depth_ram == 0
+  // at cycle 3
+  // write address is pipelined to be the read address from the previous cycle
+  logic allow_write;
+
+  // DEPTH BUFFER
+  xilinx_true_dual_port_read_first_1_clock_ram #(
+      //IF WE GET ERROR CHANGE RAM WIDTH
+      .RAM_WIDTH(12),
+      .RAM_DEPTH(DEPTH),
+      .RAM_PERFORMANCE("HIGH_PERFORMANCE"),
+      .INIT_FILE("./data/empty.mem")
+  ) depth_ram (
+      //WRITING SIDE
+      .clka(clk_100_passthrough),
+
+      .rsta(sys_rst),
+      .addra(pwrite_addr),  //pixels are stored using this math
+      .dina(pgraphics_depth_out[Z_WIDTH-1:Z_WIDTH-12]),
+      .wea(allow_write),
+      .ena(1'b1),
+      .regcea(1'b1),
+      .douta(),  //never read from this side
+
+      .rstb(sys_rst),
+      .addrb(graphics_addr_out),  //transformed lookup pixel
+      .dinb(),
+      .web(1'b0),
+      .enb(graphics_valid_out),
+      .regceb(1'b1),
+      .doutb(existing_depth[Z_WIDTH-1:Z_WIDTH-12])
+  );
+
+
+  // TODO: check the signage on this...
+  assign depth_check = (pgraphics_depth_out < existing_depth) || existing_depth == 0;
+
+
+  pipeline #(
+      .STAGES(2),
+      .DATA_WIDTH(27)
+  ) write_addr_pipe (
+      .clk_in(clk_100_passthrough),
+      .data(write_addr),
+      .data_out(pwrite_addr)
+  );
+
+  pipeline #(
+      .STAGES(2),
+      .DATA_WIDTH(1)
+  ) graphics_valid_out_pipe (
+      .clk_in(clk_100_passthrough),
+      .data(graphics_valid_out),
+      .data_out(pgraphics_valid_out)
+  );
+
+  pipeline #(
+      .STAGES(2),
+      .DATA_WIDTH(COLOR_WIDTH)
+  ) color_pipe (
+      .clk_in(clk_100_passthrough),
+      .data(write_color),
+      .data_out(pwrite_color)
+  );
+
+  pipeline #(
+      .STAGES(2),
+      .DATA_WIDTH(Z_WIDTH)
+  ) depth_pipe (
+      .clk_in(clk_100_passthrough),
+      .data(graphics_depth_out),
+      .data_out(pgraphics_depth_out)
+  );
+
+  assign allow_write = (depth_check && pgraphics_valid_out) || clearing;
+
+  // FRAMEBUFFER
+  xilinx_true_dual_port_read_first_2_clock_ram #(
+      //IF WE GET ERROR CHANGE RAM WIDTH
+      .RAM_WIDTH(16),
+      .RAM_DEPTH(DEPTH),
+      .RAM_PERFORMANCE("HIGH_PERFORMANCE")
+  ) color_ram (
+      //WRITING SIDE
+      .clka(clk_100_passthrough),
+      .rsta(sys_rst),
+
+      .addra(pwrite_addr),  //pixels are stored using this math
+      .wea(allow_write),
+      .dina(pwrite_color),
+      .ena(1'b1),
+      .douta(),  //never read from this side
+      .regcea(1'b1),
+
+      .rstb(sys_rst_pixel),
+      .clkb(clk_pixel),
+      .addrb(read_addr),  //transformed lookup pixel
+      .web(1'b0),
+      .enb(active_draw_hdmi),
+      .doutb(pixel_color),
+
+      .regceb(1'b1)
+  );
+
+
+
+  logic [$clog2(DEPTH)-1:0] read_addr;
+
+
+  always_ff @(posedge clk_pixel) begin
+    read_addr <= (vcount_hdmi >> 2) * HRES + (hcount_hdmi >> 2);
+  end
+
+
+  always_ff @(posedge clk_pixel) begin
+    if (sw[9]) begin
+      //   red   <= {pixel_depth[10:5], 3'b0};
+      //   green <= {pixel_depth[10:5], 3'b0};
+      //   blue  <= {pixel_depth[10:5], 3'b0};
+      //   red   <= {pixel_color[15:11], 3'b0};
+      //   green <= {pixel_color[10:5], 2'b0};
+      //   blue  <= {pixel_color[4:0], 3'b0};
+      red   <= {pixel_color[15:8]};
+      green <= {pixel_color[15:8]};
+      blue  <= {pixel_color[15:8]};
+    end else begin
+      red   <= pixel_depth != 0 ? 8'hff : 8'h00;
+      green <= pixel_depth != 0 ? 8'hff : 8'h00;
+      blue  <= pixel_depth != 0 ? 8'hff : 8'h00;
+    end
+  end
+
+  // HDMI video signal generator
+  video_sig_gen vsg (
+      .pixel_clk_in(clk_pixel),
+      .rst_in(sys_rst_pixel),
+      .hcount_out(hcount_hdmi),
+      .vcount_out(vcount_hdmi),
+      .vs_out(vsync_hdmi),
+      .hs_out(hsync_hdmi),
+      .nf_out(nf_hdmi),
+      .ad_out(active_draw_hdmi),
+      .fc_out(frame_count_hdmi)
+  );
+
+  //   assign clk_100_passthrough = clk_100mhz;
+  //   assign clk_pixel = clk_100_passthrough;
 
   always_ff @(posedge clk_100_passthrough) begin
     case (sw[3:2])
@@ -292,214 +551,33 @@ module test_toplevel (
       15: ssd_out <= graphics_ready_out;
       16: ssd_out <= graphics_last_pixel_out;
       17: ssd_out <= framebuffer_ready_out;
-
-
-      //   11: ssd_out <= data;
-      //   12: ssd_out <= pixel_depth;
-      //   13: ssd_out <= frame_buff_tvalid;
-      //   14: ssd_out <= frame_buff_tready;
-      //   15: ssd_out <= frame_buff_tdata;
     endcase
   end
+  seven_segment_controller sevensegg (
+      .clk_in (clk_100_passthrough),
+      .rst_in (btn[0]),
+      .val_in (ssd_out),
+      .cat_out(ss_c),
+      .an_out ({ss0_an, ss1_an})
+  );
+  assign ss0_c = ss_c;
+  assign ss1_c = ss_c;
 
 
-
-  // TRIANGLE FETCH
-
-  //   tri_fetch tri_fetch_inst (
-  //       .clk_in(clk_100_passthrough),  //system clock
-  //       .rst_in(btn[0]),  //system reset
-  //       .ready_in(graphics_ready_out && btn_rising_edge),  // TODO: change this ot  //system reset
-  //       .valid_out(tri_valid),
-  //       //   .tri_vertices_out(tri_vertices),
-  //       .tri_id_out(tri_id)
-  //   );
-
-
-  // GRAPHICS PIPELINE PARAMS
-
-  // parameters = {
-  //     "P_WIDTH": 16,
-  //     "C_WIDTH": 18,
-  //     "V_WIDTH": 16,
-  //     "FRAC_BITS": 14,
-  //     "VH_OVER_TWO": 12288,
-  //     "VH_OVER_TWO_WIDTH": 16,
-  //     "VW_OVER_TWO": 21791,
-  //     "VW_OVER_TWO_WIDTH": 17,
-  //     "VIEWPORT_H_POSITION_WIDTH": 18,
-  //     "VIEWPORT_W_POSITION_WIDTH": 19,
-  //     "NUM_TRI": 12,
-  //     "NUM_COLORS": 256,
-  //     "FB_HRES": 320,
-  //     "FB_VRES": 180,
-  //     "HRES_BY_VW_WIDTH": 22,
-  //     "HRES_BY_VW_FRAC": 14,
-  //     "VRES_BY_VH_WIDTH": 22,
-  //     "VRES_BY_VH_FRAC": 14,
-  //     "HRES_BY_VW": 1971008,
-  //     "VRES_BY_VH": 1966080,
-  //     "VW_BY_HRES_WIDTH": 23,
-  //     "VW_BY_HRES_FRAC": 14,
-  //     "VH_BY_VRES_WIDTH": 22,
-  //     "VH_BY_VRES_FRAC": 14,
-  //     "VW_BY_HRES": 136,
-  //     "VH_BY_VRES": 137,
-  // }
-
-
-  localparam C_WIDTH = 18;
-  localparam Z_WIDTH = C_WIDTH + 1;
-
-  logic signed [2:0][C_WIDTH-1:0] C;
-  logic signed [2:0][15:0] u, v, n;
-
-  //   assign C = 
-  assign C = 54'b111100000000000000000000000000000000000110111011011010;
-  assign u = 48'hc8930000e000;
-  assign v = 48'h000040000000;
-  assign n = 48'h20000000c893;
-
-  assign tri_vertices = 144'h2000e000e0002000e0002000200020002000;
-  // 0.5, 0.5, 0.5
-
-
-  localparam HWIDTH = $clog2(HRES);
-  localparam VWIDTH = $clog2(VRES);
-  localparam XWIDTH = 18;
-  localparam YWIDTH = 19;
-
-  logic [HWIDTH-1:0] hcount_max, hcount_min;
-  logic [VWIDTH-1:0] vcount_max, vcount_min;
-  logic [XWIDTH-1:0] x_max, x_min;
-  logic [YWIDTH-1:0] y_max, y_min;
-  logic graphics_valid_out;
-  logic graphics_last_pixel_out;
-  logic graphics_last_tri_out;
-  logic [26:0] graphics_addr_out;
-  logic [15:0] graphics_color_out;
-  logic [Z_WIDTH-1:0] graphics_depth_out;
-  logic framebuffer_ready_out;
-  logic graphics_ready_out;
-
-  graphics_pipeline_no_brom #(
-      .P_WIDTH(16),
-      .C_WIDTH(C_WIDTH),
-      .V_WIDTH(16),
-      .FRAC_BITS(14),
-      .VH_OVER_TWO(12288),
-      .VH_OVER_TWO_WIDTH(16),
-      .VW_OVER_TWO(21791),
-      .VW_OVER_TWO_WIDTH(17),
-      .VIEWPORT_H_POSITION_WIDTH(18),
-      .VIEWPORT_W_POSITION_WIDTH(19),
-      .NUM_TRI(12),
-      .NUM_COLORS(256),
-      .N(3),
-      .FB_HRES(HRES),
-      .FB_VRES(VRES),
-      .HRES_BY_VW_WIDTH(22),
-      .HRES_BY_VW_FRAC(14),
-      .VRES_BY_VH_WIDTH(22),
-      .VRES_BY_VH_FRAC(14),
-      .HRES_BY_VW(1971008),
-      .VRES_BY_VH(1966080),
-      .VW_BY_HRES_WIDTH(23),
-      .VW_BY_HRES_FRAC(14),
-      .VH_BY_VRES_WIDTH(22),
-      .VH_BY_VRES_FRAC(14),
-      .VW_BY_HRES(136),
-      .VH_BY_VRES(137)
-  ) graphics_goes_brrrrrr (
-      .clk_in(clk_100_passthrough),
-      .rst_in(sys_rst),
-      //   .valid_in(tri_valid),
-      .valid_in(1'b1),
-      .ready_in(1'b1),
-      .tri_id_in(tri_id),
-      .P(tri_vertices),
-      .C(C),
-      .u(u),
-      .v(v),
-      .n(n),
-      .valid_out(graphics_valid_out),
-      .ready_out(graphics_ready_out),
-      .last_pixel_out(graphics_last_pixel_out),
-      .addr_out(graphics_addr_out),
-      .hcount_out(hcount),
-      .vcount_out(vcount),
-      .z_out(graphics_depth_out),
-      .color_out(graphics_color_out),
-
-      // DEBUGGING VALUES
-      .x_min_out(x_min),
-      .x_max_out(x_max),
-      .y_min_out(y_min),
-      .y_max_out(y_max),
-      .hcount_min_out(hcount_min),
-      .hcount_max_out(hcount_max),
-      .vcount_min_out(vcount_min),
-      .vcount_max_out(vcount_max)
+  cw_hdmi_clk_wiz wizard_hdmi (
+      .sysclk(clk_100_passthrough),
+      .clk_pixel(clk_pixel),
+      .clk_tmds(clk_5x),
+      .reset(0)
   );
 
-
-  localparam DEPTH = HRES * VRES;
-
-  // write addressing
-
-  // FRAMEBUFFER
-  xilinx_true_dual_port_read_first_2_clock_ram #(
-      //IF WE GET ERROR CHANGE RAM WIDTH
-      .RAM_WIDTH(Z_WIDTH),
-      .RAM_DEPTH(DEPTH)
-  ) depth_ram (
-      //WRITING SIDE
-      .addra(graphics_addr_out),  //pixels are stored using this math
-      .clka(clk_100_passthrough),
-      .clkb(clk_pixel),
-      .rsta(sys_rst),
-      .rstb(sys_rst_pixel),
-      .wea(graphics_valid_out),
-      .dina(graphics_depth_out),
-      .ena(1'b1),
-      .douta(),  //never read from this side
-
-      .addrb(read_addr),  //transformed lookup pixel
-      .web(1'b0),
-      .enb(active_draw_hdmi),
-      .doutb(pixel_depth),
-
-      .regcea(1'b1),
-      .regceb(1'b1)
-  );
-
-  logic [$clog2(DEPTH)-1:0] read_addr;
-
-
-  always_ff @(posedge clk_pixel) begin
-    read_addr <= (vcount_hdmi >> 2) * HRES + (hcount_hdmi >> 2);
-  end
-
-
-  // TODO: CHECK WHY THIS IS GIVING BLUE AT THE BEGINNING OF THE SCREEN....
-  //   assign pixel_depth = frame_buff_tvalid & frame_buff_tready ? frame_buff_tdata : 16'h8410; // only take a pixel when a handshake happens???
-  always_ff @(posedge clk_pixel) begin
-    red   <= {pixel_depth[10:5], 3'b0};
-    green <= {pixel_depth[10:5], 3'b0};
-    blue  <= {pixel_depth[10:5], 3'b0};
-  end
-
-  // HDMI video signal generator
-  video_sig_gen vsg (
-      .pixel_clk_in(clk_pixel),
-      .rst_in(sys_rst_pixel),
-      .hcount_out(hcount_hdmi),
-      .vcount_out(vcount_hdmi),
-      .vs_out(vsync_hdmi),
-      .hs_out(hsync_hdmi),
-      .nf_out(nf_hdmi),
-      .ad_out(active_draw_hdmi),
-      .fc_out(frame_count_hdmi)
+  cw_fast_clk_wiz wizard_migcam (
+      .clk_in1(clk_100mhz),
+      .clk_camera(clk_camera),
+      .clk_mig(clk_migref),
+      .clk_xc(clk_xc),
+      .clk_100(clk_100_passthrough),
+      .reset(0)
   );
 
   // HDMI Output: just like before!
@@ -586,73 +664,7 @@ module test_toplevel (
       .OB(hdmi_clk_n)
   );
 
-
-
-
-  //   logic graphics_valid_out;
-  //   logic graphics_last_pixel_out;
-  //   logic graphics_last_tri_out;
-  //   logic [26:0] graphics_addr_out;
-  //   logic [15:0] graphics_color_out;
-  //   logic [Z_WIDTH-1:0] graphics_depth_out;
-  //   logic framebuffer_ready_out;
-  //   logic graphics_ready_out;
-
-  //   framebuffer #(
-  //       .Z_WIDTH(Z_WIDTH),
-  //       .HRES(HRES),
-  //       .VRES(VRES)
-  //   ) dut (
-  //       .clk_100mhz        (clk_100mhz),
-  //       .sys_rst           (sys_rst),
-  //       .valid_in          (graphics_valid_out),
-  //       .addr_in           (graphics_addr_out),
-  //       .depth_in          (graphics_depth_out),
-  //       //   .frame             (frame_tester),
-  //       .frame_override    (sw[6]),
-  //       .color_in          (16'hf81f),
-  //       .rasterizer_rdy_out(framebuffer_ready_out),
-  //       .clear_sig         (btn_rising_edge2),
-
-  //       .clk_100_passthrough,
-  //       .clk_pixel,
-  //       .clk_migref,
-  //       .sys_rst_migref,
-  //       //   .sw,
-
-  //       //   .ss0_an,
-  //       //   .ss1_an,
-  //       //   .ss0_c,
-  //       //   .ss1_c,
-
-  //       .frame_buff_tvalid(frame_buff_tvalid),
-  //       .frame_buff_tready(frame_buff_tready),
-  //       .frame_buff_tdata (frame_buff_tdata),
-  //       .frame_buff_tlast (frame_buff_tlast),
-
-  //       .ddr3_dq     (ddr3_dq),
-  //       .ddr3_dqs_n  (ddr3_dqs_n),
-  //       .ddr3_dqs_p  (ddr3_dqs_p),
-  //       .ddr3_addr   (ddr3_addr),
-  //       .ddr3_ba     (ddr3_ba),
-  //       .ddr3_ras_n  (ddr3_ras_n),
-  //       .ddr3_cas_n  (ddr3_cas_n),
-  //       .ddr3_we_n   (ddr3_we_n),
-  //       .ddr3_reset_n(ddr3_reset_n),
-  //       .ddr3_ck_p   (ddr3_ck_p),
-  //       .ddr3_ck_n   (ddr3_ck_n),
-  //       .ddr3_cke    (ddr3_cke),
-  //       .ddr3_dm     (ddr3_dm),
-  //       .ddr3_odt    (ddr3_odt)
-  //   );
-
-
 endmodule  // top_level
 
 
 `default_nettype wire
-
-
-
-// e0002000e000e00020002000e000e0002000
-// 2000e000e0002000e0002000200020002000

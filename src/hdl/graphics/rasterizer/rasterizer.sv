@@ -245,7 +245,6 @@ module rasterizer #(
 
   always_ff @(posedge clk_in) begin
     if (rst_in) begin
-      //   {hcount, vcount} <= 0;
       {xv, yv, zv} <= 0;
       state <= IDLE;
     end else begin
@@ -318,19 +317,18 @@ module rasterizer #(
             if (!inv_area_valid_out) begin
               state <= IDLE;
             end else begin
-              state <= RASTERIZE;
+              state  <= RASTERIZE;
               // rescale the x and y boundaries to be in the pixel space from the screen space 
-
-              hcount_min <= x_min_scaled[XWIDTH + HRES_BY_VW_WIDTH - 1:((XWIDTH + HRES_BY_VW_WIDTH) - ((XWIDTH - XFRAC) + (HRES_BY_VW_WIDTH - HRES_BY_VW_FRAC)))]; // take the integer part of x
-              hcount_max <= x_max_scaled[XWIDTH + HRES_BY_VW_WIDTH - 1:((XWIDTH + HRES_BY_VW_WIDTH) - ((XWIDTH - XFRAC) + (HRES_BY_VW_WIDTH - HRES_BY_VW_FRAC)))]; // take the integer part of x  	   
-              vcount_min <= y_min_scaled[YWIDTH + VRES_BY_VH_WIDTH - 1:((YWIDTH + VRES_BY_VH_WIDTH) - ((YWIDTH - YFRAC) + (VRES_BY_VH_WIDTH - VRES_BY_VH_FRAC)))]; // take the integer part of y
-              vcount_max <= y_max_scaled[YWIDTH + VRES_BY_VH_WIDTH - 1:((YWIDTH + VRES_BY_VH_WIDTH) - ((YWIDTH - YFRAC) + (VRES_BY_VH_WIDTH - VRES_BY_VH_FRAC)))]; // take the integer part of y
 
               x_curr <= x_min;
               y_curr <= y_min;
-              iarea <= iarea_out;
+              iarea  <= iarea_out;
             end
           end
+          hcount_min <= x_min_scaled[XWIDTH + HRES_BY_VW_WIDTH - 1:((XWIDTH + HRES_BY_VW_WIDTH) - ((XWIDTH - XFRAC) + (HRES_BY_VW_WIDTH - HRES_BY_VW_FRAC)))]; // take the integer part of x
+          hcount_max <= x_max_scaled[XWIDTH + HRES_BY_VW_WIDTH - 1:((XWIDTH + HRES_BY_VW_WIDTH) - ((XWIDTH - XFRAC) + (HRES_BY_VW_WIDTH - HRES_BY_VW_FRAC)))]; // take the integer part of x  	   
+          vcount_min <= y_min_scaled[YWIDTH + VRES_BY_VH_WIDTH - 1:((YWIDTH + VRES_BY_VH_WIDTH) - ((YWIDTH - YFRAC) + (VRES_BY_VH_WIDTH - VRES_BY_VH_FRAC)))]; // take the integer part of y
+          vcount_max <= y_max_scaled[YWIDTH + VRES_BY_VH_WIDTH - 1:((YWIDTH + VRES_BY_VH_WIDTH) - ((YWIDTH - YFRAC) + (VRES_BY_VH_WIDTH - VRES_BY_VH_FRAC)))]; // take the integer part of y
 
         end
 

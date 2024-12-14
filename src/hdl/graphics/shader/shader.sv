@@ -3,7 +3,8 @@
 `ifdef SYNTHESIS
 `define FPATH(X) `"X`"
 `else  /* ! SYNTHESIS */
-`define FPATH(X) `"../../../data/X`"
+// `define FPATH(X) `"../../../data/X`"
+`define FPATH(X) `"./data/X`"
 `endif  /* ! SYNTHESIS */
 
 module shader #(
@@ -188,7 +189,7 @@ module shader #(
       .DATA_WIDTH(COLOR_WIDTH)
   ) raw_color_pipe (
       .clk_in(clk_in),
-      .data(raw_color),
+      .data(16'hf81f),
       .data_out(praw_color)
   );
 

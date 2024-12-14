@@ -42,6 +42,21 @@ module light_intensity #(
       .D(light_intensity_out_full)
   );
 
-  assign valid_out = prst_in & (light_intensity_out_full < 0);
-  assign light_intensity_out = -light_intensity_out_full[NORM_WIDTH-1:0]; // check for clipping with this
+  logic signed [NORM_WIDTH-1:0] light_intensity;
+
+  localparam [NORM_WIDTH - 1:0] MIN_VALUE = 0.1 * (1 << NORM_FRAC);
+  localparam [NORM_WIDTH - 1:0] MAX_VALUE = (1 << NORM_FRAC);
+
+  assign valid_out = prst_in & ($signed(light_intensity_out_full) < 0);
+  assign light_intensity_out = -light_intensity_out_full[NORM_WIDTH-1:0];
+  //   always_comb begin
+  //     if (light_intensity < MIN_VALUE) begin
+  //       light_intensity_out = MIN_VALUE;
+  //     end else if (light_intensity > MAX_VALUE) begin
+  //       light_intensity_out = MAX_VALUE;
+  //     end else begin
+  //       light_intensity_out = light_intensity;
+  //     end
+  //   end
+//   assign light_intensity_out = light_intensity;
 endmodule
