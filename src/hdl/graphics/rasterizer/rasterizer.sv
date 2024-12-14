@@ -168,7 +168,7 @@ module rasterizer #(
   );
 
   freezable_pipeline #(
-      .STAGES(10),
+      .STAGES(9),
       .DATA_WIDTH(HWIDTH)
   ) pipe_hcount (
       .clk_in(clk_in),
@@ -178,7 +178,7 @@ module rasterizer #(
   );
 
   freezable_pipeline #(
-      .STAGES(10),
+      .STAGES(9),
       .DATA_WIDTH(VWIDTH)
   ) pipe_vcount (
       .clk_in(clk_in),
@@ -188,7 +188,7 @@ module rasterizer #(
   );
 
   freezable_pipeline #(
-      .STAGES(9),
+      .STAGES(8),
       .DATA_WIDTH(HWIDTH)
   ) addr_hcount_pipe (
       .clk_in(clk_in),
@@ -198,7 +198,7 @@ module rasterizer #(
   );
 
   freezable_pipeline #(
-      .STAGES(7),
+      .STAGES(6),
       .DATA_WIDTH(VWIDTH)
   ) addr_vcount_pipe (
       .clk_in(clk_in),
@@ -241,7 +241,18 @@ module rasterizer #(
       .valid_out(bary_valid_out)
   );
 
-  assign valid_out = !rst_in && bary_valid_out && state == RASTERIZE;
+  logic pvalid_out;
+  freezable_pipeline #(
+      .STAGES(9),
+      .DATA_WIDTH(1)
+  ) valid_out_pipe (
+      .clk_in(clk_in),
+      .freeze,
+      .data(!rst_in && state == RASTERIZE),
+      .data_out(pvalid_out)
+  );
+
+  assign valid_out = !rst_in && pvalid_out && bary_valid_out;
 
   always_ff @(posedge clk_in) begin
     if (rst_in) begin
@@ -251,6 +262,8 @@ module rasterizer #(
       case (state)
         IDLE: begin
           last_pixel <= 0;
+          x_curr <= 0;
+          y_curr <= 0;
           if (valid_in) begin
             state <= BBOX_GEN;
             xv <= x;
