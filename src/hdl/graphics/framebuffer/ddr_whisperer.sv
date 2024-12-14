@@ -92,13 +92,13 @@ module ddr_whisperer (
   logic [1:0] s_axi_bresp;
   logic s_axi_bvalid;
 
-  logic frame_in_cdc_1;
-  logic frame_in_cdc_2;
+  //   logic frame_in_cdc_1;
+  //   logic frame_in_cdc_2;
 
-  always_ff @(posedge clk_ui) begin
-    frame_in_cdc_1 <= frame_in;
-    frame_in_cdc_2 <= frame_in_cdc_1;
-  end
+  //   always_ff @(posedge clk_ui) begin
+  //     frame_in_cdc_1 <= frame_in;
+  //     frame_in_cdc_2 <= frame_in_cdc_1;
+  //   end
 
   ddr_fifo_wrap #(
       .BIT_WIDTH(144)
@@ -126,7 +126,8 @@ module ddr_whisperer (
       .sender_clk(input_data_clk_in),
       .sender_axis_tvalid(addr_fifo_valid_in),
       .sender_axis_tready(addr_fifo_ready_out),
-      .sender_axis_tdata({5'b0, !frame_in, write_addr[21:0], 4'b0}),
+      //   .sender_axis_tdata({5'b0, !frame_in, write_addr[21:0], 4'b0}),
+      .sender_axis_tdata({5'b0, 1'b0, write_addr[21:0], 4'b0}),
       .sender_axis_tlast(last_write),
       .sender_axis_prog_full(),
 
@@ -215,7 +216,8 @@ module ddr_whisperer (
 
       // Slave Interface Read Address Ports
       .s_axi_arid(4'b0000),  // input [3:0]			s_axi_arid
-      .s_axi_araddr({!frame_in_cdc_2, s_axi_araddr[21:0], 4'b0}),  // input [26:0]			s_axi_araddr
+      //   .s_axi_araddr({5'b0, !frame_in_cdc_2, s_axi_araddr[21:0], 4'b0}),  // input [26:0]			s_axi_araddr
+      .s_axi_araddr({5'b0, 1'b0, s_axi_araddr[21:0], 4'b0}),  // input [26:0]			s_axi_araddr
       .s_axi_arlen(8'b0),  // input [7:0]			s_axi_arlen
       .s_axi_arsize(3'b100),  // input [2:0]			s_axi_arsize
       .s_axi_arburst(2'b00),  // input [1:0]			s_axi_arburst
