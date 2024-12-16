@@ -54,7 +54,7 @@ VW_OVER_TWO = int(
 VIEWPORT_H_POSITION_WIDTH = get_bit_width(VH, FRAC_BITS) + 1
 VIEWPORT_W_POSITION_WIDTH = get_bit_width(VW, FRAC_BITS) + 1
 
-NUM_TRI = 3000
+NUM_TRI = 12
 NUM_COLORS = 256
 N = 3
 FB_HRES = 320
@@ -191,8 +191,8 @@ async def test_graphics(dut):
 	# with the data from the obj file
 
 	triangles, normals = load_obj_as_numpy(
-		"../scripts/test_data/iconsanhedron/model_normalized.obj"
-		# "../scripts/test_data/cube/model_normalized.obj"
+		# "../scripts/test_data/iconsanhedron/model_normalized.obj"
+		"../scripts/test_data/cube/model_normalized.obj"
 		# "../scripts/test_data/sphere/model_normalized.obj"
 	)
 	# print(len(triangles), len(normals))
@@ -207,9 +207,9 @@ async def test_graphics(dut):
 
 	# phi = math.radians(random.randint(1, 180))
 	# theta = math.radians(random.randint(1, 360))
-	phi = math.radians(32)
-	theta = math.radians(132)
-	radius = 1.5
+	phi = math.radians(324)
+	theta = math.radians(123)
+	radius = 2
 	C, u, v, n = calculate_camera_basis(phi, theta, radius)
 
 	print(f"C: {C}")
@@ -360,6 +360,9 @@ async def test_graphics(dut):
 		print(
 			f"NEGATIVE DEPTHS: {negative_depths/tot}, POSITIVE DEPTHS: {positive_depths/tot}"
 		)
+
+	for l in range(200):
+		await RisingEdge(dut.clk_in)
 	print("X TRIANGLES")
 	display_frame_pixelized(pixel_map, "./full_renders")
 	pprint.pprint(tri_xes)
