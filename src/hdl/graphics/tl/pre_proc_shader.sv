@@ -20,6 +20,7 @@ module pre_proc_shader #(
 
     input wire valid_in,
     input wire ready_in,
+    input wire glob_ready_in,
 
     // 3D Point P
     input wire [$clog2(NUM_TRI)-1:0] tri_id_in,
@@ -33,6 +34,7 @@ module pre_proc_shader #(
     // Outputs
     output logic valid_out,
     output logic ready_out,
+    output logic last_pixel_out,
     output logic signed [2:0][VIEWPORT_H_POSITION_WIDTH-1:0] viewport_x_positions_out,
     output logic signed [2:0][VIEWPORT_W_POSITION_WIDTH-1:0] viewport_y_positions_out,
     output logic [2:0][ZWIDTH-1:0] z_depth_out,  // max depth is 2 * camera radius
@@ -118,6 +120,7 @@ module pre_proc_shader #(
   always_ff @(posedge clk_in) begin
     if (rst_in) begin
       state <= IDLE;
+      last_pixel_out <= 0;
       valid_out <= 0;
       vertex_pre_proc_control <= 0;
       shader_control <= 0;
@@ -126,11 +129,14 @@ module pre_proc_shader #(
       case (state)
         IDLE: begin
           valid_out <= 0;
+          // go low when a handshake happens
+          if (ready_in && glob_ready_in) begin
+            last_pixel_out <= 0;
+          end
           vertex_pre_proc_done <= 0;
           shader_done <= 0;
           if (valid_in) begin
             state <= PROCESSING;
-            // ready_out <= 0;
             vertex_pre_proc_control <= 1;
             shader_control <= 1;
           end
@@ -145,7 +151,7 @@ module pre_proc_shader #(
             viewport_y_positions_out <= 0;
             z_depth_out <= 0;
             state <= IDLE;
-            // ready_out <= 1;
+            last_pixel_out <= 1;
           end
 
           if (shader_short_circuit) begin
@@ -153,7 +159,7 @@ module pre_proc_shader #(
             viewport_y_positions_out <= 0;
             z_depth_out <= 0;
             state <= IDLE;
-            // ready_out <= 1;
+            last_pixel_out <= 1;
           end
 
           // flash the outputs into the fifo as soon as they're ready

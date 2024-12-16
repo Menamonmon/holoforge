@@ -41,8 +41,7 @@ module pixel_stacker #(
 
   always_comb begin
     data_full = (((addr[addr_width-1:3]) != (prev_addr[addr_width-1:3])));
-    // ready_out = !data_full;
-    ready_out = will_be_ready;
+    ready_out = !data_full || will_be_ready;
     will_be_ready = (!valid_out) || (ready_in);
     index = addr[2:0];
   end

@@ -13,9 +13,10 @@ module framebuffer #(
     //in from rasterizer/vid src
     input wire valid_in,
     input wire [26:0] addr_in,
+    input wire strobe_in,
     input wire [Z_WIDTH-1:0] depth_in,
     input wire [15:0] color_in,
-    input wire [3:0] btn,
+    input wire frame,
     //out to rasterizrer/vid src
     output logic rasterizer_rdy_out,
     //out casue we're the clock wizard
@@ -28,10 +29,6 @@ module framebuffer #(
     input wire frame_buff_tready,
     output logic [15:0] frame_buff_tdata,
     output logic frame_buff_tlast,
-
-    input wire clear_sig,
-    input wire frame_override,
-
 
     //ddr stuff
     inout  wire  [15:0] ddr3_dq,
@@ -51,14 +48,7 @@ module framebuffer #(
     output logic [26:0] read_addr,
     output logic [26:0] s_axi_araddr,
 
-
-
-    output wire [3:0] ss0_an,
-    output wire [3:0] ss1_an,
-    output wire [6:0] ss0_c,
-    output wire [6:0] ss1_c,
     output wire clk_ui
-    // input  wire [15:0] sw
 
 );
   localparam DEPTH = HRES * VRES;
@@ -90,200 +80,15 @@ module framebuffer #(
   logic               display_axis_prog_empty;
   logic               stacker_last;
   logic               stacker_rdy_out;
-  logic               clear_sig_piped;
-  //   logic               clk_ui;
   logic               sys_rst_ui;
-  logic               frame;
   logic               stacker_valid_out;
   //depth ram stuff
-  logic [       15:0] color_piped;
-  logic               valid_piped;
-  logic [       26:0] addr_piped;
-  logic [Z_WIDTH-1:0] depth_piped;
   logic               valid_depth_write;
   logic [Z_WIDTH-1:0] depth;
-  logic               freeze;
-  assign freeze = !stacker_rdy_out;
-  logic sys_rst_pixel;
+
+  logic               sys_rst_pixel;
   assign sys_rst_pixel = sys_rst;
 
-  //   freezable_pipeline #(
-  //       .STAGES(2),
-  //       .DATA_WIDTH(1)
-  //   ) valid_pipe (
-  //       .clk_in(clk_100_passthrough),
-  //       .freeze,
-  //       .data(valid_in),
-  //       .data_out(valid_piped)
-  //   );
-  //   freezable_pipeline #(
-  //       .STAGES(2),
-  //       .DATA_WIDTH(27)
-  //   ) addr_pip (
-
-  //       .clk_in(clk_100_passthrough),
-  //       .freeze,
-  //       .data(addr_in),
-  //       .data_out(addr_piped)
-  //   );
-  //   freezable_pipeline #(
-  //       .STAGES(2),
-  //       .DATA_WIDTH(16)
-  //   ) data_pipe (
-  //       .clk_in(clk_100_passthrough),
-  //       .freeze,
-  //       .data(color_in),
-  //       .data_out(color_piped)
-  //   );
-  //   freezable_pipeline #(
-  //       .STAGES(2),
-  //       .DATA_WIDTH(Z_WIDTH)
-  //   ) depth_pipe (
-  //       .clk_in(clk_100_passthrough),
-  //       .freeze,
-  //       .data(depth_in),
-  //       .data_out(depth_piped)
-  //   );
-  //   freezable_pipeline #(
-  //       .STAGES(3),
-  //       .DATA_WIDTH(1)
-  //   ) clear_pipe (
-  //       .clk_in(clk_100_passthrough),
-  //       .freeze,
-  //       .data(clear_sig),
-  //       .data_out(clear_sig_piped)
-  //   );
-
-  //   enum logic [1:0] {
-  //     CONSUMING,
-  //     COMPLETE,
-  //     CLEARING
-  //   } clearing_state;
-
-
-  //   logic [26:0] actual_addr_in;
-  //   logic [15:0] actual_color_in;
-  //   logic actual_strobe_in;
-  //   logic actual_valid_in;
-
-
-  //   logic actual_depth;
-
-  //   logic [$clog2(DEPTH)-1:0] clear_counter;
-  //   logic [$clog2(COMPLETE_CYCLES)-1:0] complete_counter;
-  //   logic clear_reset;
-
-  //   evt_counter #(
-  //       .MAX_COUNT(DEPTH)
-  //   ) clearing_counter (
-  //       .clk_in(clk_100_passthrough),
-  //       .rst_in(sys_rst || clear_reset),
-  //       .evt_in(stacker_rdy_out && clearing_state == CLEARING),
-  //       .count_out(clear_counter)
-  //   );
-  //   evt_counter #(
-  //       .MAX_COUNT(COMPLETE_CYCLES)
-  //   ) completing_counter (
-  //       .clk_in(clk_100_passthrough),
-  //       .rst_in(sys_rst),
-  //       .evt_in(stacker_rdy_out && clearing_state == COMPLETE),
-  //       .count_out(complete_counter)
-  //   );
-
-  //   //Clearing State Logic
-  //   always_ff @(posedge clk_100_passthrough) begin
-  //     if (sys_rst) begin
-  //       clearing_state <= CLEARING;
-  //       frame <= 0;
-  //     end else begin
-  //       //   if (clear_sig_piped) begin
-  //       //     clearing_state <= COMPLETE;
-  //       //   end
-  //       //   case (clearing_state)
-  //       //     COMPLETE: begin
-  //       //       if (complete_counter == 9 && stacker_rdy_out) begin
-  //       //         clearing_state <= CLEARING;
-  //       //         clear_reset <= 1;
-  //       //         frame <= !frame;
-  //       //       end
-  //       //     end
-  //       //     CLEARING: begin
-  //       //       clear_reset <= 0;
-  //       //       if (clear_counter == DEPTH - 1 && stacker_rdy_out) begin
-  //       //         clearing_state <= CONSUMING;
-  //       //       end
-  //       //     end
-  //       //   endcase
-  //       clearing_state <= CONSUMING;
-  //     end
-  //   end
-
-  //   //Essentialy a bypass for our clearing signal
-  //   always_comb begin
-  //     case (clearing_state)
-  //       CONSUMING: begin
-  //         actual_addr_in = addr_piped;
-  //         actual_color_in = color_piped;
-  //         actual_valid_in = valid_piped;
-  //         // valid_depth_write = (valid_piped && depth_piped <= depth);
-  //         valid_depth_write = 1'b0;
-  //         actual_depth = depth_piped;
-  //         rasterizer_rdy_out = stacker_rdy_out;
-  //       end
-  //       COMPLETE: begin
-  //         actual_addr_in = 16'b0;
-  //         actual_color_in = 128'hFFFF;
-  //         actual_valid_in = 1'b1;
-  //         valid_depth_write = 1'b0;
-  //         actual_depth = 1'b0;
-  //         rasterizer_rdy_out = 1'b0;
-  //       end
-  //       CLEARING: begin
-  //         actual_color_in = 16'b0;
-  //         actual_addr_in = clear_counter;
-  //         actual_depth = {Z_WIDTH{1'b1}};
-  //         actual_valid_in = 1;
-  //         valid_depth_write = 1'b1;
-  //         rasterizer_rdy_out = 1'b0;
-  //       end
-  //       default: begin
-  //         actual_addr_in = 16'b0;
-  //         actual_color_in = 128'hFFFF;
-  //         actual_valid_in = 1'b1;
-  //         valid_depth_write = 1'b0;
-  //         actual_depth = 1'b0;
-  //         rasterizer_rdy_out = 1'b0;
-  //       end
-  //     endcase
-  //   end
-
-
-  //   //bram check
-
-
-  //   assign last_frame_chunk = read_addr == CHUNK_DEPTH - 1;
-  //   // assign valid_depth_write=1'b1;
-  //   xilinx_true_dual_port_read_first_1_clock_ram #(
-  //       //IF WE GET ERROR CHANGE RAM WIDTH
-  //       .RAM_WIDTH(Z_WIDTH),
-  //       .RAM_DEPTH(DEPTH)
-  //   ) depth_ram (
-  //       //WRITING SIDE
-  //       .addra(actual_addr_in),  //pixels are stored using this math
-  //       .clka(clk_100_passthrough),
-  //       .rsta(sys_rst),
-  //       .rstb(sys_rst),
-  //       .wea(valid_depth_write),
-  //       .dina(actual_depth),
-  //       .ena(1'b1),
-  //       .douta(),  //never read from this side
-  //       .addrb(addr_in),  //transformed lookup pixel
-  //       .web(1'b0),
-  //       .enb(1'b1),
-  //       .doutb(depth),
-  //       .regcea(0),
-  //       .regceb(!freeze)
-  //   );
   //Pixel Stacker
   pixel_stacker #(
       .HRES(HRES),
@@ -291,14 +96,10 @@ module framebuffer #(
   ) rollled_stacker (
       .clk_in(clk_100_passthrough),
       .rst_in(sys_rst),
-      //   .strobe_in(clearing_state != COMPLETE),
-      //   .data_in(actual_color_in),
-      //   .valid_in(actual_valid_in),
       .ready_in(addr_fifo_ready_out && data_fifo_ready_out),
       .valid_in(valid_in),
-    //   .ready_out(stacker_rdy_out),
-	.ready_out(rasterizer_rdy_out), 
-      .strobe_in(1'b1),
+      .ready_out(rasterizer_rdy_out),
+      .strobe_in,
       .addr(addr_in),
       .data_in(color_in),
       .addr_out(write_addr[12:0]),
@@ -347,8 +148,7 @@ module framebuffer #(
       .ddr3_cke(ddr3_cke),
       .ddr3_dm(ddr3_dm),
       .ddr3_odt(ddr3_odt),
-      // frame_in(frame && !frame_override),
-      //   .frame_in(frame),
+      .frame_in(frame),
 
       .input_data_clk_in(clk_100_passthrough),
       .input_data_rst(sys_rst),
