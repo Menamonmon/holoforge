@@ -24,23 +24,23 @@ module test_toplevel (
     output logic [ 2:0] hdmi_tx_p,   //hdmi output signals (positives) (blue, green, red)
     output logic [ 2:0] hdmi_tx_n,   //hdmi output signals (negatives) (blue, green, red)
     output logic        hdmi_clk_p,
-    hdmi_clk_n
+    hdmi_clk_n,
 
     // // New for week 6: DDR3 ports
-    // inout  wire [15:0] ddr3_dq,
-    // inout  wire [ 1:0] ddr3_dqs_n,
-    // inout  wire [ 1:0] ddr3_dqs_p,
-    // output wire [12:0] ddr3_addr,
-    // output wire [ 2:0] ddr3_ba,
-    // output wire        ddr3_ras_n,
-    // output wire        ddr3_cas_n,
-    // output wire        ddr3_we_n,
-    // output wire        ddr3_reset_n,
-    // output wire        ddr3_ck_p,
-    // output wire        ddr3_ck_n,
-    // output wire        ddr3_cke,
-    // output wire [ 1:0] ddr3_dm,
-    // output wire        ddr3_odt
+    inout  wire [15:0] ddr3_dq,
+    inout  wire [ 1:0] ddr3_dqs_n,
+    inout  wire [ 1:0] ddr3_dqs_p,
+    output wire [12:0] ddr3_addr,
+    output wire [ 2:0] ddr3_ba,
+    output wire        ddr3_ras_n,
+    output wire        ddr3_cas_n,
+    output wire        ddr3_we_n,
+    output wire        ddr3_reset_n,
+    output wire        ddr3_ck_p,
+    output wire        ddr3_ck_n,
+    output wire        ddr3_cke,
+    output wire [ 1:0] ddr3_dm,
+    output wire        ddr3_odt
 );
 
   // Clock and Reset Signals: updated for a couple new clocks!
@@ -65,23 +65,7 @@ module test_toplevel (
   assign sys_rst_camera = btn[0];  //use for resetting camera side of logic
   assign sys_rst_pixel = btn[0];  //use for resetting hdmi/draw side of logic
   assign sys_rst_migref = btn[0];
-  //   assign clk_100_passthrough = clk_100mhz;
-  //   assign clk_pixel = clk_100_passthrough;
-  //   cw_hdmi_clk_wiz wizard_hdmi (
-  //       .sysclk(clk_100_passthrough),
-  //       .clk_pixel(clk_pixel),
-  //       .clk_tmds(clk_5x),
-  //       .reset(0)
-  //   );
 
-  //   cw_fast_clk_wiz wizard_migcam (
-  //       .clk_in1(clk_100mhz),
-  //       .clk_camera(clk_camera),
-  //       .clk_mig(clk_migref),
-  //       .clk_xc(clk_xc),
-  //       .clk_100(clk_100_passthrough),
-  //       .reset(0)
-  //   );
   // shut up those RGBs
   assign rgb0 = 0;
   assign rgb1 = 0;
@@ -107,6 +91,8 @@ module test_toplevel (
 
   localparam int HRES = 320;
   localparam int VRES = 180;
+  localparam int FULL_HRES = 1280;
+  localparam int FULL_VRES = 720;
 
   logic stacker_ready_out;
   logic [15:0] data;
@@ -163,7 +149,7 @@ module test_toplevel (
   ) tri_fetch_inst (
       .clk_in(clk_100_passthrough),  //system clock
       .rst_in(sys_rst),  //system reset
-      .ready_in(graphics_ready_out && btn_rising_edge),  // TODO: change this ot  //system reset
+      .ready_in(graphics_ready_out),  // TODO: change this ot  //system reset
       .valid_out(tri_valid),
       .tri_vertices_out(tri_vertices),
       .tri_id_out(tri_id)
@@ -217,10 +203,10 @@ module test_toplevel (
     // u = 48'h00003646de16;
     // v = 48'hd070e94edbaf;
     // n = 48'h2ad3e6ccd7aa;
-    C = 54'b111011111111000011000010010111001110000011110010000000;
-    u = 48'h00003646de16;
-    v = 48'hd070e94edbaf;
-    n = 48'h2ad3e6ccd7aa;
+    C = 54'b111100000000000000000000000000000000000110111011011010;
+    u = 48'hc8930000e000;
+    v = 48'h000040000000;
+    n = 48'h20000000c893;
     //   end
 
     //   1: begin
@@ -288,7 +274,7 @@ module test_toplevel (
   ) graphics_goes_brrrrrr (
       .clk_in(clk_100_passthrough),
       .rst_in(sys_rst),
-      .valid_in(tri_valid && btn_rising_edge),
+      .valid_in(tri_valid),
       .ready_in(1'b1),
       .tri_id_in(tri_id),
       .P(tri_vertices),
@@ -369,7 +355,6 @@ module test_toplevel (
   ) depth_ram (
       //WRITING SIDE
       .clka(clk_100_passthrough),
-
       .rsta(sys_rst),
       .addra(pwrite_addr),  //pixels are stored using this math
       .dina(pgraphics_depth_out[Z_WIDTH-1:Z_WIDTH-12]),
@@ -431,58 +416,118 @@ module test_toplevel (
   assign allow_write = (depth_check && pgraphics_valid_out) || clearing;
 
   // FRAMEBUFFER
-  xilinx_true_dual_port_read_first_2_clock_ram #(
-      //IF WE GET ERROR CHANGE RAM WIDTH
-      .RAM_WIDTH(16),
-      .RAM_DEPTH(DEPTH),
-      .RAM_PERFORMANCE("HIGH_PERFORMANCE")
-  ) color_ram (
-      //WRITING SIDE
-      .clka(clk_100_passthrough),
-      .rsta(sys_rst),
+  // BRAM Frame Buffer
+  //   xilinx_true_dual_port_read_first_2_clock_ram #(
+  //       //IF WE GET ERROR CHANGE RAM WIDTH
+  //       .RAM_WIDTH(16),
+  //       .RAM_DEPTH(DEPTH),
+  //       .RAM_PERFORMANCE("HIGH_PERFORMANCE")
+  //   ) color_ram (
+  //       //WRITING SIDE
+  //       .clka(clk_100_passthrough),
+  //       .rsta(sys_rst),
 
-      .addra(pwrite_addr),  //pixels are stored using this math
-      .wea(allow_write),
-      .dina(pwrite_color),
-      .ena(1'b1),
-      .douta(),  //never read from this side
-      .regcea(1'b1),
+  //       .addra(pwrite_addr),  //pixels are stored using this math
+  //       .wea(allow_write),
+  //       .dina(pwrite_color),
+  //       .ena(1'b1),
+  //       .douta(),  //never read from this side
+  //       .regcea(1'b1),
 
-      .rstb(sys_rst_pixel),
-      .clkb(clk_pixel),
-      .addrb(read_addr),  //transformed lookup pixel
-      .web(1'b0),
-      .enb(active_draw_hdmi),
-      .doutb(pixel_color),
+  //       .rstb(sys_rst_pixel),
+  //       .clkb(clk_pixel),
+  //       .addrb(read_addr),  //transformed lookup pixel
+  //       .web(1'b0),
+  //       .enb(active_draw_hdmi),
+  //       .doutb(pixel_color),
 
-      .regceb(1'b1)
+  //       .regceb(1'b1)
+  //   );
+
+  // DRAM Frame Buffer
+  logic [26:0] read_req_addr;
+  logic [26:0] read_res_addr;
+
+  framebuffer #(
+      .Z_WIDTH(Z_WIDTH),
+      .SCALE_FACTOR(SCALE_FACTOR),
+      .HRES(HRES),
+      .VRES(VRES)
+  ) dut (
+      .clk_100mhz        (clk_100mhz),
+      .sys_rst           (sys_rst),
+      //   .valid_in          (graphics_valid_out),
+      //   .addr_in           (graphics_addr_out),
+      //   .depth_in          (graphics_depth_out),
+      //   .color_in          (graphics_color_out),
+      .valid_in          (allow_write),
+      .addr_in           (pwrite_addr),
+      .depth_in          (pgraphics_depth_out),
+      .color_in          (pwrite_color),
+      .rasterizer_rdy_out(framebuffer_ready_out),
+
+      .clear_sig(btn_rising_edge),
+      //   .frame_override    (sw[6]),
+
+      // DEBUG SIGNALS
+      .read_addr(read_req_addr),
+      .s_axi_araddr(read_res_addr),
+
+      .clk_100_passthrough,
+      .clk_pixel,
+      .clk_migref,
+      .sys_rst_migref,
+      .clk_ui,
+
+      .frame_buff_tvalid(frame_buff_tvalid),
+      .frame_buff_tready(frame_buff_tready),
+      .frame_buff_tdata (frame_buff_tdata),
+      .frame_buff_tlast (frame_buff_tlast),
+
+      .ddr3_dq     (ddr3_dq),
+      .ddr3_dqs_n  (ddr3_dqs_n),
+      .ddr3_dqs_p  (ddr3_dqs_p),
+      .ddr3_addr   (ddr3_addr),
+      .ddr3_ba     (ddr3_ba),
+      .ddr3_ras_n  (ddr3_ras_n),
+      .ddr3_cas_n  (ddr3_cas_n),
+      .ddr3_we_n   (ddr3_we_n),
+      .ddr3_reset_n(ddr3_reset_n),
+      .ddr3_ck_p   (ddr3_ck_p),
+      .ddr3_ck_n   (ddr3_ck_n),
+      .ddr3_cke    (ddr3_cke),
+      .ddr3_dm     (ddr3_dm),
+      .ddr3_odt    (ddr3_odt)
   );
 
+  // ZOOMING LOGIC
+  localparam SCALE_FACTOR = FULL_HRES / HRES;  // HAS TO BE THE SAME FOR BOTH HRES AND VRES
+  localparam LOG_SCALE_FACTOR = $clog2(SCALE_FACTOR);
+  logic [$clog2(HRES)-1:0] hcount_scaled;
+  logic [$clog2(VRES)-1:0] vcount_scaled;
+  logic [LOG_SCALE_FACTOR-1:0] inner_hcount;
+  logic [LOG_SCALE_FACTOR-1:0] inner_vcount;
+  assign hcount_scaled = hcount_hdmi >> LOG_SCALE_FACTOR;
+  assign vcount_scaled = vcount_hdmi >> LOG_SCALE_FACTOR;
+  assign inner_hcount = hcount_hdmi[LOG_SCALE_FACTOR-1:0];
+  assign inner_vcount = vcount_hdmi[LOG_SCALE_FACTOR-1:0];
+
+  // only ready on the 4th cycle when drawing within the screen
+  assign frame_buff_tready = (inner_hcount == 0) && (frame_buff_tlast ? (active_draw_hdmi && hcount_scaled ==  HRES-1 && vcount_scaled == VRES-1) : (hcount_scaled < HRES && vcount_scaled < VRES));
 
 
-  logic [$clog2(DEPTH)-1:0] read_addr;
-
-
-  always_ff @(posedge clk_pixel) begin
-    read_addr <= (vcount_hdmi >> 2) * HRES + (hcount_hdmi >> 2);
-  end
-
-
+  // TODO: CHECK THE BEGINNING OF THE SCREEN
+  logic [COLOR_WIDTH-1:0] frame_buff_pixel;
+  assign frame_buff_pixel = frame_buff_tvalid ? frame_buff_tdata : 16'h8410; // only take a pixel when a handshake happens???
   always_ff @(posedge clk_pixel) begin
     if (sw[9]) begin
-      //   red   <= {pixel_depth[10:5], 3'b0};
-      //   green <= {pixel_depth[10:5], 3'b0};
-      //   blue  <= {pixel_depth[10:5], 3'b0};
-      //   red   <= {pixel_color[15:11], 3'b0};
-      //   green <= {pixel_color[10:5], 2'b0};
-      //   blue  <= {pixel_color[4:0], 3'b0};
-      red   <= {pixel_color[15:8]};
-      green <= {pixel_color[15:8]};
-      blue  <= {pixel_color[15:8]};
+      red   <= {frame_buff_pixel[15:11], 3'b0};
+      green <= {frame_buff_pixel[10:5], 2'b0};
+      blue  <= {frame_buff_pixel[4:0], 3'b0};
     end else begin
-      red   <= pixel_depth != 0 ? 8'hff : 8'h00;
-      green <= pixel_depth != 0 ? 8'hff : 8'h00;
-      blue  <= pixel_depth != 0 ? 8'hff : 8'h00;
+      //   red   <= pixel_depth != 0 ? 8'hff : 8'h00;
+      //   green <= pixel_depth != 0 ? 8'hff : 8'h00;
+      //   blue  <= pixel_depth != 0 ? 8'hff : 8'h00;
     end
   end
 

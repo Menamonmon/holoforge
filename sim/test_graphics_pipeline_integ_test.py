@@ -339,9 +339,9 @@ async def test_graphics(dut):
 					# if depth < min_d or depth > max_d:
 					#     negative_depths += 1
 					#     continue
-					if depth >= 40000:
-						# print("DEPTH", depth)
-						continue
+					# if depth >= 40000:
+					# 	# print("DEPTH", depth)
+					# 	continue
 
 					positive_depths += 1
 					if (

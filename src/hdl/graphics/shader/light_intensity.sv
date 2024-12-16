@@ -47,7 +47,7 @@ module light_intensity #(
   localparam [NORM_WIDTH - 1:0] MIN_VALUE = 0.1 * (1 << NORM_FRAC);
   localparam [NORM_WIDTH - 1:0] MAX_VALUE = (1 << NORM_FRAC);
 
-  assign valid_out = prst_in & ($signed(light_intensity_out_full) < 0);
+  assign valid_out = prst_in & (light_intensity_out_full[FULL_VAL_WIDTH-1] == 1); // when the dot product is negative....
   assign light_intensity_out = -light_intensity_out_full[NORM_WIDTH-1:0];
   //   always_comb begin
   //     if (light_intensity < MIN_VALUE) begin
@@ -58,5 +58,5 @@ module light_intensity #(
   //       light_intensity_out = light_intensity;
   //     end
   //   end
-//   assign light_intensity_out = light_intensity;
+  //   assign light_intensity_out = light_intensity;
 endmodule
