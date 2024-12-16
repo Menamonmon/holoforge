@@ -156,7 +156,7 @@ def triangle_line(v1, v2, v3, norm, c1, c2, c3):
     # )
     return (
         f"{v3[2]}{v3[1]}{v3[0]}{v2[2]}{v2[1]}{v2[0]}{v1[2]}{v1[1]}{v1[0]}\n",
-        f"{c3:02x}{c2:02x}{c1:02x}{norm[0]}{norm[1]}{norm[2]}\n",
+        f"{c3:02x}{c2:02x}{c1:02x}{norm[2]}{norm[1]}{norm[0]}\n",
     )
 
 
