@@ -20,6 +20,7 @@ module pre_proc_shader #(
 
     input wire valid_in,
     input wire ready_in,
+    input wire glob_ready_in,
 
     // 3D Point P
     input wire [$clog2(NUM_TRI)-1:0] tri_id_in,
@@ -129,7 +130,7 @@ module pre_proc_shader #(
         IDLE: begin
           valid_out <= 0;
           // go low when a handshake happens
-          if (ready_in) begin
+          if (ready_in && glob_ready_in) begin
             last_pixel_out <= 0;
           end
           vertex_pre_proc_done <= 0;

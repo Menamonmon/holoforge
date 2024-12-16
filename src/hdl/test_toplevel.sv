@@ -304,46 +304,45 @@ module test_toplevel (
 
   localparam DEPTH = HRES * VRES;
   logic [26:0] clearing_write_addr;
+  logic [26:0] flushing_write_addr;
   evt_counter #(
       .MAX_COUNT(DEPTH)
-  ) write_addr_counter (
+  ) clear_addr_counter (
       .clk_in(clk_100_passthrough),
-      .rst_in(sys_rst || state != CLEARING),
-      .evt_in(state == CLEARING && framebuffer_ready_out),  // only count when we're clearing
+      .rst_in(sys_rst || (state != CLEARING)),
+      .evt_in((state == CLEARING) && framebuffer_ready_out && clearing_write_addr < DEPTH-1),  // only count when we're clearing
       .count_out(clearing_write_addr)
   );
 
+  localparam FLUSH_COUNT = 3 * DEPTH;
 
-  localparam FLUSH_COUNT = 1000;
   evt_counter #(
       .MAX_COUNT(FLUSH_COUNT)
-  ) flush_counter (
+  ) flush_addr_counter (
       .clk_in(clk_100_passthrough),
-      .rst_in(sys_rst || state != FLUSHING),
-      .evt_in(state == FLUSHING && framebuffer_ready_out),  // only count when we're flushing the last requests...
-      .count_out(flushing_addr)
+      .rst_in(sys_rst || (state != FLUSHING)),
+      .evt_in((state == FLUSHING) && framebuffer_ready_out && flushing_write_addr < FLUSH_COUNT-1),  // only count when we're clearing
+      .count_out(flushing_write_addr)
   );
 
   // write addressing
 
   logic [26:0] write_addr;
-  logic [26:0] flushing_addr;
   logic [26:0] pwrite_addr;
   logic [15:0] write_color;
   logic [15:0] pwrite_color;
   logic pgraphics_valid_out;
   logic [Z_WIDTH-1:0] pgraphics_depth_out;
   logic [11:0] pwrite_depth;
-  logic pgraphics_last_tri_out;
-  logic pgraphics_last_pixel_out;
 
+  logic frame_config;
+  //   assign clearing = sw[7];
+  //   assign frame_config = sw[8];
   enum logic [1:0] {
     COUNTING,
     FLUSHING,
     CLEARING
   } state;
-  logic frame_config;
-  //   assign clearing = sw[7];
 
   // CLEARING LOGIC
   always_ff @(posedge clk_100_passthrough) begin
@@ -352,29 +351,38 @@ module test_toplevel (
       state <= COUNTING;
       frame_config <= 0;
     end else begin
+      // when the last request was processed....
       case (state)
         COUNTING: begin
-          if (pgraphics_last_tri_out && pgraphics_last_pixel_out && framebuffer_ready_out) begin // a transaction/NONE should've happened on this???
-            state <= CLEARING;
-            frame_config <= !frame_config;
-            // state <= FLUSHING;
+          if (graphics_last_tri_out && graphics_last_pixel_out && framebuffer_ready_out) begin
+            state <= FLUSHING;
           end
         end
 
         FLUSHING: begin
-          if (flushing_addr == FLUSH_COUNT - 1) begin
+          if (flushing_write_addr == (FLUSH_COUNT - 1)) begin
             state <= CLEARING;
-            frame_config <= !frame_config;
+            frame_config <= ~frame_config;
           end
         end
 
         CLEARING: begin
-          if (clearing_write_addr == DEPTH - 1 && framebuffer_ready_out) begin
+          if (clearing_write_addr == DEPTH - 1) begin
             state <= COUNTING;
+            // read the latest C, u, v, n values and save them to the registers here
+
+
           end
         end
       endcase
+      //   if (!clearing && graphics_last_tri_out && graphics_last_pixel_out && framebuffer_ready_out) begin
+      //     clearing <= 1;
+      //     frame_config <= ~frame_config;
+      //   end
 
+      //   if (clearing && clearing_write_addr == DEPTH - 1 && btn[2]) begin
+      //     clearing <= 0;
+      //   end
     end
   end
 
@@ -382,26 +390,42 @@ module test_toplevel (
     case (state)
       COUNTING: begin
         write_addr   = graphics_addr_out;
-        write_color  = pgraphics_depth_out[Z_WIDTH-3:Z_WIDTH-18];
+        write_color  = graphics_depth_out[Z_WIDTH-3:Z_WIDTH-18];
         pwrite_depth = pgraphics_depth_out[Z_WIDTH-1:Z_WIDTH-12];
-        allow_write  = depth_check && pgraphics_valid_out;
       end
 
       FLUSHING: begin
-        write_addr   = flushing_addr;
-        write_color  = 16'h0000;
-        pwrite_depth = 12'hfff;
-        allow_write  = 1'b1;
+        write_addr   = graphics_addr_out;
+        write_color  = graphics_depth_out[Z_WIDTH-3:Z_WIDTH-18];
+        pwrite_depth = pgraphics_depth_out[Z_WIDTH-1:Z_WIDTH-12];
       end
+
+      //   FLUSHING: begin
+      //     if (graphics_valid_out) begin
+      //       write_addr  = graphics_addr_out;
+      //       write_color = graphics_depth_out[Z_WIDTH-3:Z_WIDTH-18];
+      //     end else begin
+      //       write_addr  = flushing_write_addr;
+      //       write_color = 16'h0000;
+      //     end
+      //     if (pgraphics_valid_out) begin
+      //       pwrite_depth = pgraphics_depth_out[Z_WIDTH-1:Z_WIDTH-12];
+      //     end else begin
+      //       pwrite_depth = 12'hfff;
+      //     end
+      //   end
 
       CLEARING: begin
         write_addr   = clearing_write_addr;
         write_color  = 16'h0000;
         pwrite_depth = 12'hfff;
-        allow_write  = 1'b1;
       end
     endcase
   end
+
+  //   assign write_addr   = clearing ? clearing_write_addr : graphics_addr_out;
+  //   assign write_color  = clearing ? 16'h0000 : graphics_depth_out[Z_WIDTH-3:Z_WIDTH-18];
+  //   assign pwrite_depth = clearing ? 12'hfff : pgraphics_depth_out[Z_WIDTH-1:Z_WIDTH-12];
 
   logic [15:0] pixel_color;
 
@@ -450,7 +474,7 @@ module test_toplevel (
 
 
   // TODO: check the signage on this...
-  assign depth_check = (pgraphics_depth_out < existing_depth) || (existing_depth == 0);
+  assign depth_check = (pgraphics_depth_out < existing_depth) || existing_depth == 0;
 
 
   pipeline #(
@@ -489,30 +513,15 @@ module test_toplevel (
       .data_out(pgraphics_depth_out)
   );
 
-  pipeline #(
-      .STAGES(2),
-      .DATA_WIDTH(1)
-  ) last_tri_pipe (
-      .clk_in(clk_100_passthrough),
-      .data(graphics_last_tri_out),
-      .data_out(pgraphics_last_tri_out)
-  );
-
-  pipeline #(
-      .STAGES(2),
-      .DATA_WIDTH(1)
-  ) last_pixel_pipe (
-      .clk_in(clk_100_passthrough),
-      .data(graphics_last_pixel_out),
-      .data_out(pgraphics_last_pixel_out)
-  );
-
-  //   assign allow_write = (depth_check && pgraphics_valid_out) || clearing;
+  assign allow_write = (depth_check && pgraphics_valid_out) || (state == CLEARING);
 
   // FRAMEBUFFER
   // DRAM Frame Buffer
   logic [26:0] read_req_addr;
   logic [26:0] read_res_addr;
+
+  //   assign framebuffer_ready_out = temp_ready_out && btn[3];
+  //   logic temp_ready_out;
 
   framebuffer #(
       .Z_WIDTH(Z_WIDTH),
@@ -526,10 +535,10 @@ module test_toplevel (
       .addr_in           (pwrite_addr),
       .depth_in          (pgraphics_depth_out),
       .color_in          (pwrite_color),
-      .strobe_in         (state != FLUSHING),
+      //   .rasterizer_rdy_out(temp_ready_out),
       .rasterizer_rdy_out(framebuffer_ready_out),
       .frame             (frame_config),
-
+      .strobe_in         (1'b1),
 
       // DEBUG SIGNALS
       .read_addr(read_req_addr),
@@ -586,12 +595,6 @@ module test_toplevel (
 
   always_ff @(posedge clk_pixel) begin
     if (sw[9]) begin
-      //   red   <= {pixel_depth[10:5], 3'b0};
-      //   green <= {pixel_depth[10:5], 3'b0};
-      //   blue  <= {pixel_depth[10:5], 3'b0};
-      //   red   <= {pixel_color[15:11], 3'b0};
-      //   green <= {pixel_color[10:5], 2'b0};
-      //   blue  <= {pixel_color[4:0], 3'b0};
       red   <= {pixel_color[15:8]};
       green <= {pixel_color[15:8]};
       blue  <= {pixel_color[15:8]};
@@ -655,7 +658,6 @@ module test_toplevel (
       3:  ssd_out <= v;
       4:  ssd_out <= n;
       5:  ssd_out <= C;
-      6:  ssd_out <= flushing_addr;
       //   6:  ssd_out <= y_min;
       //   7:  ssd_out <= y_max;
       8:  ssd_out <= tri_id;
