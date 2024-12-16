@@ -24,23 +24,23 @@ module test_toplevel (
     output logic [ 2:0] hdmi_tx_p,   //hdmi output signals (positives) (blue, green, red)
     output logic [ 2:0] hdmi_tx_n,   //hdmi output signals (negatives) (blue, green, red)
     output logic        hdmi_clk_p,
-    hdmi_clk_n
+    hdmi_clk_n,
 
     // // New for week 6: DDR3 ports
-    // inout  wire [15:0] ddr3_dq,
-    // inout  wire [ 1:0] ddr3_dqs_n,
-    // inout  wire [ 1:0] ddr3_dqs_p,
-    // output wire [12:0] ddr3_addr,
-    // output wire [ 2:0] ddr3_ba,
-    // output wire        ddr3_ras_n,
-    // output wire        ddr3_cas_n,
-    // output wire        ddr3_we_n,
-    // output wire        ddr3_reset_n,
-    // output wire        ddr3_ck_p,
-    // output wire        ddr3_ck_n,
-    // output wire        ddr3_cke,
-    // output wire [ 1:0] ddr3_dm,
-    // output wire        ddr3_odt
+    inout  wire [15:0] ddr3_dq,
+    inout  wire [ 1:0] ddr3_dqs_n,
+    inout  wire [ 1:0] ddr3_dqs_p,
+    output wire [12:0] ddr3_addr,
+    output wire [ 2:0] ddr3_ba,
+    output wire        ddr3_ras_n,
+    output wire        ddr3_cas_n,
+    output wire        ddr3_we_n,
+    output wire        ddr3_reset_n,
+    output wire        ddr3_ck_p,
+    output wire        ddr3_ck_n,
+    output wire        ddr3_cke,
+    output wire [ 1:0] ddr3_dm,
+    output wire        ddr3_odt
 );
 
   // Clock and Reset Signals: updated for a couple new clocks!
@@ -126,7 +126,6 @@ module test_toplevel (
   localparam TRI_BRAM_SIZE = 20;
 
 
-  logic frame_tester;
   assign led = sw;  //to verify the switch values
 
 
@@ -162,8 +161,8 @@ module test_toplevel (
       .TRI_COUNT(TRI_COUNT)
   ) tri_fetch_inst (
       .clk_in(clk_100_passthrough),  //system clock
-      .rst_in(sys_rst),  //system reset
-      .ready_in(graphics_ready_out && btn_rising_edge),  // TODO: change this ot  //system reset
+      .rst_in(sys_rst || state == CLEARING),  //system reset
+      .ready_in(graphics_ready_out),  // TODO: change this ot  //system reset
       .valid_out(tri_valid),
       .tri_vertices_out(tri_vertices),
       .tri_id_out(tri_id)
@@ -209,34 +208,19 @@ module test_toplevel (
   logic signed [2:0][C_WIDTH-1:0] C;
   logic signed [2:0][15:0] u, v, n;
 
-  //   assign C = 
   always_comb begin
-    // case (sw[3:0])
-    //   0: begin
-    // C = 54'b110010100111100001000111111000000101001100100110101100;
-    // u = 48'h00003646de16;
-    // v = 48'hd070e94edbaf;
-    // n = 48'h2ad3e6ccd7aa;
-    C = 54'b111011111111000011000010010111001110000011110010000000;
-    u = 48'h00003646de16;
-    v = 48'hd070e94edbaf;
-    n = 48'h2ad3e6ccd7aa;
-    //   end
-
-    //   1: begin
-    //   end
-
-    //   2: begin
-    //     C = 54'b111100000000000000000110111011011010000000000000000000;
-    //     u = 48'h00000000c000;
-    //     v = 48'hc893e0000000;
-    //     n = 48'h2000c8930000;
-    //   end
-    // endcase
+    if (sw[0]) begin
+      C = 54'b111011111111000011000010010111001110000011110010000000;
+      u = 48'h00003646de16;
+      v = 48'hd070e94edbaf;
+      n = 48'h2ad3e6ccd7aa;
+    end else begin
+      C = 54'b111011101001001001111100000011100111000101011011011001;
+      u = 48'h000033c7259e;
+      v = 48'hca53147de3cd;
+      n = 48'h22db1f8dd493;
+    end
   end
-
-  //   assign tri_vertices = 144'h2000e000e0002000e0002000200020002000;
-  // 0.5, 0.5, 0.5
 
 
   localparam HWIDTH = $clog2(HRES);
@@ -288,7 +272,7 @@ module test_toplevel (
   ) graphics_goes_brrrrrr (
       .clk_in(clk_100_passthrough),
       .rst_in(sys_rst),
-      .valid_in(tri_valid && btn_rising_edge),
+      .valid_in(tri_valid),
       .ready_in(1'b1),
       .tri_id_in(tri_id),
       .P(tri_vertices),
@@ -299,6 +283,7 @@ module test_toplevel (
       .valid_out(graphics_valid_out),
       .ready_out(graphics_ready_out),
       .last_pixel_out(graphics_last_pixel_out),
+      .last_tri_out(graphics_last_tri_out),
       .addr_out(graphics_addr_out),
       .hcount_out(hcount),
       .vcount_out(vcount),
@@ -323,25 +308,100 @@ module test_toplevel (
       .MAX_COUNT(DEPTH)
   ) write_addr_counter (
       .clk_in(clk_100_passthrough),
-      .rst_in(sys_rst),
-      .evt_in(1'b1),
+      .rst_in(sys_rst || state != CLEARING),
+      .evt_in(state == CLEARING && framebuffer_ready_out),  // only count when we're clearing
       .count_out(clearing_write_addr)
+  );
+
+
+  localparam FLUSH_COUNT = 1000;
+  evt_counter #(
+      .MAX_COUNT(FLUSH_COUNT)
+  ) flush_counter (
+      .clk_in(clk_100_passthrough),
+      .rst_in(sys_rst || state != FLUSHING),
+      .evt_in(state == FLUSHING && framebuffer_ready_out),  // only count when we're flushing the last requests...
+      .count_out(flushing_addr)
   );
 
   // write addressing
 
   logic [26:0] write_addr;
+  logic [26:0] flushing_addr;
   logic [26:0] pwrite_addr;
   logic [15:0] write_color;
   logic [15:0] pwrite_color;
   logic pgraphics_valid_out;
   logic [Z_WIDTH-1:0] pgraphics_depth_out;
+  logic [11:0] pwrite_depth;
+  logic pgraphics_last_tri_out;
+  logic pgraphics_last_pixel_out;
 
-  logic clearing;
-  assign clearing = sw[7];
+  enum logic [1:0] {
+    COUNTING,
+    FLUSHING,
+    CLEARING
+  } state;
+  logic frame_config;
+  //   assign clearing = sw[7];
 
-  assign write_addr = clearing ? clearing_write_addr : graphics_addr_out;
-  assign write_color = clearing ? 16'h0000 : graphics_depth_out[Z_WIDTH-3:Z_WIDTH-18];
+  // CLEARING LOGIC
+  always_ff @(posedge clk_100_passthrough) begin
+    // on the last handshake
+    if (sys_rst) begin
+      state <= COUNTING;
+      frame_config <= 0;
+    end else begin
+      case (state)
+        COUNTING: begin
+          if (pgraphics_last_tri_out && pgraphics_last_pixel_out && framebuffer_ready_out) begin // a transaction/NONE should've happened on this???
+            state <= CLEARING;
+            frame_config <= !frame_config;
+            // state <= FLUSHING;
+          end
+        end
+
+        FLUSHING: begin
+          if (flushing_addr == FLUSH_COUNT - 1) begin
+            state <= CLEARING;
+            frame_config <= !frame_config;
+          end
+        end
+
+        CLEARING: begin
+          if (clearing_write_addr == DEPTH - 1 && framebuffer_ready_out) begin
+            state <= COUNTING;
+          end
+        end
+      endcase
+
+    end
+  end
+
+  always_comb begin
+    case (state)
+      COUNTING: begin
+        write_addr   = graphics_addr_out;
+        write_color  = pgraphics_depth_out[Z_WIDTH-3:Z_WIDTH-18];
+        pwrite_depth = pgraphics_depth_out[Z_WIDTH-1:Z_WIDTH-12];
+        allow_write  = depth_check && pgraphics_valid_out;
+      end
+
+      FLUSHING: begin
+        write_addr   = flushing_addr;
+        write_color  = 16'h0000;
+        pwrite_depth = 12'hfff;
+        allow_write  = 1'b1;
+      end
+
+      CLEARING: begin
+        write_addr   = clearing_write_addr;
+        write_color  = 16'h0000;
+        pwrite_depth = 12'hfff;
+        allow_write  = 1'b1;
+      end
+    endcase
+  end
 
   logic [15:0] pixel_color;
 
@@ -372,7 +432,8 @@ module test_toplevel (
 
       .rsta(sys_rst),
       .addra(pwrite_addr),  //pixels are stored using this math
-      .dina(pgraphics_depth_out[Z_WIDTH-1:Z_WIDTH-12]),
+      //   .dina(pgraphics_depth_out[Z_WIDTH-1:Z_WIDTH-12]),
+      .dina(pwrite_depth),
       .wea(allow_write),
       .ena(1'b1),
       .regcea(1'b1),
@@ -389,7 +450,7 @@ module test_toplevel (
 
 
   // TODO: check the signage on this...
-  assign depth_check = (pgraphics_depth_out < existing_depth) || existing_depth == 0;
+  assign depth_check = (pgraphics_depth_out < existing_depth) || (existing_depth == 0);
 
 
   pipeline #(
@@ -428,45 +489,100 @@ module test_toplevel (
       .data_out(pgraphics_depth_out)
   );
 
-  assign allow_write = (depth_check && pgraphics_valid_out) || clearing;
-
-  // FRAMEBUFFER
-  xilinx_true_dual_port_read_first_2_clock_ram #(
-      //IF WE GET ERROR CHANGE RAM WIDTH
-      .RAM_WIDTH(16),
-      .RAM_DEPTH(DEPTH),
-      .RAM_PERFORMANCE("HIGH_PERFORMANCE")
-  ) color_ram (
-      //WRITING SIDE
-      .clka(clk_100_passthrough),
-      .rsta(sys_rst),
-
-      .addra(pwrite_addr),  //pixels are stored using this math
-      .wea(allow_write),
-      .dina(pwrite_color),
-      .ena(1'b1),
-      .douta(),  //never read from this side
-      .regcea(1'b1),
-
-      .rstb(sys_rst_pixel),
-      .clkb(clk_pixel),
-      .addrb(read_addr),  //transformed lookup pixel
-      .web(1'b0),
-      .enb(active_draw_hdmi),
-      .doutb(pixel_color),
-
-      .regceb(1'b1)
+  pipeline #(
+      .STAGES(2),
+      .DATA_WIDTH(1)
+  ) last_tri_pipe (
+      .clk_in(clk_100_passthrough),
+      .data(graphics_last_tri_out),
+      .data_out(pgraphics_last_tri_out)
   );
 
+  pipeline #(
+      .STAGES(2),
+      .DATA_WIDTH(1)
+  ) last_pixel_pipe (
+      .clk_in(clk_100_passthrough),
+      .data(graphics_last_pixel_out),
+      .data_out(pgraphics_last_pixel_out)
+  );
+
+  //   assign allow_write = (depth_check && pgraphics_valid_out) || clearing;
+
+  // FRAMEBUFFER
+  // DRAM Frame Buffer
+  logic [26:0] read_req_addr;
+  logic [26:0] read_res_addr;
+
+  framebuffer #(
+      .Z_WIDTH(Z_WIDTH),
+      .SCALE_FACTOR(SCALE_FACTOR),
+      .HRES(HRES),
+      .VRES(VRES)
+  ) frame_buffer_inst (
+      .clk_100mhz        (clk_100mhz),
+      .sys_rst           (sys_rst),
+      .valid_in          (allow_write),
+      .addr_in           (pwrite_addr),
+      .depth_in          (pgraphics_depth_out),
+      .color_in          (pwrite_color),
+      .strobe_in         (state != FLUSHING),
+      .rasterizer_rdy_out(framebuffer_ready_out),
+      .frame             (frame_config),
 
 
-  logic [$clog2(DEPTH)-1:0] read_addr;
+      // DEBUG SIGNALS
+      .read_addr(read_req_addr),
+      .s_axi_araddr(read_res_addr),
+
+      .clk_100_passthrough,
+      .clk_pixel,
+      .clk_migref,
+      .sys_rst_migref,
+      .clk_ui,
+
+      .frame_buff_tvalid(frame_buff_tvalid),
+      .frame_buff_tready(frame_buff_tready),
+      .frame_buff_tdata (frame_buff_tdata),
+      .frame_buff_tlast (frame_buff_tlast),
+
+      .ddr3_dq     (ddr3_dq),
+      .ddr3_dqs_n  (ddr3_dqs_n),
+      .ddr3_dqs_p  (ddr3_dqs_p),
+      .ddr3_addr   (ddr3_addr),
+      .ddr3_ba     (ddr3_ba),
+      .ddr3_ras_n  (ddr3_ras_n),
+      .ddr3_cas_n  (ddr3_cas_n),
+      .ddr3_we_n   (ddr3_we_n),
+      .ddr3_reset_n(ddr3_reset_n),
+      .ddr3_ck_p   (ddr3_ck_p),
+      .ddr3_ck_n   (ddr3_ck_n),
+      .ddr3_cke    (ddr3_cke),
+      .ddr3_dm     (ddr3_dm),
+      .ddr3_odt    (ddr3_odt)
+  );
+
+  // ZOOMING LOGIC
+  localparam int FULL_HRES = 1280;
+  localparam SCALE_FACTOR = FULL_HRES / HRES;  // HAS TO BE THE SAME FOR BOTH HRES AND VRES
+  localparam LOG_SCALE_FACTOR = $clog2(SCALE_FACTOR);
+  logic [$clog2(HRES)-1:0] hcount_scaled;
+  logic [$clog2(VRES)-1:0] vcount_scaled;
+  logic [LOG_SCALE_FACTOR-1:0] inner_hcount;
+  logic [LOG_SCALE_FACTOR-1:0] inner_vcount;
+  assign hcount_scaled = hcount_hdmi >> LOG_SCALE_FACTOR;
+  assign vcount_scaled = vcount_hdmi >> LOG_SCALE_FACTOR;
+  assign inner_hcount = hcount_hdmi[LOG_SCALE_FACTOR-1:0];
+  assign inner_vcount = vcount_hdmi[LOG_SCALE_FACTOR-1:0];
+
+  // only ready on the 4th cycle when drawing within the screen
+  assign frame_buff_tready = (inner_hcount == 0) && (frame_buff_tlast ? (active_draw_hdmi && hcount_scaled ==  HRES-1 && vcount_scaled == VRES-1) : (hcount_scaled < HRES && vcount_scaled < VRES));
 
 
-  always_ff @(posedge clk_pixel) begin
-    read_addr <= (vcount_hdmi >> 2) * HRES + (hcount_hdmi >> 2);
-  end
-
+  // TODO: CHECK THE BEGINNING OF THE SCREEN
+  logic [COLOR_WIDTH-1:0] frame_buff_pixel;
+  assign frame_buff_pixel = frame_buff_tvalid ? frame_buff_tdata : 16'h8410; // only take a pixel when a handshake happens???
+  assign pixel_color = frame_buff_pixel;
 
   always_ff @(posedge clk_pixel) begin
     if (sw[9]) begin
@@ -533,14 +649,15 @@ module test_toplevel (
 
   always_ff @(posedge clk_100_passthrough) begin
     case (sw[15:10])
-      0:  ssd_out <= hcount;
-      1:  ssd_out <= vcount;
-      2:  ssd_out <= hcount_max;
-      3:  ssd_out <= hcount_min;
-      4:  ssd_out <= x_min;
-      5:  ssd_out <= x_max;
-      6:  ssd_out <= y_min;
-      7:  ssd_out <= y_max;
+      0:  ssd_out <= state;
+      1:  ssd_out <= clearing_write_addr;
+      2:  ssd_out <= u;
+      3:  ssd_out <= v;
+      4:  ssd_out <= n;
+      5:  ssd_out <= C;
+      6:  ssd_out <= flushing_addr;
+      //   6:  ssd_out <= y_min;
+      //   7:  ssd_out <= y_max;
       8:  ssd_out <= tri_id;
       9:  ssd_out <= current_tri_vertex;
       10: ssd_out <= tri_valid;

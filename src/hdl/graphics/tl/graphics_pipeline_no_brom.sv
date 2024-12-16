@@ -53,6 +53,7 @@ module graphics_pipeline_no_brom #(
     output logic valid_out,
     output logic ready_out,
     output logic last_pixel_out,
+    output logic last_tri_out,
     output logic [$clog2(FB_HRES)-1:0] hcount_out,
     output logic [$clog2(FB_VRES)-1:0] vcount_out,
     output logic [ZWIDTH:0] z_out,
@@ -114,17 +115,23 @@ module graphics_pipeline_no_brom #(
       .viewport_x_positions_out(viewport_x_position),
       .viewport_y_positions_out(viewport_y_position),
       .z_depth_out(z_depth),
+      .last_pixel_out(sc_last_pixel_out),
       .color_out(color_out_temp)
   );
+
+  logic sc_last_pixel_out;
+
   always_ff @(posedge clk_in) begin
+    // something went into the rasterizer and it shall control
     if (rasterizer_valid_in && rasterizer_ready_out) begin
       // update the color to the new value
       color_out <= color_out_temp;
-      //   viewport_x_position_temp = viewport_x_position;
-      //   viewport_y_position_temp = viewport_y_position;
     end
   end
 
+  assign last_pixel_out = sc_last_pixel_out || rast_last_pixel_out;
+
+  logic rast_last_pixel_out;
   rasterizer #(
       .XWIDTH(VIEWPORT_H_POSITION_WIDTH),
       .YWIDTH(VIEWPORT_W_POSITION_WIDTH),
@@ -160,7 +167,7 @@ module graphics_pipeline_no_brom #(
       .vcount_out(vcount_out),
       .addr_out(addr_out),
       .z_out(z_out),
-      .last_pixel(last_pixel_out),
+      .last_pixel(rast_last_pixel_out),
       // DEBUGGING VALUES
       .x_min_out(x_min_out),
       .x_max_out(x_max_out),
@@ -173,5 +180,14 @@ module graphics_pipeline_no_brom #(
   );
 
 
+  always_ff @(posedge clk_in) begin
+    if (rst_in) begin
+      last_tri_out <= 0;
+    end else begin
+      if (valid_in && ready_out) begin
+        last_tri_out <= tri_id_in == NUM_TRI - 1;
+      end
+    end
+  end
 
 endmodule
