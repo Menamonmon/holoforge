@@ -12,8 +12,8 @@ module framebuffer #(
 
     //in from rasterizer/vid src
     input wire valid_in,
-    input wire strobe_in,
     input wire [26:0] addr_in,
+    input wire strobe_in,
     input wire [Z_WIDTH-1:0] depth_in,
     input wire [15:0] color_in,
     input wire frame,
@@ -99,7 +99,7 @@ module framebuffer #(
       .ready_in(addr_fifo_ready_out && data_fifo_ready_out),
       .valid_in(valid_in),
       .ready_out(rasterizer_rdy_out),
-      .strobe_in(strobe_in),
+      .strobe_in,
       .addr(addr_in),
       .data_in(color_in),
       .addr_out(write_addr[12:0]),

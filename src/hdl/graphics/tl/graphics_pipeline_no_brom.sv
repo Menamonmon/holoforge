@@ -105,6 +105,7 @@ module graphics_pipeline_no_brom #(
       .valid_in(valid_in),
       .ready_in(rasterizer_ready_out),
       .tri_id_in(tri_id_in),
+      .glob_ready_in(ready_in),
       .P(P),
       .C(C),
       .u(u),

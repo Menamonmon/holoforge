@@ -361,6 +361,7 @@ async def test_graphics(dut):
 			f"NEGATIVE DEPTHS: {negative_depths/tot}, POSITIVE DEPTHS: {positive_depths/tot}"
 		)
 
+	dut.ready_in = 0
 	for l in range(200):
 		await RisingEdge(dut.clk_in)
 	print("X TRIANGLES")
