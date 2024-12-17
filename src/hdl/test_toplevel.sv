@@ -375,14 +375,6 @@ module test_toplevel (
           end
         end
       endcase
-      //   if (!clearing && graphics_last_tri_out && graphics_last_pixel_out && framebuffer_ready_out) begin
-      //     clearing <= 1;
-      //     frame_config <= ~frame_config;
-      //   end
-
-      //   if (clearing && clearing_write_addr == DEPTH - 1 && btn[2]) begin
-      //     clearing <= 0;
-      //   end
     end
   end
 
