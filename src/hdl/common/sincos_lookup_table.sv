@@ -17,18 +17,22 @@ module sincos_lookup_table #(
     output logic signed [15:0] val_out  // always a 16-bit number since [-1, 1]
 );
 
-  xilinx_true_dual_port_read_first_1_clock_ram #(
-      .DATA_WIDTH(16),
-      .ADDR_WIDTH($clog2(ENTRIES)),
+  brom #(
+      .RAM_WIDTH(16),
+      .RAM_DEPTH(ENTRIES),
       .RAM_PERFORMANCE("HIGH_PERFORMANCE"),  // Select "HIGH_PERFORMANCE" or "LOW_LATENCY" 
       .INIT_FILE(
-      `FPATH(FILENAME)
+      FILENAME
       )  // Specify name/location of RAM initialization file if using one (leave blank if not)
   ) triangles_ram (
-      .clk(clk_in),
-      .we(1'b0),
-      .addr(x),
-      .data_out(val_out)
+      .clka(clk_in),
+      .rsta(rst_in),
+      .wea(1'b0),
+      .ena(1'b1),
+      .regcea(1'b1),
+      .addra(x),
+      .douta(val_out),
+      .dina(0)
   );
 
 endmodule

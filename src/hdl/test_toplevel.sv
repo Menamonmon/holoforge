@@ -112,8 +112,9 @@ module test_toplevel (
   logic [15:0] data;
   logic [26:0] addr;
   logic next_data_ready;
-  logic [$clog2(HRES)-1:0] hcount;
-  logic [$clog2(VRES)-1:0] vcount;
+  logic [$clog2(HRES)-1:0] chcount;
+  logic [$clog2(VRES)-1:0] cvcount;
+  logic [$clog2(DEPTH)-1:0] carea;
   assign next_data_ready = stacker_ready_out;
 
   logic        frame_buff_tvalid;
@@ -145,6 +146,15 @@ module test_toplevel (
   end
 
 
+  // full button rising edge
+  logic [3:0] prev_fbtn;
+  logic [3:0] fbtn_rising_edge;
+  always_ff @(posedge clk_100_passthrough) begin
+    prev_fbtn <= btn;
+    fbtn_rising_edge <= btn & ~prev_fbtn;
+  end
+
+
   logic [31:0] ssd_out;
   logic [6:0] ss_c;
 
@@ -168,6 +178,101 @@ module test_toplevel (
       .tri_id_out(tri_id)
   );
 
+
+
+  localparam C_WIDTH = 18;
+  localparam COLOR_WIDTH = 16;
+  localparam Z_WIDTH = C_WIDTH + 1;
+
+  logic signed [2:0][C_WIDTH-1:0] C, C_temp;
+  logic signed [2:0][15:0] u, v, n, u_temp, v_temp, n_temp;
+  logic cam_control_valid_out;
+
+
+  // MANUAL CONTROL
+
+  always_ff @(posedge clk_100_passthrough) begin
+    // controls btn 2 = +, btn 3 = -
+    // select input on sw[1:0]
+    // 0 => chcount
+    // 1 => cvcount
+    // 2 => carea
+
+    case (sw[1:0])
+      2'b00: begin
+        chcount <= fbtn_rising_edge[2] ? chcount + 10 : (fbtn_rising_edge[3] ? chcount - 10 : chcount);
+      end
+      2'b01: begin
+        cvcount <= fbtn_rising_edge[2] ? cvcount + 10 : (fbtn_rising_edge[3] ? cvcount - 10 : cvcount);
+      end
+      2'b10: begin
+        carea <= fbtn_rising_edge[2] ? carea + 50 : (fbtn_rising_edge[3] ? carea - 50 : carea);
+      end
+      2'b11: begin
+        chcount <= HRES / 2;
+        cvcount <= VRES / 2;
+        carea   <= DEPTH / 2;
+      end
+    endcase
+
+
+    // sw[2]:  swap u and v
+    // sw[3]: negate u
+    // sw[4]: negate v
+
+  end
+
+  wrapped_camera_control #(
+      .HRES(HRES),
+      .VRES(VRES)
+  ) camera_control (
+      .clk_in(clk_100_passthrough),
+      .rst_in(sys_rst),
+      .x_in(chcount),
+      .y_in(cvcount),
+      .area_in(carea),
+      .valid_in(1'b1),
+      .C_out(C_temp),
+      .u_out(u_temp),
+      .v_out(v_temp),
+      .n_out(n_temp),
+      .valid_out(cam_control_valid_out)
+  );
+
+
+
+  //   always_comb begin
+  //     if (sw[0]) begin
+  //       C = 54'b111011111111000011000010010111001110000011110010000000;
+  //       u = 48'h00003646de16;
+  //       v = 48'hd070e94edbaf;
+  //       n = 48'h2ad3e6ccd7aa;
+  //     end else begin
+  //       C = 54'b111011101001001001111100000011100111000101011011011001;
+  //       u = 48'h000033c7259e;
+  //       v = 48'hca53147de3cd;
+  //       n = 48'h22db1f8dd493;
+  //     end
+  //   end
+
+
+  localparam HWIDTH = $clog2(HRES);
+  localparam VWIDTH = $clog2(VRES);
+  localparam XWIDTH = 18;
+  localparam YWIDTH = 19;
+
+  logic [HWIDTH-1:0] hcount_max, hcount_min;
+  logic [VWIDTH-1:0] vcount_max, vcount_min;
+  logic [XWIDTH-1:0] x_max, x_min;
+  logic [YWIDTH-1:0] y_max, y_min;
+  logic graphics_valid_out;
+  logic graphics_last_pixel_out;
+  logic graphics_last_tri_out;
+  logic [26:0] graphics_addr_out;
+  logic [15:0] graphics_color_out;
+  logic [Z_WIDTH-1:0] graphics_depth_out;
+  logic framebuffer_ready_out;
+  logic graphics_ready_out;
 
   // GRAPHICS PIPELINE PARAMS
 
@@ -199,47 +304,6 @@ module test_toplevel (
   //     "VW_BY_HRES": 136,
   //     "VH_BY_VRES": 137,
   // }
-
-
-  localparam C_WIDTH = 18;
-  localparam COLOR_WIDTH = 16;
-  localparam Z_WIDTH = C_WIDTH + 1;
-
-  logic signed [2:0][C_WIDTH-1:0] C;
-  logic signed [2:0][15:0] u, v, n;
-
-  always_comb begin
-    if (sw[0]) begin
-      C = 54'b111011111111000011000010010111001110000011110010000000;
-      u = 48'h00003646de16;
-      v = 48'hd070e94edbaf;
-      n = 48'h2ad3e6ccd7aa;
-    end else begin
-      C = 54'b111011101001001001111100000011100111000101011011011001;
-      u = 48'h000033c7259e;
-      v = 48'hca53147de3cd;
-      n = 48'h22db1f8dd493;
-    end
-  end
-
-
-  localparam HWIDTH = $clog2(HRES);
-  localparam VWIDTH = $clog2(VRES);
-  localparam XWIDTH = 18;
-  localparam YWIDTH = 19;
-
-  logic [HWIDTH-1:0] hcount_max, hcount_min;
-  logic [VWIDTH-1:0] vcount_max, vcount_min;
-  logic [XWIDTH-1:0] x_max, x_min;
-  logic [YWIDTH-1:0] y_max, y_min;
-  logic graphics_valid_out;
-  logic graphics_last_pixel_out;
-  logic graphics_last_tri_out;
-  logic [26:0] graphics_addr_out;
-  logic [15:0] graphics_color_out;
-  logic [Z_WIDTH-1:0] graphics_depth_out;
-  logic framebuffer_ready_out;
-  logic graphics_ready_out;
 
   graphics_pipeline_no_brom #(
       .P_WIDTH(16),
@@ -285,20 +349,8 @@ module test_toplevel (
       .last_pixel_out(graphics_last_pixel_out),
       .last_tri_out(graphics_last_tri_out),
       .addr_out(graphics_addr_out),
-      .hcount_out(hcount),
-      .vcount_out(vcount),
       .z_out(graphics_depth_out),
-      .color_out(graphics_color_out),
-
-      // DEBUGGING VALUES
-      .x_min_out(x_min),
-      .x_max_out(x_max),
-      .y_min_out(y_min),
-      .y_max_out(y_max),
-      .hcount_min_out(hcount_min),
-      .hcount_max_out(hcount_max),
-      .vcount_min_out(vcount_min),
-      .vcount_max_out(vcount_max)
+      .color_out(graphics_color_out)
   );
 
 
@@ -370,8 +422,12 @@ module test_toplevel (
           if (clearing_write_addr == DEPTH - 1) begin
             state <= COUNTING;
             // read the latest C, u, v, n values and save them to the registers here
-
-
+            if (cam_control_valid_out) begin
+              C <= C_temp;
+              u <= u_temp;
+              v <= v_temp;
+              n <= n_temp;
+            end
           end
         end
       endcase
@@ -391,21 +447,6 @@ module test_toplevel (
         write_color  = graphics_depth_out[Z_WIDTH-3:Z_WIDTH-18];
         pwrite_depth = pgraphics_depth_out[Z_WIDTH-1:Z_WIDTH-12];
       end
-
-      //   FLUSHING: begin
-      //     if (graphics_valid_out) begin
-      //       write_addr  = graphics_addr_out;
-      //       write_color = graphics_depth_out[Z_WIDTH-3:Z_WIDTH-18];
-      //     end else begin
-      //       write_addr  = flushing_write_addr;
-      //       write_color = 16'h0000;
-      //     end
-      //     if (pgraphics_valid_out) begin
-      //       pwrite_depth = pgraphics_depth_out[Z_WIDTH-1:Z_WIDTH-12];
-      //     end else begin
-      //       pwrite_depth = 12'hfff;
-      //     end
-      //   end
 
       CLEARING: begin
         write_addr   = clearing_write_addr;
