@@ -126,7 +126,8 @@ module test_toplevel (
   localparam TRI_BRAM_SIZE = 20;
 
 
-  assign led = sw;  //to verify the switch values
+  // assign led = sw;  //to verify the switch values
+  assign led[0]=camera_valid;
 
 
   // DEBUGGING ON SEVEN SEGMENT DISPLAY
@@ -146,13 +147,131 @@ module test_toplevel (
 
 
   logic [31:0] ssd_out;
-  logic [6:0] ss_c;
+  // logic [6:0] ss_c;
 
 
   logic [15:0] current_tri_vertex;
   logic [16:0] tri_id;
   logic signed [2:0][2:0][15:0] tri_vertices;
   logic tri_valid;
+
+
+  //CAMERA 
+
+  //basic camera init stuff
+  logic [7:0]    camera_d_buf [1:0];
+  logic          cam_hsync_buf [1:0];
+  logic          cam_vsync_buf [1:0];
+  logic          cam_pclk_buf [1:0];
+
+  always_ff @(posedge clk_camera) begin
+     camera_d_buf <= {camera_d, camera_d_buf[1]};
+     cam_pclk_buf <= {cam_pclk, cam_pclk_buf[1]};
+     cam_hsync_buf <= {cam_hsync, cam_hsync_buf[1]};
+     cam_vsync_buf <= {cam_vsync, cam_vsync_buf[1]};
+  end
+
+  logic [10:0] camera_hcount;
+  logic [9:0]  camera_vcount;
+  logic [15:0] camera_pixel;
+  logic        camera_valid;
+
+  logic mask;
+
+  logic [10:0] x_com;
+  logic [9:0] y_com;
+  logic com_valid;
+
+
+
+
+  pixel_reconstruct woah (.clk_in(clk_camera),
+     .rst_in(sys_rst_camera),
+     .camera_pclk_in(cam_pclk_buf[0]),
+     .camera_hs_in(cam_hsync_buf[0]),
+     .camera_vs_in(cam_vsync_buf[0]),
+     .camera_data_in(camera_d_buf[0]),
+     .pixel_valid_out(camera_valid),
+     .pixel_hcount_out(camera_hcount),
+     .pixel_vcount_out(camera_vcount),
+     .pixel_data_out(camera_pixel));
+
+  hardcoded_threshold mt(
+    .clk_in(clk_camera),
+    .rst_in(sys_rst_camera),
+    .pixel_in(camera_pixel),
+    .mask_out(mask) //single bit if pixel within mask.
+  );
+
+  center_of_mass com_m(
+    .clk_in(clk_camera),
+    .rst_in(sys_rst_camera),
+    .x_in(camera_hcount>>2),  //TODO: needs to use pipelined signal! (PS3)
+    .y_in(camera_vcount>>2), //TODO: needs to use pipelined signal! (PS3)
+    .valid_in(camera_valid && mask && camera_hcount[1:0]==2'b00 && camera_vcount[1:0]==2'b00), //aka threshold
+    .tabulate_in(camera_hcount==1279 && camera_vcount==719),
+    .x_out(x_com),
+    .y_out(y_com),
+    .valid_out(com_valid)
+  );
+
+  //printing COM
+  logic [31:0] display;
+  always_ff@(posedge clk_camera)begin
+    case(sw[15:0])
+    0: display<=camera_hcount;
+    1:display<=camera_vcount;
+    2:display<=mask;
+    3:display<=32'hDEADBEEF;
+    11: display<=x_com;
+    12: display<=y_com;
+    13: display<=com_valid;
+    14: display<=camera_pixel;
+    15: display<=camera_valid;
+    endcase
+
+
+  end
+  logic [10:0] x_com_display;
+  logic [9:0]  y_com_display;
+  logic [5:0]  counter;
+
+  evt_counter #(.MAX_COUNT(30)) JUSTWORKKKKKK (
+    .clk_in(clk_camera),
+    .rst_in(sys_rst_pixel),
+    .evt_in(1'b1),
+    .count_out(counter)
+    );
+
+  always_ff @(posedge clk_camera)begin
+    if (sys_rst_pixel)begin
+      x_com <= 0;
+      y_com <= 0;
+    end if(com_valid)begin
+      if(counter==0)begin
+        x_com_display<=x_com; 
+        y_com_display<=y_com;
+      end
+    end
+  end
+
+  logic [6:0] ss_c;
+  seven_segment_controller meowmeow (
+    .clk_in(clk_camera),
+    .rst_in(sys_rst_camera),
+    // .val_in(32'b11011110101011011011111011101111),
+    .val_in({display}),
+    .cat_out(ss_c),
+    .an_out({ss0_an,ss1_an})
+  );
+  assign ss0_c = ss_c; //control upper four digit's cathodes!
+  assign ss1_c = ss_c; //same as above but for lower four digits!
+
+
+
+
+
+
 
 
   // TRIANGLE FETCH
@@ -343,6 +462,7 @@ module test_toplevel (
     FLUSHING,
     CLEARING
   } state;
+
 
   // CLEARING LOGIC
   always_ff @(posedge clk_100_passthrough) begin
@@ -672,15 +792,15 @@ module test_toplevel (
       17: ssd_out <= framebuffer_ready_out;
     endcase
   end
-  seven_segment_controller sevensegg (
-      .clk_in (clk_100_passthrough),
-      .rst_in (btn[0]),
-      .val_in (ssd_out),
-      .cat_out(ss_c),
-      .an_out ({ss0_an, ss1_an})
-  );
-  assign ss0_c = ss_c;
-  assign ss1_c = ss_c;
+  // seven_segment_controller sevensegg (
+  //     .clk_in (clk_100_passthrough),
+  //     .rst_in (btn[0]),
+  //     .val_in (ssd_out),
+  //     .cat_out(ss_c),
+  //     .an_out ({ss0_an, ss1_an})
+  // );
+  // assign ss0_c = ss_c;
+  // assign ss1_c = ss_c;
 
 
   cw_hdmi_clk_wiz wizard_hdmi (
@@ -782,6 +902,74 @@ module test_toplevel (
       .O (hdmi_clk_p),
       .OB(hdmi_clk_n)
   );
+
+  //Camera init
+  logic  busy, bus_active;
+  logic  cr_init_valid, cr_init_ready;
+
+  logic  recent_reset;
+  always_ff @(posedge clk_camera) begin
+    if (sys_rst_camera) begin
+        recent_reset <= 1'b1;
+        cr_init_valid <= 1'b0;
+    end
+    else if (recent_reset) begin
+        cr_init_valid <= 1'b1;
+        recent_reset <= 1'b0;
+    end else if (cr_init_valid && cr_init_ready) begin
+        cr_init_valid <= 1'b0;
+    end
+  end
+
+  logic [23:0] bram_dout;
+  logic [7:0]  bram_addr;
+
+  // ROM holding pre-built camera settings to send
+  xilinx_single_port_ram_read_first
+    #(
+      .RAM_WIDTH(24),
+      .RAM_DEPTH(256),
+      .RAM_PERFORMANCE("HIGH_PERFORMANCE"),
+      .INIT_FILE("rom.mem")
+      ) registers
+      (
+      .addra(bram_addr),     // Address bus, width determined from RAM_DEPTH
+      .dina(24'b0),          // RAM input data, width determined from RAM_WIDTH
+      .clka(clk_camera),     // Clock
+      .wea(1'b0),            // Write enable
+      .ena(1'b1),            // RAM Enable, for additional power savings, disable port when not in use
+      .rsta(sys_rst_camera), // Output reset (does not affect memory contents)
+      .regcea(1'b1),         // Output register enable
+      .douta(bram_dout)      // RAM output data, width determined from RAM_WIDTH
+      );
+
+  logic [23:0] registers_dout;
+  logic [7:0]  registers_addr;
+  assign registers_dout = bram_dout;
+  assign bram_addr = registers_addr;
+
+  logic       con_scl_i, con_scl_o, con_scl_t;
+  logic       con_sda_i, con_sda_o, con_sda_t;
+
+  // NOTE these also have pullup specified in the xdc file!
+  // access our inouts properly as tri-state pins
+  IOBUF IOBUF_scl (.I(con_scl_o), .IO(i2c_scl), .O(con_scl_i), .T(con_scl_t) );
+  IOBUF IOBUF_sda (.I(con_sda_o), .IO(i2c_sda), .O(con_sda_i), .T(con_sda_t) );
+
+  // provided module to send data BRAM -> I2C
+  camera_registers crw
+    (.clk_in(clk_camera),
+    .rst_in(sys_rst_camera),
+    .init_valid(cr_init_valid),
+    .init_ready(cr_init_ready),
+    .scl_i(con_scl_i),
+    .scl_o(con_scl_o),
+    .scl_t(con_scl_t),
+    .sda_i(con_sda_i),
+    .sda_o(con_sda_o),
+    .sda_t(con_sda_t),
+    .bram_dout(registers_dout),
+    .bram_addr(registers_addr));
 
 endmodule  // top_level
 
