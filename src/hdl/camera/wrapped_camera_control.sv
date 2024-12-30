@@ -21,6 +21,10 @@ module wrapped_camera_control #(
     output logic signed [2:0][SINCOS_WIDTH-1:0] u_out,
     output logic signed [2:0][SINCOS_WIDTH-1:0] v_out,
     output logic signed [2:0][SINCOS_WIDTH-1:0] n_out,
+    output logic signed [SINCOS_WIDTH-1:0] cos_phi_out,
+    output logic signed [SINCOS_WIDTH-1:0] cos_theta_out,
+    output logic signed [SINCOS_WIDTH-1:0] sin_phi_out,
+    output logic signed [SINCOS_WIDTH-1:0] sin_theta_out,
     output logic signed valid_out
 );
   localparam HWIDTH = $clog2(HRES);
@@ -34,7 +38,7 @@ module wrapped_camera_control #(
 
   logic signed [POS_WIDTH-1:0] mag, mag_in;
 
-  // 2 cycle delay
+  //   2 cycle delay
   sincos_lookup_table #(
       .FILENAME("../../data/theta_sin_table.mem"),
       .ENTRIES (HRES)
@@ -74,6 +78,12 @@ module wrapped_camera_control #(
       .x(y_in),
       .val_out(cos_phi_in)
   );
+  // 
+  //   assign cos_phi_in   = 16'h1e0c;
+  //   assign cos_theta_in = 16'h15e4;
+  //   assign sin_phi_in   = 16'h3882;
+  //   assign sin_theta_in = 16'h3c24;
+
 
   logic pvalid_in;
 
@@ -85,6 +95,14 @@ module wrapped_camera_control #(
       .data(valid_in),
       .data_out(pvalid_in)
   );
+
+  assign mag[POS_WIDTH-1:POS_WIDTH-9] = area_in[AWIDTH-1:AWIDTH-9];
+
+  assign cos_phi_out = cos_phi_in;
+  assign cos_theta_out = cos_theta_in;
+  assign sin_phi_out = sin_phi_in;
+  assign sin_theta_out = sin_theta_in;
+
 
   pipeline #(
       .STAGES(2),

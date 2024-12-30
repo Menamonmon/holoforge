@@ -6,8 +6,9 @@
 `define FPATH(X) `"../../data/X`"
 `endif  /* ! SYNTHESIS */
 
+// FILENAME = 
 module sincos_lookup_table #(
-    parameter FILENAME = "mesh.mem",
+    parameter FILENAME = "../src/data/phi_cos_table.mem",
     parameter ENTRIES  = 1024
 ) (
     input wire clk_in,  //system clock
