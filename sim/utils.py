@@ -166,12 +166,12 @@ def is_point_in_triangle(triangle, point):
 	Determines if a 2D point is inside a given triangle.
 
 	Args:
-																																																																																																																																	triangle (tuple): A tuple of three points (p1, p2, p3) defining the triangle.
-																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																	  Each point is a tuple (x, y).
-																																																																																																																																	point (tuple): The 2D point to check, given as (x, y).
+																																																																																																																																																																																																																																																																	triangle (tuple): A tuple of three points (p1, p2, p3) defining the triangle.
+																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																	  Each point is a tuple (x, y).
+																																																																																																																																																																																																																																																																	point (tuple): The 2D point to check, given as (x, y).
 
 	Returns:
-																																																																																																																																	bool: True if the point is inside the triangle, False otherwise.
+																																																																																																																																																																																																																																																																	bool: True if the point is inside the triangle, False otherwise.
 	"""
 
 	def area(p1, p2, p3):
@@ -210,12 +210,12 @@ def barycentric_raw_areas(x, y, triangle):
 	Calculates the raw areas of the three sub-triangles for barycentric interpolation.
 
 	Args:
-																																																																	i (float): x-coordinate of the point.
-																																																																	j (float): y-coordinate of the point.
-																																																																	triangle (tuple): A tuple of three vertices ((x1, y1), (x2, y2), (x3, y3)).
+																																																																																																																																	i (float): x-coordinate of the point.
+																																																																																																																																	j (float): y-coordinate of the point.
+																																																																																																																																	triangle (tuple): A tuple of three vertices ((x1, y1), (x2, y2), (x3, y3)).
 
 	Returns:
-																																																																	tuple: Raw signed areas (area1, area2, area3) of the sub-triangles.
+																																																																																																																																	tuple: Raw signed areas (area1, area2, area3) of the sub-triangles.
 	"""
 	x1, y1 = triangle[0]
 	x2, y2 = triangle[1]
@@ -405,12 +405,12 @@ def is_point_in_triangle(triangle, point):
 	Determines if a 2D point is inside a given triangle.
 
 	Args:
-																																																																																																																																	triangle (tuple): A tuple of three points (p1, p2, p3) defining the triangle.
-																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																	  Each point is a tuple (x, y).
-																																																																																																																																	point (tuple): The 2D point to check, given as (x, y).
+																																																																																																																																																																																																																																																																	triangle (tuple): A tuple of three points (p1, p2, p3) defining the triangle.
+																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																	  Each point is a tuple (x, y).
+																																																																																																																																																																																																																																																																	point (tuple): The 2D point to check, given as (x, y).
 
 	Returns:
-																																																																																																																																	bool: True if the point is inside the triangle, False otherwise.
+																																																																																																																																																																																																																																																																	bool: True if the point is inside the triangle, False otherwise.
 	"""
 
 	def area(p1, p2, p3):
@@ -449,12 +449,12 @@ def barycentric_raw_areas(x, y, triangle):
 	Calculates the raw areas of the three sub-triangles for barycentric interpolation.
 
 	Args:
-																																																																	i (float): x-coordinate of the point.
-																																																																	j (float): y-coordinate of the point.
-																																																																	triangle (tuple): A tuple of three vertices ((x1, y1), (x2, y2), (x3, y3)).
+																																																																																																																																	i (float): x-coordinate of the point.
+																																																																																																																																	j (float): y-coordinate of the point.
+																																																																																																																																	triangle (tuple): A tuple of three vertices ((x1, y1), (x2, y2), (x3, y3)).
 
 	Returns:
-																																																																	tuple: Raw signed areas (area1, area2, area3) of the sub-triangles.
+																																																																																																																																	tuple: Raw signed areas (area1, area2, area3) of the sub-triangles.
 	"""
 	x1, y1 = triangle[0]
 	x2, y2 = triangle[1]
@@ -560,7 +560,6 @@ def project_triangle(vertices, camera_center, u, v, n, focal_length=1.0):
 		x.append(x_proj)
 		y.append(y_proj)
 		z.append(z_camera)
-		
 
 	return x, y, z
 
@@ -584,11 +583,16 @@ def calculate_camera_basis(phi, theta, r):
 	u = [-math.sin(phi), math.cos(phi), 0]
 
 	# Direct calculation of the Up vector v
-	v_x = n[1] * u[2] - n[2] * u[1]
-	v_y = n[2] * u[0] - n[0] * u[2]
-	v_z = n[0] * u[1] - n[1] * u[0]
 
-	v = [v_x, v_y, v_z]
+	# write an explciit formula for v without using n or u
+	v = [math.cos(theta) * math.cos(phi), math.cos(theta) * math.sin(phi), -math.sin(theta)]
+
+
+	# v_x = n[1] * u[2] - n[2] * u[1]
+	# v_y = n[2] * u[0] - n[0] * u[2]
+	# v_z = n[0] * u[1] - n[1] * u[0]
+
+	# v = [v_x, v_y, v_z]
 
 	# Normalize the vectors to ensure they are unit vectors
 	def normalize(vec):
@@ -653,4 +657,3 @@ def find_sv_files(directory):
 		for d in dirs:
 			sv_files += find_sv_files(os.path.join(root, d))
 	return sv_files
-
