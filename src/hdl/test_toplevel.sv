@@ -58,6 +58,7 @@ module test_toplevel (
   logic clk_ui;
   logic clk_xc;
   logic sys_rst_ui;
+  logic sys_rst;
 
   logic clk_100_passthrough;
 
@@ -87,7 +88,7 @@ module test_toplevel (
   assign rgb1 = 0;
 
   assign cam_xclk = clk_xc;
-  logic        sys_rst;
+  localparam SINCOS_WIDTH = 16;
 
 
 
@@ -197,24 +198,30 @@ module test_toplevel (
     // 0 => chcount
     // 1 => cvcount
     // 2 => carea
+    if (sys_rst) begin
+      chcount <= HRES / 2;
+      cvcount <= VRES / 2;
+      carea   <= DEPTH / 2;
+    end else begin
+      case (sw[1:0])
+        2'b00: begin
+          chcount <= fbtn_rising_edge[2] ? chcount + 10 : (fbtn_rising_edge[3] ? chcount - 10 : chcount);
+        end
+        2'b01: begin
+          cvcount <= fbtn_rising_edge[2] ? cvcount + 10 : (fbtn_rising_edge[3] ? cvcount - 10 : cvcount);
+        end
+        2'b10: begin
+          carea <= fbtn_rising_edge[2] ? carea + 50 : (fbtn_rising_edge[3] ? carea - 50 : carea);
+        end
+        2'b11: begin
+          chcount <= HRES / 2;
+          cvcount <= VRES / 2;
+          carea   <= DEPTH / 2;
+        end
+      endcase
 
-    case (sw[1:0])
-      2'b00: begin
-        chcount <= fbtn_rising_edge[2] ? chcount + 10 : (fbtn_rising_edge[3] ? chcount - 10 : chcount);
-      end
-      2'b01: begin
-        cvcount <= fbtn_rising_edge[2] ? cvcount + 10 : (fbtn_rising_edge[3] ? cvcount - 10 : cvcount);
-      end
-      2'b10: begin
-        carea <= fbtn_rising_edge[2] ? carea + 50 : (fbtn_rising_edge[3] ? carea - 50 : carea);
-      end
-      2'b11: begin
-        chcount <= HRES / 2;
-        cvcount <= VRES / 2;
-        carea   <= DEPTH / 2;
-      end
-    endcase
 
+    end
 
     // sw[2]:  swap u and v
     // sw[3]: negate u
@@ -236,10 +243,17 @@ module test_toplevel (
       .u_out(u_temp),
       .v_out(v_temp),
       .n_out(n_temp),
-      .valid_out(cam_control_valid_out)
+      .valid_out(cam_control_valid_out),
+      .cos_phi_out(cos_phi_in),
+      .cos_theta_out(cos_theta_in),
+      .sin_phi_out(sin_phi_in),
+      .sin_theta_out(sin_theta_in)
   );
 
-
+  logic signed [SINCOS_WIDTH-1:0] cos_phi_in;
+  logic signed [SINCOS_WIDTH-1:0] cos_theta_in;
+  logic signed [SINCOS_WIDTH-1:0] sin_phi_in;
+  logic signed [SINCOS_WIDTH-1:0] sin_theta_in;
 
   //   always_comb begin
   //     if (sw[0]) begin
@@ -263,8 +277,6 @@ module test_toplevel (
 
   logic [HWIDTH-1:0] hcount_max, hcount_min;
   logic [VWIDTH-1:0] vcount_max, vcount_min;
-  logic [XWIDTH-1:0] x_max, x_min;
-  logic [YWIDTH-1:0] y_max, y_min;
   logic graphics_valid_out;
   logic graphics_last_pixel_out;
   logic graphics_last_tri_out;
@@ -685,24 +697,18 @@ module test_toplevel (
 
   always_ff @(posedge clk_100_passthrough) begin
     case (sw[15:10])
-      0:  ssd_out <= state;
-      1:  ssd_out <= clearing_write_addr;
-      2:  ssd_out <= u;
-      3:  ssd_out <= v;
-      4:  ssd_out <= n;
-      5:  ssd_out <= C;
-      //   6:  ssd_out <= y_min;
-      //   7:  ssd_out <= y_max;
-      8:  ssd_out <= tri_id;
-      9:  ssd_out <= current_tri_vertex;
-      10: ssd_out <= tri_valid;
-      11: ssd_out <= graphics_addr_out;
-      12: ssd_out <= graphics_depth_out;
-      13: ssd_out <= graphics_color_out;
-      14: ssd_out <= graphics_valid_out;
-      15: ssd_out <= graphics_ready_out;
-      16: ssd_out <= graphics_last_pixel_out;
-      17: ssd_out <= framebuffer_ready_out;
+      0:  ssd_out <= chcount;
+      1:  ssd_out <= cvcount;
+      2:  ssd_out <= carea;
+      3:  ssd_out <= u;
+      4:  ssd_out <= v;
+      5:  ssd_out <= n;
+      6:  ssd_out <= C;
+      7:  ssd_out <= cam_control_valid_out;
+      8:  ssd_out <= cos_phi_in;
+      9:  ssd_out <= cos_theta_in;
+      10: ssd_out <= sin_phi_in;
+      11: ssd_out <= sin_theta_in;
     endcase
   end
   seven_segment_controller sevensegg (

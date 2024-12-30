@@ -3,7 +3,6 @@ import math
 from FixedPoint import FXnum, FXfamily
 import numpy as np
 
-
 norm_fam = FXfamily(14, 2)
 
 
@@ -20,7 +19,6 @@ def gen_lookup_table(n, offset=0, func=math.sin):
 	return table
 
 
-
 # avg error
 def avg_error(n, sin_table):
 	error = 0
@@ -32,12 +30,20 @@ def avg_error(n, sin_table):
 	return error / n
 
 
+def bin_to_hex(bin_str):
+	integer_value = int(bin_str, 2)
+	hex_value = hex(integer_value)
+
+	return f"{hex_value[2:]:0>4}"
+
+
 def table_to_brom(filename, num_fam, table):
 	# with open(filename, "w") as file:
 
-	lines = [
-		num_fam(entry).toBinaryString(logBase=4).replace(".", "") + "\n" for entry in table
-	]
+	lines = [num_fam(entry).toBinaryString().replace(".", "") + "\n" for entry in table]
+	lines = [bin_to_hex(line) + "\n" for line in lines]
+	print(lines[0], len(lines[0]))
+	assert len(lines[0].strip()) == 4
 	with open(filename, "w") as file:
 		file.writelines(lines)
 
