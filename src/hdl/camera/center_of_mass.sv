@@ -28,6 +28,7 @@ module center_of_mass (
     logic y_error;
     logic x_rem;
     logic y_rem;
+//		
     
     divider Div_x(
                     .clk_in(clk_in),
