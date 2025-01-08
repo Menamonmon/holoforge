@@ -5,6 +5,7 @@ import sys
 import numpy as np
 from FixedPoint import FXfamily, FXnum
 
+# import trimesh
 import trimesh
 
 
