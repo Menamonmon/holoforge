@@ -205,6 +205,7 @@ module test_toplevel (
       .mask_out(mask)  //single bit if pixel within mask.
   );
 
+  assign led[7]=camera_valid && mask && camera_hcount[1:0]==2'b00 && camera_vcount[1:0]==2'b00;
   center_of_mass com_m (
       .clk_in(clk_camera),
       .rst_in(sys_rst_camera),
@@ -221,8 +222,9 @@ module test_toplevel (
   logic [31:0] display;
   assign led[4] = camera_hcount;
   assign led[5] = camera_valid;
+  assign led[6] = mask;
   always_ff @(posedge clk_camera) begin
-    case (sw[15:0])
+    case (sw[4:0])
       0: display <= camera_hcount;
       1: display <= camera_vcount;
       2: display <= mask;
