@@ -87,7 +87,6 @@ module test_toplevel (
   assign rgb0 = 0;
   assign rgb1 = 0;
 
-  assign cam_xclk = clk_xc;
   localparam SINCOS_WIDTH = 16;
 
 
@@ -166,8 +165,267 @@ module test_toplevel (
   logic tri_valid;
 
 
-  // TRIANGLE FETCH
 
+
+  // Camera Zone
+  assign cam_xclk = clk_xc;
+  logic [7:0] camera_d_buf [1:0];
+  logic       cam_hsync_buf[1:0];
+  logic       cam_vsync_buf[1:0];
+  logic       cam_pclk_buf [1:0];
+
+  always_ff @(posedge clk_camera) begin
+    camera_d_buf  <= {camera_d, camera_d_buf[1]};
+    cam_pclk_buf  <= {cam_pclk, cam_pclk_buf[1]};
+    cam_hsync_buf <= {cam_hsync, cam_hsync_buf[1]};
+    cam_vsync_buf <= {cam_vsync, cam_vsync_buf[1]};
+  end
+
+  logic [10:0] camera_hcount;
+  logic [ 9:0] camera_vcount;
+  logic [15:0] camera_pixel;
+  logic        camera_valid;
+
+  pixel_reconstruct pc (
+      .clk_in(clk_camera),
+      .rst_in(sys_rst_camera),
+      .camera_pclk_in(cam_pclk_buf[0]),
+      .camera_hs_in(cam_hsync_buf[0]),
+      .camera_vs_in(cam_vsync_buf[0]),
+      .camera_data_in(camera_d_buf[0]),
+      .pixel_valid_out(camera_valid),
+      .pixel_hcount_out(camera_hcount),
+      .pixel_vcount_out(camera_vcount),
+      .pixel_data_out(camera_pixel)
+  );
+
+
+  localparam FB_DEPTH = 320 * 180;
+  localparam FB_SIZE = $clog2(FB_DEPTH);
+  logic [FB_SIZE-1:0] addra;  //used to specify address to write to in frame buffer
+
+  logic valid_camera_mem;  //used to enable writing pixel data to frame buffer
+  logic [15:0] camera_mem;  //used to pass pixel data into frame buffer
+
+
+  //TO DO in camera part 1:
+  always_ff @(posedge clk_camera) begin
+    //create logic to handle wriiting of camera.
+    //we want to down sample the data from the camera by a factor of four in both
+    //the x and y dimensions! TO DO
+    if (camera_hcount[1:0] == 2'b00 && camera_vcount[1:0] == 2'b00) begin
+      addra <= ((camera_hcount >> 2) + 320 * (camera_vcount >> 2));
+      valid_camera_mem <= camera_valid;
+      camera_mem <= camera_pixel;
+    end
+
+  end
+
+  // video signal generator signals
+  logic        hsync_com;
+  logic        vsync_com;
+  logic [10:0] hcount_com;
+  logic [ 9:0] vcount_com;
+  logic        active_draw_com;
+  logic        new_frame_com;
+  logic [ 5:0] frame_count_com;
+  logic        nf_com;
+
+  blk_mem_gen_0 frame_buffer (
+      .addra(addra),  //pixels are stored using this math
+      .clka(clk_camera),
+      .wea(valid_camera_mem),
+      .dina(camera_mem),
+      .ena(1'b1),
+      .douta(),  //never read from this side
+      .addrb(addrb),  //transformed lookup pixel
+      .dinb(16'b0),
+      .clkb(clk_pixel),
+      .web(1'b0),
+      .enb(1'b1),
+      .doutb(frame_buff_raw)
+  );
+  logic [15:0] frame_buff_raw;  //data out of frame buffer (565)
+  logic [FB_SIZE-1:0] addrb;  //used to lookup address in memory for reading from buffer
+  logic good_addrb;  //used to indicate within valid frame for scaling
+
+  logic [10:0] h_piped;
+  logic [9:0] v_piped;
+
+  pipeline #(
+      .DATA_WIDTH(11),
+      .STAGES(8)
+  ) hpipe1 (
+      .clk_in(clk_pixel),
+      .data(hcount_com),
+      .data_out(h_piped)
+  );
+  pipeline #(
+      .DATA_WIDTH(10),
+      .STAGES(8)
+  ) vpipe1 (
+      .clk_in(clk_pixel),
+      .data(vcount_com),
+      .data_out(v_piped)
+  );
+
+  always_ff @(posedge clk_pixel) begin
+    addrb <= (319 - hcount_hdmi) + 320 * vcount_hdmi;
+    good_addrb <= (hcount_hdmi < 320) && (vcount_hdmi < 180);
+  end
+
+  logic [7:0] fb_red, fb_green, fb_blue;
+  always_ff @(posedge clk_pixel) begin
+    fb_red   <= good_addrb ? {frame_buff_raw[15:11], 3'b0} : 8'b0;
+    fb_green <= good_addrb ? {frame_buff_raw[10:5], 2'b0} : 8'b0;
+    fb_blue  <= good_addrb ? {frame_buff_raw[4:0], 3'b0} : 8'b0;
+  end
+
+  logic [9:0] y_full, cr_full, cb_full;  //ycrcb conversion of full pixel
+  logic [7:0] y, cr, cb;  //ycrcb conversion of full pixel
+
+  rgb_to_ycrcb rgbtoycrcb_m (
+      .clk_in(clk_pixel),
+      .r_in  (fb_red),
+      .g_in  (fb_green),
+      .b_in  (fb_blue),
+      .y_out (y_full),
+      .cr_out(cr_full),
+      .cb_out(cb_full)
+  );
+
+  logic [2:0] channel_sel;
+  logic [7:0] selected_channel;  //selected channels
+  logic mask;  //Whether or not thresholded pixel is 1 or 0
+  logic [10:0] x_com, x_com_calc;  //long term x_com and output from module, resp
+  logic [9:0] y_com, y_com_calc;  //long term y_com and output from module, resp
+
+  logic new_com;  //used to know when to update x_com and y_com ...
+
+  assign y  = y_full[7:0];
+  assign cr = {!cr_full[7], cr_full[6:0]};
+  assign cb = {!cb_full[7], cb_full[6:0]};
+
+  logic [7:0] fb_data_out;
+  logic [7:0] fb_g_piped;
+  logic [7:0] fb_b_piped;
+  logic [7:0] fb_r_piped;
+
+  pipeline #(
+      .DATA_WIDTH(8),
+      .STAGES(4)
+  ) fb_r_p (
+      .clk_in(clk_pixel),
+      .data(fb_red),
+      .data_out(fb_r_piped)
+  );
+  pipeline #(
+      .DATA_WIDTH(8),
+      .STAGES(4)
+  ) fb_g_p (
+      .clk_in(clk_pixel),
+      .data(fb_green),
+      .data_out(fb_g_piped)
+  );
+  pipeline #(
+      .DATA_WIDTH(8),
+      .STAGES(4)
+  ) fb_b_p (
+      .clk_in(clk_pixel),
+      .data(fb_blue),
+      .data_out(fb_b_piped)
+  );
+
+  // channel_select mcs (
+  //     .sel_in(channel_sel),
+  //     .r_in(fb_data_out[2]),  //TODO: needs to use pipelined signal (PS1)
+  //     .g_in(fb_g_piped[2]),  //TODO: needs to use pipelined signal (PS1)
+  //     .b_in(fb_b_piped[2]),  //TODO: needs to use pipelined signal (PS1)
+  //     .y_in(y),
+  //     .cr_in(cr),
+  //     .cb_in(cb),
+  //     .channel_out(selected_channel)
+  // );
+
+  // channel_select mcs(
+  //    .sel_in(channel_sel),
+  //    .r_in(fb_data_out[2]),    //TODO: needs to use pipelined signal (PS1)
+  //    .g_in(fb_g_piped[2]),  //TODO: needs to use pipelined signal (PS1)
+  //    .b_in(fb_b_piped[2]),   //TODO: needs to use pipelined signal (PS1)
+  //    .y_in(y),
+  //    .cr_in(cr),
+  //    .cb_in(cb),
+  //    .channel_out(selected_channel)
+  // );
+
+
+  threshold mt (
+      .clk_in(clk_pixel),
+      .rst_in(sys_rst_pixel),
+      .pixel_in(cr),
+      .pixel_inb(cb),
+      .lower_bound_in(0),
+      .upper_bound_in(100),
+      .lower_bound_inb(150),
+      .upper_bound_inb(255),
+      .mask_out(mask)  //single bit if pixel within mask.
+  );
+
+  logic new_frame;
+  pipeline #(
+      .DATA_WIDTH(1),
+      .STAGES(8)
+  ) fram_pipe (
+      .clk_in(clk_pixel),
+      .data(nf_com),
+      .data_out(new_frame)
+  );
+
+  center_of_mass com_m (
+      .clk_in(clk_pixel),
+      .rst_in(sys_rst_pixel),
+      .x_in(h_piped),  //TODO: needs to use pipelined signal! (PS3)
+      .y_in(v_piped),  //TODO: needs to use pipelined signal! (PS3)
+      .valid_in(mask),  //aka threshold
+      .tabulate_in((new_frame)),
+      .x_out(x_com_calc),
+      .y_out(y_com_calc),
+      .valid_out(new_com)
+  );
+
+  always_ff @(posedge clk_pixel) begin
+    if (sys_rst_pixel) begin
+      x_com <= 0;
+      y_com <= 0;
+    end
+    if (new_com) begin
+      x_com <= x_com_calc;
+      y_com <= y_com_calc;
+    end
+  end
+
+  logic [7:0] img_red, img_green, img_blue;
+
+  video_sig_gen vsg_com (
+      .pixel_clk_in(clk_pixel),
+      .rst_in(sys_rst_pixel),
+      .hcount_out(hcount_com),
+      .vcount_out(vcount_com),
+      .vs_out(vsync_com),
+      .hs_out(hsync_com),
+      .nf_out(nf_com),
+      .ad_out(active_draw_com),
+      .fc_out(frame_count_com)
+  );
+
+
+
+
+
+
+
+
+  // TRIANGLE FETCH
   tri_fetch #(
       .TRI_COUNT(TRI_COUNT)
   ) tri_fetch_inst (
@@ -696,20 +954,22 @@ module test_toplevel (
 
 
   always_ff @(posedge clk_100_passthrough) begin
-    case (sw[15:10])
-      0:  ssd_out <= chcount;
-      1:  ssd_out <= cvcount;
-      2:  ssd_out <= carea;
-      3:  ssd_out <= u;
-      4:  ssd_out <= v;
-      5:  ssd_out <= n;
-      6:  ssd_out <= C;
-      7:  ssd_out <= cam_control_valid_out;
-      8:  ssd_out <= cos_phi_in;
-      9:  ssd_out <= cos_theta_in;
-      10: ssd_out <= sin_phi_in;
-      11: ssd_out <= sin_theta_in;
-    endcase
+    ssd_out[31:16] <= x_com_calc;
+    ssd_out[15:0]  <= y_com_calc;
+    // case (sw[15:10])
+    //   0:  ssd_out <= chcount;
+    //   1:  ssd_out <= cvcount;
+    //   2:  ssd_out <= carea;
+    //   3:  ssd_out <= u;
+    //   4:  ssd_out <= v;
+    //   5:  ssd_out <= n;
+    //   6:  ssd_out <= C;
+    //   7:  ssd_out <= cam_control_valid_out;
+    //   8:  ssd_out <= cos_phi_in;
+    //   9:  ssd_out <= cos_theta_in;
+    //   10: ssd_out <= sin_phi_in;
+    //   11: ssd_out <= sin_theta_in;
+    // endcase
   end
   seven_segment_controller sevensegg (
       .clk_in (clk_100_passthrough),
@@ -821,6 +1081,102 @@ module test_toplevel (
       .O (hdmi_clk_p),
       .OB(hdmi_clk_n)
   );
+
+
+  // Nothing To Touch Down Here:
+  // register writes to the camera
+
+  // The OV5640 has an I2C bus connected to the board, which is used
+  // for setting all the hardware settings (gain, white balance,
+  // compression, image quality, etc) needed to start the camera up.
+  // We've taken care of setting these all these values for you:
+  // "rom.mem" holds a sequence of bytes to be sent over I2C to get
+  // the camera up and running, and we've written a design that sends
+  // them just after a reset completes.
+
+  // If the camera is not giving data, press your reset button.
+
+  logic busy, bus_active;
+  logic cr_init_valid, cr_init_ready;
+
+  logic recent_reset;
+  always_ff @(posedge clk_camera) begin
+    if (sys_rst_camera) begin
+      recent_reset  <= 1'b1;
+      cr_init_valid <= 1'b0;
+    end else if (recent_reset) begin
+      cr_init_valid <= 1'b1;
+      recent_reset  <= 1'b0;
+    end else if (cr_init_valid && cr_init_ready) begin
+      cr_init_valid <= 1'b0;
+    end
+  end
+
+  logic [23:0] bram_dout;
+  logic [ 7:0] bram_addr;
+
+  // ROM holding pre-built camera settings to send
+  xilinx_single_port_ram_read_first #(
+      .RAM_WIDTH(24),
+      .RAM_DEPTH(256),
+      .RAM_PERFORMANCE("HIGH_PERFORMANCE"),
+      .INIT_FILE("rom.mem")
+  ) registers (
+      .addra(bram_addr),  // Address bus, width determined from RAM_DEPTH
+      .dina(24'b0),  // RAM input data, width determined from RAM_WIDTH
+      .clka(clk_camera),  // Clock
+      .wea(1'b0),  // Write enable
+      .ena(1'b1),  // RAM Enable, for additional power savings, disable port when not in use
+      .rsta(sys_rst_camera),  // Output reset (does not affect memory contents)
+      .regcea(1'b1),  // Output register enable
+      .douta(bram_dout)  // RAM output data, width determined from RAM_WIDTH
+  );
+
+  logic [23:0] registers_dout;
+  logic [ 7:0] registers_addr;
+  assign registers_dout = bram_dout;
+  assign bram_addr = registers_addr;
+
+  logic con_scl_i, con_scl_o, con_scl_t;
+  logic con_sda_i, con_sda_o, con_sda_t;
+
+  // NOTE these also have pullup specified in the xdc file!
+  // access our inouts properly as tri-state pins
+  IOBUF IOBUF_scl (
+      .I (con_scl_o),
+      .IO(i2c_scl),
+      .O (con_scl_i),
+      .T (con_scl_t)
+  );
+  IOBUF IOBUF_sda (
+      .I (con_sda_o),
+      .IO(i2c_sda),
+      .O (con_sda_i),
+      .T (con_sda_t)
+  );
+
+  // provided module to send data BRAM -> I2C
+  camera_registers crw (
+      .clk_in(clk_camera),
+      .rst_in(sys_rst_camera),
+      .init_valid(cr_init_valid),
+      .init_ready(cr_init_ready),
+      .scl_i(con_scl_i),
+      .scl_o(con_scl_o),
+      .scl_t(con_scl_t),
+      .sda_i(con_sda_i),
+      .sda_o(con_sda_o),
+      .sda_t(con_sda_t),
+      .bram_dout(registers_dout),
+      .bram_addr(registers_addr)
+  );
+
+  // a handful of debug signals for writing to registers
+  // assign led[0] = crw.bus_active;
+  // assign led[1] = cr_init_valid;
+  // assign led[2] = cr_init_ready;
+  // assign led[15:3] = 0;
+
 
 endmodule  // top_level
 
