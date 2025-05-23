@@ -159,7 +159,6 @@ module test_toplevel (
   logic [6:0] ss_c;
 
 
-  logic [15:0] current_tri_vertex;
   logic [16:0] tri_id;
   logic signed [2:0][2:0][15:0] tri_vertices;
   logic tri_valid;
@@ -860,16 +859,40 @@ module test_toplevel (
   assign pixel_color = frame_buff_pixel;
 
   always_ff @(posedge clk_pixel) begin
-    if (sw[9]) begin
-      red   <= {pixel_color[15:8]};
-      green <= {pixel_color[15:8]};
-      blue  <= {pixel_color[15:8]};
+    if (ch_screen_active) begin
+      red   <= red_ch;
+      green <= green_ch;
+      blue  <= blue_ch;
     end else begin
-      red   <= pixel_depth != 0 ? 8'hff : 8'h00;
-      green <= pixel_depth != 0 ? 8'hff : 8'h00;
-      blue  <= pixel_depth != 0 ? 8'hff : 8'h00;
+      if (sw[9]) begin
+        red   <= {pixel_color[15:8]};
+        green <= {pixel_color[15:8]};
+        blue  <= {pixel_color[15:8]};
+      end else begin
+        red   <= pixel_depth != 0 ? 8'hff : 8'h00;
+        green <= pixel_depth != 0 ? 8'hff : 8'h00;
+        blue  <= pixel_depth != 0 ? 8'hff : 8'h00;
+      end
     end
   end
+
+
+  // logic for crosshair screen
+  parameter CH_HRES = 320;
+  parameter CH_VRES = 180;
+  logic [7:0] red_ch, green_ch, blue_ch;
+  logic ch_screen_active;
+  assign ch_screen_active = (hcount_hdmi < CH_HRES && vcount_hdmi < CH_VRES);
+
+  // chcount, cvcout, carea are 3 indicators
+
+  always_comb begin
+    assign red_ch = (hcount_hdmi == chcount || vcount_hdmi == cvcount) ? 8'hff : 8'h33;
+    assign green_ch = (hcount_hdmi == chcount || vcount_hdmi == cvcount) ? 8'hff : 8'h33;
+    assign blue_ch = (hcount_hdmi == chcount || vcount_hdmi == cvcount) ? 8'hff : 8'h33;
+  end
+
+
 
   // HDMI video signal generator
   video_sig_gen vsg (
@@ -886,35 +909,6 @@ module test_toplevel (
 
   //   assign clk_100_passthrough = clk_100mhz;
   //   assign clk_pixel = clk_100_passthrough;
-
-  always_ff @(posedge clk_100_passthrough) begin
-    case (sw[3:2])
-      0: begin
-        case (sw[5:4])
-          0: current_tri_vertex <= tri_vertices[0][0];
-          1: current_tri_vertex <= tri_vertices[0][1];
-          2: current_tri_vertex <= tri_vertices[0][2];
-        endcase
-      end
-
-      1: begin
-        case (sw[5:4])
-          0: current_tri_vertex <= tri_vertices[1][0];
-          1: current_tri_vertex <= tri_vertices[1][1];
-          2: current_tri_vertex <= tri_vertices[1][2];
-        endcase
-      end
-
-      2: begin
-        case (sw[5:4])
-          0: current_tri_vertex <= tri_vertices[2][0];
-          1: current_tri_vertex <= tri_vertices[2][1];
-          2: current_tri_vertex <= tri_vertices[2][2];
-        endcase
-      end
-    endcase
-  end
-
 
   always_ff @(posedge clk_100_passthrough) begin
     ssd_out[31:16] <= x_com_calc;
