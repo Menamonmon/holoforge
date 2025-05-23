@@ -292,8 +292,8 @@ module test_toplevel (
   logic [2:0] channel_sel;
   logic [7:0] selected_channel;
   logic mask;
-  logic [10:0] x_com, x_com_calc;
-  logic [9:0] y_com, y_com_calc;
+  logic [10:0] x_com, x_com_calc, x_com_base, x_com_delta;
+  logic [9:0] y_com, y_com_calc, y_com_base, y_com_delta;
 
   logic new_com;
 
@@ -389,6 +389,19 @@ module test_toplevel (
       .ad_out(active_draw_com),
       .fc_out(frame_count_com)
   );
+
+
+  //coord math
+  ///
+  always_ff @(posedge clk_100_passthrough) begin
+    if (btn_rising_edge2) begin
+      x_com_base <= (x_com_calc >> 3);
+      y_com_base <= (y_com_calc >> 3);
+    end
+
+    x_com_delta<=((x_com_calc>>3) > x_com_base)? (x_com_calc>>3)-x_com_base:x_com_base-(x_com_calc>>3);
+    y_com_delta<=((y_com_calc>>3) > y_com_base)? (y_com_calc>>3)-y_com_base:y_com_base-(y_com_calc>>3);
+  end
 
   // TRIANGLE FETCH
   tri_fetch #(
@@ -917,8 +930,8 @@ module test_toplevel (
 
 
   always_ff @(posedge clk_100_passthrough) begin
-    ssd_out[31:16] <= x_com_calc;
-    ssd_out[15:0]  <= y_com_calc;
+    ssd_out[31:16] <= x_com_delta;
+    ssd_out[15:0]  <= y_com_delta;
     // case (sw[15:10])
     //   0:  ssd_out <= chcount;
     //   1:  ssd_out <= cvcount;
