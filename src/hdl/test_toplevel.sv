@@ -240,7 +240,7 @@ module test_toplevel (
       .douta(),  //never read from this side
       .addrb(addrb),  //transformed lookup pixel
       .dinb(16'b0),
-      .clkb(clk_pixel),
+      .clkb(clk_100_passthrough),
       .web(1'b0),
       .enb(1'b1),
       .doutb(frame_buff_raw)
@@ -256,7 +256,7 @@ module test_toplevel (
       .DATA_WIDTH(11),
       .STAGES(8)
   ) hpipe1 (
-      .clk_in(clk_pixel),
+      .clk_in(clk_100_passthrough),
       .data(hcount_com),
       .data_out(h_piped)
   );
@@ -264,18 +264,18 @@ module test_toplevel (
       .DATA_WIDTH(10),
       .STAGES(8)
   ) vpipe1 (
-      .clk_in(clk_pixel),
+      .clk_in(clk_100_passthrough),
       .data(vcount_com),
       .data_out(v_piped)
   );
 
-  always_ff @(posedge clk_pixel) begin
-    addrb <= (319 - hcount_hdmi) + 320 * vcount_hdmi;
-    good_addrb <= (hcount_hdmi < 320) && (vcount_hdmi < 180);
+  always_ff @(posedge clk_100_passthrough) begin
+    addrb <= (319 - hcount_com) + 320 * vcount_com;
+    good_addrb <= (hcount_com < 320) && (vcount_com < 180);
   end
 
   logic [7:0] fb_red, fb_green, fb_blue;
-  always_ff @(posedge clk_pixel) begin
+  always_ff @(posedge clk_100_passthrough) begin
     fb_red   <= good_addrb ? {frame_buff_raw[15:11], 3'b0} : 8'b0;
     fb_green <= good_addrb ? {frame_buff_raw[10:5], 2'b0} : 8'b0;
     fb_blue  <= good_addrb ? {frame_buff_raw[4:0], 3'b0} : 8'b0;
@@ -285,7 +285,7 @@ module test_toplevel (
   logic [7:0] y, cr, cb;  //ycrcb conversion of full pixel
 
   rgb_to_ycrcb rgbtoycrcb_m (
-      .clk_in(clk_pixel),
+      .clk_in(clk_100_passthrough),
       .r_in  (fb_red),
       .g_in  (fb_green),
       .b_in  (fb_blue),
@@ -315,7 +315,7 @@ module test_toplevel (
       .DATA_WIDTH(8),
       .STAGES(4)
   ) fb_r_p (
-      .clk_in(clk_pixel),
+      .clk_in(clk_100_passthrough),
       .data(fb_red),
       .data_out(fb_r_piped)
   );
@@ -323,7 +323,7 @@ module test_toplevel (
       .DATA_WIDTH(8),
       .STAGES(4)
   ) fb_g_p (
-      .clk_in(clk_pixel),
+      .clk_in(clk_100_passthrough),
       .data(fb_green),
       .data_out(fb_g_piped)
   );
@@ -331,7 +331,7 @@ module test_toplevel (
       .DATA_WIDTH(8),
       .STAGES(4)
   ) fb_b_p (
-      .clk_in(clk_pixel),
+      .clk_in(clk_100_passthrough),
       .data(fb_blue),
       .data_out(fb_b_piped)
   );
@@ -339,7 +339,7 @@ module test_toplevel (
   // channel_select mcs (
   //     .sel_in(channel_sel),
   //     .r_in(fb_data_out[2]),  //TODO: needs to use pipelined signal (PS1)
-  //     .g_in(fb_g_piped[2]),  //TODO: needs to use pipelined signal (PS1)
+  //     .g_in(fb_g_piped[2]m),  //TODO: needs to use pipelined signal (PS1)
   //     .b_in(fb_b_piped[2]),  //TODO: needs to use pipelined signal (PS1)
   //     .y_in(y),
   //     .cr_in(cr),
@@ -360,8 +360,8 @@ module test_toplevel (
 
 
   threshold mt (
-      .clk_in(clk_pixel),
-      .rst_in(sys_rst_pixel),
+      .clk_in(clk_100_passthrough),
+      .rst_in(sys_rst),
       .pixel_in(cr),
       .pixel_inb(cb),
       .lower_bound_in(0),
@@ -376,14 +376,14 @@ module test_toplevel (
       .DATA_WIDTH(1),
       .STAGES(8)
   ) fram_pipe (
-      .clk_in(clk_pixel),
+      .clk_in(clk_100_passthrough),
       .data(nf_com),
       .data_out(new_frame)
   );
 
   center_of_mass com_m (
-      .clk_in(clk_pixel),
-      .rst_in(sys_rst_pixel),
+      .clk_in(clk_100_passthrough),
+      .rst_in(sys_rst),
       .x_in(h_piped),  //TODO: needs to use pipelined signal! (PS3)
       .y_in(v_piped),  //TODO: needs to use pipelined signal! (PS3)
       .valid_in(mask),  //aka threshold
@@ -393,8 +393,8 @@ module test_toplevel (
       .valid_out(new_com)
   );
 
-  always_ff @(posedge clk_pixel) begin
-    if (sys_rst_pixel) begin
+  always_ff @(posedge clk_100_passthrough) begin
+    if (sys_rst) begin
       x_com <= 0;
       y_com <= 0;
     end
@@ -407,8 +407,8 @@ module test_toplevel (
   logic [7:0] img_red, img_green, img_blue;
 
   video_sig_gen vsg_com (
-      .pixel_clk_in(clk_pixel),
-      .rst_in(sys_rst_pixel),
+      .pixel_clk_in(clk_100_passthrough),
+      .rst_in(sys_rst),
       .hcount_out(hcount_com),
       .vcount_out(vcount_com),
       .vs_out(vsync_com),
