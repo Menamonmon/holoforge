@@ -1,5 +1,5 @@
 Next Steps
-- [ ] clean coords on seven seg
+- [x] clean coords on seven seg
 - [ ] use camera control for rotation coordinates
 - [ ] feed back screen
 - [ ] fixing rasterzation dissepear after a 180
