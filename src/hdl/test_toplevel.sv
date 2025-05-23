@@ -435,25 +435,41 @@ module test_toplevel (
     if (sys_rst) begin
       chcount <= HRES / 2;
       cvcount <= VRES / 2;
-      carea   <= DEPTH / 2;
+      carea   <= DEPTH;
     end else begin
-      case (sw[1:0])
-        2'b00: begin
-          chcount <= fbtn_rising_edge[2] ? chcount + 10 : (fbtn_rising_edge[3] ? chcount - 10 : chcount);
+      if (btn_rising_edge2) begin
+        chcount <= HRES / 2;
+        cvcount <= VRES / 2;
+        carea   <= DEPTH;
+      end else begin
+        //x_com calc
+        if (x_com_calc > x_com_base) begin
+          chcount <= (HRES / 2) + (x_com_delta << 2);
+        end else begin
+          chcount <= (HRES / 2) - (x_com_delta << 2);
         end
-        2'b01: begin
-          cvcount <= fbtn_rising_edge[2] ? cvcount + 10 : (fbtn_rising_edge[3] ? cvcount - 10 : cvcount);
-        end
-        2'b10: begin
-          carea <= fbtn_rising_edge[2] ? carea + 50 : (fbtn_rising_edge[3] ? carea - 50 : carea);
-        end
-        2'b11: begin
-          chcount <= HRES / 2;
-          cvcount <= VRES / 2;
-          carea   <= DEPTH / 2;
-        end
-      endcase
 
+
+
+
+      end
+      // case (sw[1:0])
+      //   2'b00: begin
+      //     chcount <= fbtn_rising_edge[2] ? chcount + 10 : (fbtn_rising_edge[3] ? chcount - 10 : chcount);
+      //   end
+      //   2'b01: begin
+      //     cvcount <= fbtn_rising_edge[2] ? cvcount + 10 : (fbtn_rising_edge[3] ? cvcount - 10 : cvcount);
+      //   end
+      //   2'b10: begin
+      //     carea <= fbtn_rising_edge[2] ? carea + 50 : (fbtn_rising_edge[3] ? carea - 50 : carea);
+      //   end
+      //   2'b11: begin
+      //     chcount <= HRES / 2;
+      //     cvcount <= VRES / 2;
+      //     carea   <= DEPTH / 2;
+      //   end
+      // endcase
+      //
 
     end
 
