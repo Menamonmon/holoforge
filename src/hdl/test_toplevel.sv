@@ -208,20 +208,15 @@ module test_toplevel (
   logic [15:0] camera_mem;  //used to pass pixel data into frame buffer
 
 
-  //TO DO in camera part 1:
   always_ff @(posedge clk_camera) begin
-    //create logic to handle wriiting of camera.
-    //we want to down sample the data from the camera by a factor of four in both
-    //the x and y dimensions! TO DO
     if (camera_hcount[1:0] == 2'b00 && camera_vcount[1:0] == 2'b00) begin
       addra <= ((camera_hcount >> 2) + 320 * (camera_vcount >> 2));
       valid_camera_mem <= camera_valid;
       camera_mem <= camera_pixel;
     end
-
   end
 
-  // video signal generator signals
+  // video signal generator signals(spoofed for COM calc)
   logic        hsync_com;
   logic        vsync_com;
   logic [10:0] hcount_com;
@@ -232,22 +227,22 @@ module test_toplevel (
   logic        nf_com;
 
   blk_mem_gen_0 frame_buffer (
-      .addra(addra),  //pixels are stored using this math
-      .clka(clk_camera),
-      .wea(valid_camera_mem),
-      .dina(camera_mem),
-      .ena(1'b1),
-      .douta(),  //never read from this side
-      .addrb(addrb),  //transformed lookup pixel
-      .dinb(16'b0),
-      .clkb(clk_100_passthrough),
-      .web(1'b0),
-      .enb(1'b1),
+      .addra(addra),
+      .clka (clk_camera),
+      .wea  (valid_camera_mem),
+      .dina (camera_mem),
+      .ena  (1'b1),
+      .douta(),
+      .addrb(addrb),
+      .dinb (16'b0),
+      .clkb (clk_100_passthrough),
+      .web  (1'b0),
+      .enb  (1'b1),
       .doutb(frame_buff_raw)
   );
-  logic [15:0] frame_buff_raw;  //data out of frame buffer (565)
-  logic [FB_SIZE-1:0] addrb;  //used to lookup address in memory for reading from buffer
-  logic good_addrb;  //used to indicate within valid frame for scaling
+  logic [15:0] frame_buff_raw;
+  logic [FB_SIZE-1:0] addrb;
+  logic good_addrb;
 
   logic [10:0] h_piped;
   logic [9:0] v_piped;
@@ -281,8 +276,8 @@ module test_toplevel (
     fb_blue  <= good_addrb ? {frame_buff_raw[4:0], 3'b0} : 8'b0;
   end
 
-  logic [9:0] y_full, cr_full, cb_full;  //ycrcb conversion of full pixel
-  logic [7:0] y, cr, cb;  //ycrcb conversion of full pixel
+  logic [9:0] y_full, cr_full, cb_full;
+  logic [7:0] y, cr, cb;
 
   rgb_to_ycrcb rgbtoycrcb_m (
       .clk_in(clk_100_passthrough),
@@ -295,12 +290,12 @@ module test_toplevel (
   );
 
   logic [2:0] channel_sel;
-  logic [7:0] selected_channel;  //selected channels
-  logic mask;  //Whether or not thresholded pixel is 1 or 0
-  logic [10:0] x_com, x_com_calc;  //long term x_com and output from module, resp
-  logic [9:0] y_com, y_com_calc;  //long term y_com and output from module, resp
+  logic [7:0] selected_channel;
+  logic mask;
+  logic [10:0] x_com, x_com_calc;
+  logic [9:0] y_com, y_com_calc;
 
-  logic new_com;  //used to know when to update x_com and y_com ...
+  logic new_com;
 
   assign y  = y_full[7:0];
   assign cr = {!cr_full[7], cr_full[6:0]};
@@ -336,29 +331,6 @@ module test_toplevel (
       .data_out(fb_b_piped)
   );
 
-  // channel_select mcs (
-  //     .sel_in(channel_sel),
-  //     .r_in(fb_data_out[2]),  //TODO: needs to use pipelined signal (PS1)
-  //     .g_in(fb_g_piped[2]m),  //TODO: needs to use pipelined signal (PS1)
-  //     .b_in(fb_b_piped[2]),  //TODO: needs to use pipelined signal (PS1)
-  //     .y_in(y),
-  //     .cr_in(cr),
-  //     .cb_in(cb),
-  //     .channel_out(selected_channel)
-  // );
-
-  // channel_select mcs(
-  //    .sel_in(channel_sel),
-  //    .r_in(fb_data_out[2]),    //TODO: needs to use pipelined signal (PS1)
-  //    .g_in(fb_g_piped[2]),  //TODO: needs to use pipelined signal (PS1)
-  //    .b_in(fb_b_piped[2]),   //TODO: needs to use pipelined signal (PS1)
-  //    .y_in(y),
-  //    .cr_in(cr),
-  //    .cb_in(cb),
-  //    .channel_out(selected_channel)
-  // );
-
-
   threshold mt (
       .clk_in(clk_100_passthrough),
       .rst_in(sys_rst),
@@ -384,9 +356,9 @@ module test_toplevel (
   center_of_mass com_m (
       .clk_in(clk_100_passthrough),
       .rst_in(sys_rst),
-      .x_in(h_piped),  //TODO: needs to use pipelined signal! (PS3)
-      .y_in(v_piped),  //TODO: needs to use pipelined signal! (PS3)
-      .valid_in(mask),  //aka threshold
+      .x_in(h_piped),
+      .y_in(v_piped),
+      .valid_in(mask),
       .tabulate_in((new_frame)),
       .x_out(x_com_calc),
       .y_out(y_com_calc),
@@ -418,13 +390,6 @@ module test_toplevel (
       .fc_out(frame_count_com)
   );
 
-
-
-
-
-
-
-
   // TRIANGLE FETCH
   tri_fetch #(
       .TRI_COUNT(TRI_COUNT)
@@ -436,8 +401,6 @@ module test_toplevel (
       .tri_vertices_out(tri_vertices),
       .tri_id_out(tri_id)
   );
-
-
 
   localparam C_WIDTH = 18;
   localparam COLOR_WIDTH = 16;
