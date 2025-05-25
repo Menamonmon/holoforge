@@ -448,10 +448,6 @@ module test_toplevel (
         end else begin
           chcount <= (HRES / 2) - (x_com_delta << 2);
         end
-
-
-
-
       end
       // case (sw[1:0])
       //   2'b00: begin
