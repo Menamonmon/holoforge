@@ -887,9 +887,9 @@ module test_toplevel (
   // chcount, cvcout, carea are 3 indicators
 
   always_comb begin
-    assign red_ch = (hcount_hdmi == chcount || vcount_hdmi == cvcount) ? 8'hff : 8'h33;
-    assign green_ch = (hcount_hdmi == chcount || vcount_hdmi == cvcount) ? 8'hff : 8'h33;
-    assign blue_ch = (hcount_hdmi == chcount || vcount_hdmi == cvcount) ? 8'hff : 8'h33;
+    red_ch   = (hcount_hdmi == chcount || vcount_hdmi == cvcount) ? 8'hff : 8'h33;
+    green_ch = (hcount_hdmi == chcount || vcount_hdmi == cvcount) ? 8'hff : 8'h33;
+    blue_ch  = (hcount_hdmi == chcount || vcount_hdmi == cvcount) ? 8'hff : 8'h33;
   end
 
 
