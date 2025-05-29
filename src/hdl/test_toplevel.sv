@@ -112,8 +112,8 @@ module test_toplevel (
   logic [15:0] data;
   logic [26:0] addr;
   logic next_data_ready;
-  logic [$clog2(HRES)-1:0] chcount;
-  logic [$clog2(VRES)-1:0] cvcount;
+  logic [$clog2(HRES)-1:0] chcount, temp_chcount;
+  logic [$clog2(VRES)-1:0] cvcount, temp_cvcount;
   logic [$clog2(DEPTH)-1:0] carea;
   assign next_data_ready = stacker_ready_out;
 
@@ -394,7 +394,7 @@ module test_toplevel (
   //coord math
   ///
   always_ff @(posedge clk_100_passthrough) begin
-    if (btn_rising_edge2) begin
+    if (fbtn_rising_edge[2]) begin
       x_com_base <= (x_com_calc >> 3);
       y_com_base <= (y_com_calc >> 3);
     end
@@ -435,18 +435,36 @@ module test_toplevel (
     if (sys_rst) begin
       chcount <= HRES / 2;
       cvcount <= VRES / 2;
-      carea   <= DEPTH;
+      carea   <= DEPTH / 2;
     end else begin
-      if (btn_rising_edge2) begin
+      if (fbtn_rising_edge[2]) begin
         chcount <= HRES / 2;
         cvcount <= VRES / 2;
-        carea   <= DEPTH;
+        carea   <= DEPTH / 2;
       end else begin
         //x_com calc
-        if (x_com_calc > x_com_base) begin
-          chcount <= (HRES / 2) + (x_com_delta << 2);
+        if ((x_com_calc >> 3) > x_com_base) begin
+          temp_cvcount = (HRES / 2) + (x_com_delta << 1);
+          if (!(temp_cvcount > HRES)) begin
+            chcount <= (HRES / 2) + (x_com_delta << 1);
+          end
         end else begin
-          chcount <= (HRES / 2) - (x_com_delta << 2);
+          temp_cvcount = (HRES / 2) - (x_com_delta << 1);
+          if (!(temp_cvcount < 0)) begin
+            chcount <= (HRES / 2) - (x_com_delta << 1);
+          end
+        end
+
+        if ((y_com_calc >> 3) > y_com_base) begin
+          temp_chcount = (VRES / 2) + (y_com_delta << 1);
+          if (!(temp_chcount > VRES)) begin
+            cvcount <= (VRES / 2) + (y_com_delta << 1);
+          end
+        end else begin
+          temp_chcount = (VRES / 2) - (y_com_delta << 1);
+          if (!(temp_chcount < 0)) begin
+            cvcount <= (VRES / 2) - (y_com_delta << 1);
+          end
         end
       end
       // case (sw[1:0])
