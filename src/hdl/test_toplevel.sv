@@ -112,8 +112,11 @@ module test_toplevel (
   logic [15:0] data;
   logic [26:0] addr;
   logic next_data_ready;
-  logic [$clog2(HRES)-1:0] chcount, temp_chcount;
-  logic [$clog2(VRES)-1:0] cvcount, temp_cvcount;
+  logic [$clog2(HRES)-1:0] chcount;
+  logic [$clog2(VRES)-1:0] cvcount;
+
+  logic signed [$clog2(HRES-1):0] temp_chcount;
+  logic signed [$clog2(HRES-1):0] temp_cvcount;
   logic [$clog2(DEPTH)-1:0] carea;
   assign next_data_ready = stacker_ready_out;
 
@@ -442,28 +445,28 @@ module test_toplevel (
         cvcount <= VRES / 2;
         carea   <= DEPTH / 2;
       end else begin
-        //x_com calc
-        if ((x_com_calc >> 3) > x_com_base) begin
-          temp_cvcount = (HRES / 2) + (x_com_delta << 1);
-          if (!(temp_cvcount > HRES)) begin
-            chcount <= (HRES / 2) + (x_com_delta << 1);
+        //y_com calc coordinates with it
+        if ((y_com_calc >> 3) > y_com_base) begin
+          temp_chcount = $signed((HRES / 2)) + $signed((y_com_delta << 2));
+          if (!(temp_chcount > HRES)) begin
+            chcount <= (HRES / 2) + (y_com_delta << 2);
           end
         end else begin
-          temp_cvcount = (HRES / 2) - (x_com_delta << 1);
-          if (!(temp_cvcount < 0)) begin
-            chcount <= (HRES / 2) - (x_com_delta << 1);
+          temp_chcount = $signed((HRES / 2)) - $signed((y_com_delta << 2));
+          if (!($signed(temp_chcount) < 0)) begin
+            chcount <= (HRES / 2) - (y_com_delta << 2);
           end
         end
 
-        if ((y_com_calc >> 3) > y_com_base) begin
-          temp_chcount = (VRES / 2) + (y_com_delta << 1);
-          if (!(temp_chcount > VRES)) begin
-            cvcount <= (VRES / 2) + (y_com_delta << 1);
+        if ((x_com_calc >> 3) > x_com_base) begin
+          temp_cvcount = $signed((VRES / 2)) + $signed((x_com_delta << 2));
+          if (!(temp_cvcount > VRES)) begin
+            cvcount <= (VRES / 2) + (x_com_delta << 2);
           end
         end else begin
-          temp_chcount = (VRES / 2) - (y_com_delta << 1);
-          if (!(temp_chcount < 0)) begin
-            cvcount <= (VRES / 2) - (y_com_delta << 1);
+          temp_cvcount = $signed((VRES / 2)) - $signed((x_com_delta << 2));
+          if (!($signed(temp_cvcount) < 0)) begin
+            cvcount <= (VRES / 2) - (x_com_delta << 2);
           end
         end
       end
@@ -903,15 +906,36 @@ module test_toplevel (
   assign pixel_color = frame_buff_pixel;
 
   always_ff @(posedge clk_pixel) begin
-    if (sw[9]) begin
-      red   <= {pixel_color[15:8]};
-      green <= {pixel_color[15:8]};
-      blue  <= {pixel_color[15:8]};
+    if (ch_screen_active) begin
+      red   <= red_ch;
+      green <= green_ch;
+      blue  <= blue_ch;
     end else begin
-      red   <= pixel_depth != 0 ? 8'hff : 8'h00;
-      green <= pixel_depth != 0 ? 8'hff : 8'h00;
-      blue  <= pixel_depth != 0 ? 8'hff : 8'h00;
+      if (sw[9]) begin
+        red   <= {pixel_color[15:8]};
+        green <= {pixel_color[15:8]};
+        blue  <= {pixel_color[15:8]};
+      end else begin
+        red   <= pixel_depth != 0 ? 8'hff : 8'h00;
+        green <= pixel_depth != 0 ? 8'hff : 8'h00;
+        blue  <= pixel_depth != 0 ? 8'hff : 8'h00;
+      end
     end
+  end
+
+  //logic for crosshair
+  parameter CH_HRES = 320;
+  parameter CH_VRES = 180;
+
+  logic [7:0] red_ch, green_ch, blue_ch;
+  logic ch_screen_active;
+
+  assign ch_screen_active = (hcount_hdmi < CH_HRES && vcount_hdmi < CH_VRES);
+
+  always_comb begin
+    red_ch   = (hcount_hdmi == chcount || vcount_hdmi == cvcount) ? 8'hff : 8'h33;
+    green_ch = (hcount_hdmi == chcount || vcount_hdmi == cvcount) ? 8'hff : 8'h33;
+    blue_ch  = (hcount_hdmi == chcount || vcount_hdmi == cvcount) ? 8'hff : 8'h33;
   end
 
   // HDMI video signal generator
